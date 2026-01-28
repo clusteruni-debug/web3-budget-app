@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web3 수익 가계부</title>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Web3 수익 가계부</h1>
+        <p class="subtitle">에어드랍 및 Web3 활동 수익 관리</p>
+
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="home">🏠 홈</button>
+            <button class="tab-button" data-tab="dashboard">📊 대시보드</button>
+            <button class="tab-button" data-tab="recurring">💼 고정 항목</button>
+            <button class="tab-button" data-tab="rpg">🎮 RPG</button>
+            <button class="tab-button" data-tab="transactions">📝 거래 내역</button>
+        </div>
+
+        <!-- 탭 컨텐츠는 JavaScript로 동적 생성 -->
+        <div id="app-content"></div>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- 메인 앱 -->
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
