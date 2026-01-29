@@ -2,11 +2,9 @@ import { getCurrentUser, onAuthStateChange } from './services/supabase.js';
 import { autoSignUpAndLogin, getAutoLoginInfo, signOut, clearAutoLoginInfo } from './services/auth.js';
 import { createAuthComponent, initAuthComponent } from './components/AuthComponent.js';
 import { createHomeTab, initHomeTab } from './components/HomeTab.js';
+import { createAssetManagementTab, initAssetManagementTab } from './components/AssetManagementTab.js';
 import { createDashboardTab, initDashboardTab, editTransaction } from './components/DashboardTab.js';
-import { createRecurringTab, initRecurringTab } from './components/RecurringTab.js';
-import { createRPGTab, initRPGTab } from './components/RPGTab.js';
 import { createTransactionsTab, initTransactionsTab, refreshTransactions } from './components/TransactionsTab.js';
-import { createAccountsTab, initAccountsTab } from './components/AccountsTab.js';
 
 class App {
     constructor() {
@@ -186,37 +184,16 @@ class App {
                 await initHomeTab((tab) => this.switchTab(tab));
                 break;
 
-            case 'dashboard':
-                appContent.innerHTML = createDashboardTab();
-                await initDashboardTab(() => {
-                    // 다른 탭 새로고침 필요시 호출
-                });
-                break;
-
-            case 'recurring':
-                appContent.innerHTML = createRecurringTab();
-                await initRecurringTab();
-                break;
-
-            case 'rpg':
-                appContent.innerHTML = createRPGTab();
-                await initRPGTab();
+            case 'assets':
+                appContent.innerHTML = createAssetManagementTab();
+                await initAssetManagementTab();
                 break;
 
             case 'transactions':
-                appContent.innerHTML = createTransactionsTab();
-                await initTransactionsTab(
-                    (tab) => this.switchTab(tab),
-                    (transaction) => {
-                        // 대시보드 탭에서 수정 모드 활성화
-                        setTimeout(() => editTransaction(transaction), 200);
-                    }
-                );
-                break;
-
-            case 'accounts':
-                appContent.innerHTML = createAccountsTab();
-                await initAccountsTab();
+                appContent.innerHTML = createDashboardTab();
+                await initDashboardTab(() => {
+                    // 홈 탭 새로고침이 필요할 수 있음
+                });
                 break;
 
             default:

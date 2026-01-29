@@ -95,59 +95,72 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
             min-height: 100vh;
             padding: 20px;
+            color: #fff;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
+            background: rgba(30, 30, 46, 0.95);
+            backdrop-filter: blur(20px);
             border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         h1 {
             text-align: center;
-            color: #667eea;
+            color: #fff;
             margin-bottom: 10px;
             font-size: 2em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .subtitle {
             text-align: center;
-            color: #666;
+            color: rgba(255, 255, 255, 0.6);
             margin-bottom: 30px;
         }
 
         .tab-navigation {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             margin-bottom: 30px;
-            border-bottom: 2px solid #f0f0f0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border-bottom: none;
         }
 
         .tab-button {
-            padding: 12px 25px;
-            background: none;
+            flex: 1;
+            padding: 14px 20px;
+            background: transparent;
             border: none;
-            border-bottom: 3px solid transparent;
-            color: #666;
-            font-size: 1em;
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.95em;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
         }
 
         .tab-button:hover {
-            color: #667eea;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .tab-button.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
+            color: #fff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
         .tab-content {
@@ -199,14 +212,16 @@
         }
 
         .input-section {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
             padding: 25px;
             border-radius: 15px;
             margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .input-section h2 {
-            color: #667eea;
+            color: #fff;
             margin-bottom: 20px;
             font-size: 1.3em;
         }
@@ -221,7 +236,7 @@
         .form-group label {
             display: block;
             margin-bottom: 5px;
-            color: #333;
+            color: rgba(255, 255, 255, 0.7);
             font-weight: 500;
         }
 
@@ -229,16 +244,28 @@
         .form-group select {
             width: 100%;
             padding: 10px;
-            border: 2px solid #ddd;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 8px;
             font-size: 1em;
-            transition: border-color 0.3s;
+            color: #fff;
+            transition: all 0.3s;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-group select option {
+            background: #1e1e2e;
+            color: #fff;
         }
 
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
             border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
         }
 
         .btn {
@@ -269,7 +296,7 @@
         }
 
         .transactions h2 {
-            color: #667eea;
+            color: #fff;
             margin-bottom: 20px;
             font-size: 1.3em;
         }
@@ -281,8 +308,8 @@
         }
 
         .transaction-item {
-            background: white;
-            border: 2px solid #f0f0f0;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             padding: 15px;
             border-radius: 10px;
             display: flex;
@@ -292,16 +319,16 @@
         }
 
         .transaction-item:hover {
-            border-color: #667eea;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: rgba(102, 126, 234, 0.5);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .transaction-item.income {
-            border-left: 5px solid #38ef7d;
+            border-left: 4px solid #22c55e;
         }
 
         .transaction-item.expense {
-            border-left: 5px solid #ff6a00;
+            border-left: 4px solid #ef4444;
         }
 
         .transaction-info {
@@ -310,8 +337,8 @@
 
         .transaction-category {
             display: inline-block;
-            background: #667eea;
-            color: white;
+            background: rgba(102, 126, 234, 0.3);
+            color: #a5b4fc;
             padding: 3px 10px;
             border-radius: 15px;
             font-size: 0.85em;
@@ -319,7 +346,7 @@
         }
 
         .transaction-description {
-            color: #666;
+            color: rgba(255, 255, 255, 0.5);
             margin-top: 5px;
             font-size: 0.9em;
         }
@@ -2146,14 +2173,15 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 20px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     margin-bottom: 20px;
     font-size: 0.9rem;
 }
 
 .user-email {
-    color: var(--gray-700);
+    color: rgba(255, 255, 255, 0.8);
     font-weight: 500;
 }
 

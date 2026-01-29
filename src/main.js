@@ -1,6 +1,8 @@
 import App from './App.js';
 import './styles/main.css';
 import './styles/auth.css';
+import './styles/v2-home.css';
+import './styles/v2-assets.css';
 
 // 앱 초기화
 document.addEventListener('DOMContentLoaded', () => {

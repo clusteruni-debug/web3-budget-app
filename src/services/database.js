@@ -514,3 +514,246 @@ export function subscribeToRPGData(callback) {
         )
         .subscribe();
 }
+
+// ============================================
+// V2: ASSETS (통합 자산)
+// ============================================
+
+export async function getAssets(filters = {}) {
+    try {
+        let query = supabase
+            .from('assets')
+            .select('*')
+            .eq('is_active', true)
+            .order('current_value', { ascending: false });
+
+        if (filters.category) {
+            query = query.eq('category', filters.category);
+        }
+        if (filters.sub_type) {
+            query = query.eq('sub_type', filters.sub_type);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Get assets error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function getAsset(id) {
+    try {
+        const { data, error } = await supabase
+            .from('assets')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Get asset error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function createAsset(asset) {
+    try {
+        const { data, error } = await supabase
+            .from('assets')
+            .insert(asset)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Create asset error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateAsset(id, updates) {
+    try {
+        const { data, error } = await supabase
+            .from('assets')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Update asset error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteAsset(id) {
+    try {
+        const { error } = await supabase
+            .from('assets')
+            .update({ is_active: false })
+            .eq('id', id);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Delete asset error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 스테이킹 현황 조회
+export async function getStakingOverview() {
+    try {
+        const { data, error } = await supabase
+            .from('staking_overview')
+            .select('*');
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Get staking overview error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 에어드랍 현황 조회
+export async function getAirdropOverview() {
+    try {
+        const { data, error } = await supabase
+            .from('airdrop_overview')
+            .select('*');
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Get airdrop overview error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================
+// V2: DEBTS (부채)
+// ============================================
+
+export async function getDebts() {
+    try {
+        const { data, error } = await supabase
+            .from('debts')
+            .select('*')
+            .eq('is_active', true)
+            .order('remaining_amount', { ascending: false });
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Get debts error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function createDebt(debt) {
+    try {
+        const { data, error } = await supabase
+            .from('debts')
+            .insert(debt)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Create debt error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateDebt(id, updates) {
+    try {
+        const { data, error } = await supabase
+            .from('debts')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Update debt error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteDebt(id) {
+    try {
+        const { error } = await supabase
+            .from('debts')
+            .update({ is_active: false })
+            .eq('id', id);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Delete debt error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================
+// V2: NET WORTH (순자산 계산)
+// ============================================
+
+export async function calculateNetWorth() {
+    try {
+        const [assetsResult, debtsResult] = await Promise.all([
+            getAssets(),
+            getDebts()
+        ]);
+
+        if (!assetsResult.success || !debtsResult.success) {
+            throw new Error('Failed to fetch data');
+        }
+
+        const assets = assetsResult.data || [];
+        const debts = debtsResult.data || [];
+
+        // 카테고리별 합계
+        const totalByCategory = {
+            crypto: 0,
+            stock: 0,
+            cash: 0,
+            real_estate: 0,
+            other: 0
+        };
+
+        assets.forEach(asset => {
+            const category = asset.category || 'other';
+            totalByCategory[category] = (totalByCategory[category] || 0) + (asset.current_value || 0);
+        });
+
+        const totalAssets = Object.values(totalByCategory).reduce((a, b) => a + b, 0);
+        const totalDebts = debts.reduce((sum, d) => sum + (d.remaining_amount || 0), 0);
+        const netWorth = totalAssets - totalDebts;
+
+        return {
+            success: true,
+            data: {
+                totalAssets,
+                totalDebts,
+                netWorth,
+                byCategory: totalByCategory,
+                assetsCount: assets.length,
+                debtsCount: debts.length
+            }
+        };
+    } catch (error) {
+        console.error('Calculate net worth error:', error);
+        return { success: false, error: error.message };
+    }
+}

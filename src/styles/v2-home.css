@@ -1,0 +1,877 @@
+/* ============================================
+   V2: 통합 자산 관리 - 프리미엄 다크 테마
+   ============================================ */
+
+/* 전체 배경 */
+.home-container.v2 {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+    border-radius: var(--radius-2xl);
+}
+
+/* 글래스모피즘 카드 기본 */
+.glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-xl);
+}
+
+/* ============================================
+   순자산 히어로 - 메인 포커스
+   ============================================ */
+.net-worth-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-10);
+    text-align: center;
+    box-shadow:
+        0 20px 60px rgba(102, 126, 234, 0.4),
+        0 0 100px rgba(118, 75, 162, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.net-worth-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+    animation: shimmer 3s infinite linear;
+}
+
+@keyframes shimmer {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.net-worth-label {
+    font-size: var(--text-lg);
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    position: relative;
+    z-index: 1;
+}
+
+.net-worth-value {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: white;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    margin-bottom: var(--space-4);
+    position: relative;
+    z-index: 1;
+}
+
+.net-worth-breakdown {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-4);
+    font-size: var(--text-lg);
+    color: rgba(255, 255, 255, 0.9);
+    position: relative;
+    z-index: 1;
+}
+
+.net-worth-breakdown .separator {
+    opacity: 0.5;
+    font-size: 1.5rem;
+}
+
+.assets-total {
+    color: #a7f3d0;
+}
+
+.debts-total {
+    color: #fecaca;
+}
+
+/* ============================================
+   목표 진행률 - 골드 테마
+   ============================================ */
+.goal-progress-card {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.goal-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.goal-icon {
+    font-size: 2rem;
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5));
+}
+
+.goal-title {
+    flex: 1;
+    font-weight: 600;
+    color: #fbbf24;
+    font-size: var(--text-lg);
+}
+
+.goal-percent {
+    font-weight: 800;
+    font-size: var(--text-xl);
+    color: #fbbf24;
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.goal-progress-bar {
+    height: 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: var(--space-3);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.goal-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 50%, #fcd34d 100%);
+    border-radius: var(--radius-full);
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.goal-remaining {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: var(--text-sm);
+}
+
+/* ============================================
+   섹션 카드 - 글래스 효과
+   ============================================ */
+.section-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    transition: all 0.3s ease;
+}
+
+.section-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.section-title {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    margin-bottom: var(--space-5);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* ============================================
+   자산 구성 차트 및 레전드
+   ============================================ */
+.chart-and-legend {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: var(--space-6);
+    align-items: start;
+}
+
+.chart-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.chart-wrapper canvas {
+    max-width: 200px;
+    max-height: 200px;
+}
+
+/* ============================================
+   자산 카테고리 그리드
+   ============================================ */
+.asset-category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-3);
+}
+
+.asset-category-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.asset-category-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 4px 0 0 4px;
+}
+
+.asset-category-item:nth-child(1)::before { background: #f7931a; }
+.asset-category-item:nth-child(2)::before { background: #4CAF50; }
+.asset-category-item:nth-child(3)::before { background: #2196F3; }
+.asset-category-item:nth-child(4)::before { background: #9C27B0; }
+.asset-category-item:nth-child(5)::before { background: #607D8B; }
+
+.asset-category-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.02);
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+
+.category-icon {
+    font-size: 1.5rem;
+}
+
+.category-name {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.category-value {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: white;
+    margin-bottom: var(--space-1);
+}
+
+.category-percent {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   크립토 상세 그리드 - 네온 테마
+   ============================================ */
+.crypto-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-3);
+}
+
+.crypto-type-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(236, 72, 153, 0.05) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: var(--radius-lg);
+    transition: all 0.3s ease;
+}
+
+.crypto-type-item:hover {
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+}
+
+.crypto-type-icon {
+    font-size: 1.8rem;
+}
+
+.crypto-type-info {
+    flex: 1;
+}
+
+.crypto-type-name {
+    font-weight: 600;
+    color: white;
+    font-size: var(--text-sm);
+}
+
+.crypto-type-count {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.crypto-type-value {
+    font-weight: 700;
+    color: #a78bfa;
+    font-size: var(--text-sm);
+}
+
+/* ============================================
+   2열 그리드
+   ============================================ */
+.two-column-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-5);
+}
+
+/* ============================================
+   스테이킹 리스트 - 청록 테마
+   ============================================ */
+.staking-list, .airdrop-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.staking-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(34, 211, 238, 0.05) 100%);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    border-radius: var(--radius-lg);
+    transition: all 0.3s ease;
+}
+
+.staking-item:hover {
+    border-color: rgba(6, 182, 212, 0.5);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(34, 211, 238, 0.1) 100%);
+}
+
+.staking-name {
+    font-weight: 600;
+    color: white;
+}
+
+.staking-platform {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.staking-value {
+    font-weight: 700;
+    color: #22d3ee;
+    text-align: right;
+}
+
+.staking-unlock {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    text-align: right;
+}
+
+.staking-unlock.soon {
+    color: #fbbf24;
+    font-weight: 700;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ============================================
+   에어드랍 리스트 - 그린 테마
+   ============================================ */
+.airdrop-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(74, 222, 128, 0.05) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: var(--radius-lg);
+    transition: all 0.3s ease;
+}
+
+.airdrop-item:hover {
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.airdrop-status {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px currentColor;
+}
+
+.airdrop-name {
+    font-weight: 600;
+    color: white;
+    flex: 1;
+}
+
+.airdrop-expected {
+    font-size: var(--text-sm);
+    color: #4ade80;
+    font-weight: 600;
+}
+
+/* ============================================
+   부채 섹션 - 레드 테마
+   ============================================ */
+.debt-section {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(248, 113, 113, 0.02) 100%);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.debt-summary {
+    margin-bottom: var(--space-5);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.debt-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.debt-label {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.debt-value {
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    color: #f87171;
+    text-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+.debt-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.debt-item {
+    display: grid;
+    grid-template-columns: 1fr 120px auto;
+    gap: var(--space-4);
+    align-items: center;
+    padding: var(--space-4);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-lg);
+}
+
+.debt-name {
+    font-weight: 600;
+    color: white;
+}
+
+.debt-creditor {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.debt-progress {
+    width: 120px;
+}
+
+.debt-progress-bar {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: var(--space-1);
+}
+
+.debt-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #22c55e 0%, #4ade80 100%);
+    border-radius: var(--radius-full);
+}
+
+.debt-progress-text {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+}
+
+.debt-remaining {
+    font-weight: 700;
+    color: #f87171;
+    text-align: right;
+}
+
+/* ============================================
+   현금 흐름 - 트리플 카드
+   ============================================ */
+.cashflow-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+}
+
+.cashflow-item {
+    text-align: center;
+    padding: var(--space-5);
+    border-radius: var(--radius-xl);
+    transition: all 0.3s ease;
+}
+
+.cashflow-item.income {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(74, 222, 128, 0.05) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.cashflow-item.expense {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(248, 113, 113, 0.05) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.cashflow-item.net {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(167, 139, 250, 0.05) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.cashflow-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.cashflow-value {
+    font-size: var(--text-2xl);
+    font-weight: 800;
+}
+
+.cashflow-item.income .cashflow-value {
+    color: #4ade80;
+}
+
+.cashflow-item.expense .cashflow-value {
+    color: #f87171;
+}
+
+.cashflow-item.net .cashflow-value {
+    color: #a78bfa;
+}
+
+.cashflow-value.positive {
+    color: #4ade80;
+}
+
+.cashflow-value.negative {
+    color: #f87171;
+}
+
+/* ============================================
+   빠른 액션 그리드
+   ============================================ */
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-3);
+}
+
+.quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.quick-action-btn:hover {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+}
+
+.quick-action-icon {
+    font-size: 1.5rem;
+}
+
+.quick-action-label {
+    font-size: var(--text-sm);
+    font-weight: 500;
+}
+
+/* ============================================
+   RPG 위젯
+   ============================================ */
+.rpg-widget {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-8);
+    padding: var(--space-5);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.1) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: var(--radius-xl);
+}
+
+.rpg-level, .rpg-streak {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.rpg-icon {
+    font-size: 1.8rem;
+}
+
+.rpg-text {
+    font-weight: 700;
+    font-size: var(--text-xl);
+    color: white;
+}
+
+/* ============================================
+   알림 배너 - 긴급 알림
+   ============================================ */
+.alert-banners {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.alert-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert-banner.staking {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.alert-banner.airdrop {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(74, 222, 128, 0.1) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.alert-banner.urgent {
+    animation: slideIn 0.3s ease, urgentPulse 2s infinite;
+}
+
+@keyframes urgentPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 20px 5px rgba(251, 191, 36, 0.2);
+    }
+}
+
+.alert-icon {
+    font-size: 1.8rem;
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-title {
+    font-weight: 700;
+    color: white;
+    font-size: var(--text-base);
+    margin-bottom: var(--space-1);
+}
+
+.alert-banner.staking .alert-title {
+    color: #fbbf24;
+}
+
+.alert-banner.airdrop .alert-title {
+    color: #4ade80;
+}
+
+.alert-message {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ============================================
+   에어드랍 통계 그리드
+   ============================================ */
+.airdrop-stats {
+    margin-bottom: var(--space-4);
+}
+
+.airdrop-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--space-3);
+}
+
+.airdrop-stats-grid .stat-item {
+    text-align: center;
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.airdrop-stats-grid .stat-item.claimed {
+    border-left: 3px solid #4ade80;
+}
+
+.airdrop-stats-grid .stat-item.pending {
+    border-left: 3px solid #fbbf24;
+}
+
+.airdrop-stats-grid .stat-item.claimable {
+    border-left: 3px solid #22d3ee;
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
+    animation: claimablePulse 2s infinite;
+}
+
+@keyframes claimablePulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 15px 3px rgba(34, 211, 238, 0.2);
+    }
+}
+
+.airdrop-stats-grid .stat-value {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: white;
+    margin-bottom: var(--space-1);
+}
+
+.airdrop-stats-grid .stat-item.claimed .stat-value {
+    color: #4ade80;
+}
+
+.airdrop-stats-grid .stat-item.pending .stat-value {
+    color: #fbbf24;
+}
+
+.airdrop-stats-grid .stat-item.claimable .stat-value {
+    color: #22d3ee;
+}
+
+.airdrop-stats-grid .stat-label {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================
+   빈 상태 - 개선된 UI
+   ============================================ */
+.empty-state {
+    text-align: center;
+    padding: var(--space-8);
+    color: rgba(255, 255, 255, 0.4);
+    font-size: var(--text-sm);
+}
+
+.empty-state::before {
+    content: '📭';
+    display: block;
+    font-size: 2rem;
+    margin-bottom: var(--space-2);
+    opacity: 0.5;
+}
+
+/* ============================================
+   반응형
+   ============================================ */
+@media (max-width: 768px) {
+    .home-container.v2 {
+        padding: var(--space-4);
+    }
+
+    .net-worth-hero {
+        padding: var(--space-6);
+    }
+
+    .net-worth-value {
+        font-size: 2.2rem;
+    }
+
+    .net-worth-breakdown {
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    .chart-and-legend {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-wrapper {
+        margin-bottom: var(--space-4);
+    }
+
+    .asset-category-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .crypto-detail-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .two-column-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cashflow-summary-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+
+    .debt-item {
+        grid-template-columns: 1fr;
+        gap: var(--space-2);
+    }
+
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
