@@ -6,6 +6,7 @@ import { createDashboardTab, initDashboardTab, editTransaction } from './compone
 import { createRecurringTab, initRecurringTab } from './components/RecurringTab.js';
 import { createRPGTab, initRPGTab } from './components/RPGTab.js';
 import { createTransactionsTab, initTransactionsTab, refreshTransactions } from './components/TransactionsTab.js';
+import { createAccountsTab, initAccountsTab } from './components/AccountsTab.js';
 
 class App {
     constructor() {
@@ -211,6 +212,11 @@ class App {
                         setTimeout(() => editTransaction(transaction), 200);
                     }
                 );
+                break;
+
+            case 'accounts':
+                appContent.innerHTML = createAccountsTab();
+                await initAccountsTab();
                 break;
 
             default:

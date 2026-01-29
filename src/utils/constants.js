@@ -14,8 +14,40 @@ export const ACCOUNT_TYPES = {
     WEB3: 'web3',
     INVESTMENT: 'investment',
     BANK: 'bank',
-    FAMILY: 'family'
+    FAMILY: 'family',
+    EXCHANGE: 'exchange',
+    WALLET: 'wallet'
 };
+
+// 거래소 목록
+export const EXCHANGES = [
+    { id: 'binance', name: '바이낸스', icon: '🟡' },
+    { id: 'upbit', name: '업비트', icon: '🔵' },
+    { id: 'bithumb', name: '빗썸', icon: '🟠' },
+    { id: 'coinone', name: '코인원', icon: '🔷' },
+    { id: 'bybit', name: '바이비트', icon: '⚫' },
+    { id: 'okx', name: 'OKX', icon: '⚪' },
+    { id: 'gate', name: 'Gate.io', icon: '🟢' },
+    { id: 'mexc', name: 'MEXC', icon: '🔵' },
+    { id: 'htx', name: 'HTX', icon: '🔷' },
+    { id: 'other_exchange', name: '기타 거래소', icon: '📊' }
+];
+
+// 지갑 목록
+export const WALLETS = [
+    { id: 'metamask', name: '메타마스크', icon: '🦊' },
+    { id: 'phantom', name: '팬텀', icon: '👻' },
+    { id: 'kaikas', name: '카이카스', icon: '🟤' },
+    { id: 'rabby', name: 'Rabby', icon: '🐰' },
+    { id: 'ledger', name: '렛저', icon: '🔐' },
+    { id: 'trezor', name: '트레저', icon: '🛡️' },
+    { id: 'trust', name: '트러스트월렛', icon: '🛡️' },
+    { id: 'okx_wallet', name: 'OKX 월렛', icon: '⚪' },
+    { id: 'other_wallet', name: '기타 지갑', icon: '👛' }
+];
+
+// 차익거래 태그
+export const ARBITRAGE_TAGS = ['차익거래', '김프', '역프', '재정거래'];
 
 // 거래 유형
 export const TRANSACTION_TYPES = {

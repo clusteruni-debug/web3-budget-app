@@ -212,6 +212,114 @@ export async function updateAccountBalance(id, newBalance) {
     }
 }
 
+// 계정 생성 (거래소/지갑 추가용)
+export async function createAccount(account) {
+    try {
+        const { data, error } = await supabase
+            .from('accounts')
+            .insert(account)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return { success: true, data };
+    } catch (error) {
+        console.error('Create account error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 계정 수정
+export async function updateAccount(id, updates) {
+    try {
+        const { data, error } = await supabase
+            .from('accounts')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return { success: true, data };
+    } catch (error) {
+        console.error('Update account error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 계정 삭제 (비활성화)
+export async function deleteAccount(id) {
+    try {
+        const { error } = await supabase
+            .from('accounts')
+            .update({ is_active: false })
+            .eq('id', id);
+
+        if (error) throw error;
+
+        return { success: true };
+    } catch (error) {
+        console.error('Delete account error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 차익거래 기록 생성
+export async function createArbitrageTransaction(data) {
+    try {
+        const transaction = {
+            type: 'transfer',
+            category: '차익거래',
+            title: data.title,
+            description: data.description,
+            date: data.date,
+            amount: data.amount,
+            account_from: data.fromAccountId,
+            account_to: data.toAccountId,
+            is_arbitrage: true,
+            arbitrage_profit: data.profit,
+            departure_amount: data.departureAmount,
+            arrival_amount: data.arrivalAmount,
+            token_name: data.tokenName,
+            token_quantity: data.tokenQuantity,
+            tags: ['차익거래', data.profitType || '김프']
+        };
+
+        const { data: result, error } = await supabase
+            .from('transactions')
+            .insert(transaction)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return { success: true, data: result };
+    } catch (error) {
+        console.error('Create arbitrage transaction error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 차익거래 이력 조회
+export async function getArbitrageTransactions() {
+    try {
+        const { data, error } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('is_arbitrage', true)
+            .order('date', { ascending: false });
+
+        if (error) throw error;
+
+        return { success: true, data };
+    } catch (error) {
+        console.error('Get arbitrage transactions error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // ============================================
 // RECURRING ITEMS (고정 항목)
 // ============================================
