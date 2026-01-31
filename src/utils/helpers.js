@@ -16,6 +16,28 @@ export function formatAmount(num) {
     return `${formatNumber(num)}원`;
 }
 
+// 축약형 금액 표시 (억/만원 단위)
+export function formatAmountShort(num) {
+    const absNum = Math.abs(num);
+    const sign = num < 0 ? '-' : '';
+
+    if (absNum >= 100000000) {
+        // 1억 이상: "5.6억원" 또는 "56억원"
+        const billions = absNum / 100000000;
+        if (billions >= 10) {
+            return `${sign}${Math.round(billions)}억원`;
+        }
+        return `${sign}${billions.toFixed(1)}억원`;
+    } else if (absNum >= 10000000) {
+        // 1000만 이상: "5,600만원"
+        return `${sign}${formatNumber(Math.round(absNum / 10000))}만원`;
+    } else if (absNum >= 10000) {
+        // 1만 이상: "500만원"
+        return `${sign}${Math.round(absNum / 10000)}만원`;
+    }
+    return `${sign}${formatNumber(absNum)}원`;
+}
+
 // 날짜 포맷팅
 export function formatDate(dateString) {
     const date = new Date(dateString);

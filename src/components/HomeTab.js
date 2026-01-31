@@ -1,7 +1,7 @@
 // V2: 통합 자산 관리 홈 대시보드
 import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview } from '../services/database.js';
 import { calculateTotalIncome, calculateTotalExpense } from '../services/analytics.js';
-import { formatAmount } from '../utils/helpers.js';
+import { formatAmount, formatAmountShort } from '../utils/helpers.js';
 import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, GOALS } from '../utils/constants.js';
 
 let netWorthData = null;
@@ -43,59 +43,84 @@ export function createHomeTab() {
             </div>
 
             <!-- 자산 구성 차트 -->
-            <div class="section-card">
-                <h2 class="section-title">📊 자산 구성</h2>
-                <div class="chart-and-legend">
-                    <div class="chart-wrapper">
-                        <canvas id="assetPieChart" width="200" height="200"></canvas>
-                    </div>
-                    <div class="asset-category-grid" id="assetCategoryGrid">
-                        <!-- 동적으로 채워짐 -->
+            <div class="section-card collapsible" id="assetCompositionSection">
+                <h2 class="section-title" data-toggle="assetComposition">
+                    📊 자산 구성
+                    <span class="toggle-icon">▼</span>
+                </h2>
+                <div class="section-content" id="assetCompositionContent">
+                    <div class="chart-and-legend">
+                        <div class="chart-wrapper">
+                            <canvas id="assetPieChart" width="200" height="200"></canvas>
+                        </div>
+                        <div class="asset-category-grid" id="assetCategoryGrid">
+                            <!-- 동적으로 채워짐 -->
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- 크립토 세부 -->
-            <div class="section-card">
-                <h2 class="section-title">🪙 크립토 자산 상세</h2>
-                <div class="crypto-detail-grid" id="cryptoDetailGrid">
-                    <!-- 동적으로 채워짐 -->
+            <div class="section-card collapsible" id="cryptoDetailSection">
+                <h2 class="section-title" data-toggle="cryptoDetail">
+                    🪙 크립토 자산 상세
+                    <span class="toggle-icon">▼</span>
+                </h2>
+                <div class="section-content" id="cryptoDetailContent">
+                    <div class="crypto-detail-grid" id="cryptoDetailGrid">
+                        <!-- 동적으로 채워짐 -->
+                    </div>
                 </div>
             </div>
 
             <!-- 스테이킹 & 에어드랍 -->
             <div class="two-column-grid">
                 <!-- 스테이킹 현황 -->
-                <div class="section-card">
-                    <h2 class="section-title">🔒 스테이킹 현황</h2>
-                    <div class="staking-list" id="stakingList">
-                        <div class="empty-state">스테이킹 자산이 없습니다</div>
+                <div class="section-card collapsible">
+                    <h2 class="section-title" data-toggle="staking">
+                        🔒 스테이킹 현황
+                        <span class="toggle-icon">▼</span>
+                    </h2>
+                    <div class="section-content" id="stakingContent">
+                        <div class="staking-list" id="stakingList">
+                            <div class="empty-state">스테이킹 자산이 없습니다</div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 에어드랍 현황 -->
-                <div class="section-card">
-                    <h2 class="section-title">🎯 에어드랍 현황</h2>
-                    <div class="airdrop-stats" id="airdropStats">
-                        <!-- 에어드랍 통계 -->
-                    </div>
-                    <div class="airdrop-list" id="airdropList">
-                        <div class="empty-state">등록된 에어드랍이 없습니다</div>
+                <div class="section-card collapsible">
+                    <h2 class="section-title" data-toggle="airdrop">
+                        🎯 에어드랍 현황
+                        <span class="toggle-icon">▼</span>
+                    </h2>
+                    <div class="section-content" id="airdropContent">
+                        <div class="airdrop-stats" id="airdropStats">
+                            <!-- 에어드랍 통계 -->
+                        </div>
+                        <div class="airdrop-list" id="airdropList">
+                            <div class="empty-state">등록된 에어드랍이 없습니다</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- 부채 현황 -->
-            <div class="section-card debt-section">
-                <h2 class="section-title">💳 부채 현황</h2>
-                <div class="debt-summary">
-                    <div class="debt-total">
-                        <span class="debt-label">총 부채</span>
-                        <span class="debt-value" id="totalDebtDisplay">0원</span>
+            <div class="section-card debt-section collapsible">
+                <h2 class="section-title" data-toggle="debt">
+                    💳 부채 현황
+                    <span class="toggle-icon">▼</span>
+                </h2>
+                <div class="section-content" id="debtContent">
+                    <div class="debt-summary">
+                        <div class="debt-total">
+                            <span class="debt-label">총 부채</span>
+                            <span class="debt-value" id="totalDebtDisplay">0원</span>
+                        </div>
                     </div>
-                </div>
-                <div class="debt-list" id="debtList">
-                    <div class="empty-state">등록된 부채가 없습니다</div>
+                    <div class="debt-list" id="debtList">
+                        <div class="empty-state">등록된 부채가 없습니다</div>
+                    </div>
                 </div>
             </div>
 
@@ -158,6 +183,21 @@ export function createHomeTab() {
 
 export async function initHomeTab(switchTabCallback) {
     await loadHomeData();
+
+    // 섹션 접기/펼치기 이벤트
+    document.querySelectorAll('.section-title[data-toggle]').forEach(title => {
+        title.addEventListener('click', () => {
+            const sectionCard = title.closest('.section-card');
+            const content = sectionCard.querySelector('.section-content');
+            const icon = title.querySelector('.toggle-icon');
+
+            if (content) {
+                const isCollapsed = content.classList.toggle('collapsed');
+                icon.textContent = isCollapsed ? '▶' : '▼';
+                sectionCard.classList.toggle('is-collapsed', isCollapsed);
+            }
+        });
+    });
 
     // 빠른 액션 버튼 이벤트
     document.querySelectorAll('.quick-action-btn').forEach(btn => {
@@ -224,9 +264,10 @@ function updateNetWorthDisplay() {
 
     const { totalAssets, totalDebts, netWorth } = netWorthData;
 
-    document.getElementById('netWorthValue').textContent = formatAmount(netWorth);
-    document.getElementById('totalAssetsValue').textContent = formatAmount(totalAssets);
-    document.getElementById('totalDebtsValue').textContent = formatAmount(totalDebts);
+    // 메인 숫자는 축약형으로
+    document.getElementById('netWorthValue').textContent = formatAmountShort(netWorth);
+    document.getElementById('totalAssetsValue').textContent = formatAmountShort(totalAssets);
+    document.getElementById('totalDebtsValue').textContent = formatAmountShort(totalDebts);
 
     // 목표 진행률
     const goalPercent = Math.min((netWorth / GOALS.MAIN_QUEST) * 100, 100);
@@ -234,7 +275,7 @@ function updateNetWorthDisplay() {
 
     document.getElementById('goalPercent').textContent = `${goalPercent.toFixed(2)}%`;
     document.getElementById('goalProgressFill').style.width = `${goalPercent}%`;
-    document.getElementById('goalRemaining').textContent = `목표까지 ${formatAmount(remaining)} 남음`;
+    document.getElementById('goalRemaining').textContent = `목표까지 ${formatAmountShort(remaining)} 남음`;
 }
 
 let assetPieChart = null;
@@ -255,7 +296,7 @@ function updateAssetCategories() {
                     <span class="category-icon">${cat.icon}</span>
                     <span class="category-name">${cat.name}</span>
                 </div>
-                <div class="category-value">${formatAmount(value)}</div>
+                <div class="category-value">${formatAmountShort(value)}</div>
                 <div class="category-percent">${percent}%</div>
             </div>
         `;
@@ -552,44 +593,39 @@ function updateAirdropStats() {
     if (!container) return;
 
     // 에어드랍 통계 계산
-    let totalClaimed = 0;
+    let totalClaimedValue = 0;  // 청산 완료된 에어드랍의 원화 가치
     let totalPending = 0;
     let claimedCount = 0;
     let pendingCount = 0;
     let claimableCount = 0;
-    let missedCount = 0;
 
     airdropList.forEach(item => {
-        const value = item.airdrop_expected_value || item.current_value || 0;
-
         switch (item.airdrop_status) {
             case 'claimed':
-                totalClaimed += value;
+                // 청산 완료: purchase_value가 청산 당시 원화 가치
+                totalClaimedValue += item.purchase_value || 0;
                 claimedCount++;
                 break;
             case 'pending':
             case 'confirmed':
-                totalPending += value;
+                totalPending += item.airdrop_expected_value || 0;
                 pendingCount++;
                 break;
             case 'claimable':
-                totalPending += value;
+                totalPending += item.airdrop_expected_value || 0;
                 claimableCount++;
-                break;
-            case 'missed':
-                missedCount++;
                 break;
         }
     });
 
     const html = `
         <div class="airdrop-stats-grid">
-            <div class="stat-item claimed">
-                <div class="stat-value">${formatAmount(totalClaimed)}</div>
-                <div class="stat-label">수령 완료 (${claimedCount}건)</div>
+            <div class="stat-item total-earned">
+                <div class="stat-value">${formatAmountShort(totalClaimedValue)}</div>
+                <div class="stat-label">총 에어드랍 수익 (${claimedCount}건)</div>
             </div>
             <div class="stat-item pending">
-                <div class="stat-value">${formatAmount(totalPending)}</div>
+                <div class="stat-value">${formatAmountShort(totalPending)}</div>
                 <div class="stat-label">대기 중 (${pendingCount + claimableCount}건)</div>
             </div>
             ${claimableCount > 0 ? `

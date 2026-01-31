@@ -3,6 +3,7 @@ import './styles/main.css';
 import './styles/auth.css';
 import './styles/v2-home.css';
 import './styles/v2-assets.css';
+import './styles/v2-cashflow.css';
 
 // 앱 초기화
 document.addEventListener('DOMContentLoaded', () => {

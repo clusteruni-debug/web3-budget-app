@@ -189,6 +189,39 @@
     gap: var(--space-2);
 }
 
+/* 접기/펼치기 가능한 섹션 */
+.section-card.collapsible .section-title {
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.2s ease;
+}
+
+.section-card.collapsible .section-title:hover {
+    opacity: 0.8;
+}
+
+.toggle-icon {
+    margin-left: auto;
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+    transition: transform 0.3s ease;
+}
+
+.section-content {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.section-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+.section-card.is-collapsed .section-title {
+    margin-bottom: 0;
+}
+
 /* ============================================
    자산 구성 차트 및 레전드
    ============================================ */
@@ -211,21 +244,22 @@
 }
 
 /* ============================================
-   자산 카테고리 그리드
+   자산 카테고리 그리드 - 5개 한 줄 배치
    ============================================ */
 .asset-category-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: var(--space-3);
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-2);
 }
 
 .asset-category-item {
     background: rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    padding: var(--space-3);
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    min-width: 0; /* 중요: flex/grid 아이템 오버플로우 방지 */
 }
 
 .asset-category-item::before {
@@ -234,8 +268,8 @@
     left: 0;
     top: 0;
     bottom: 0;
-    width: 4px;
-    border-radius: 4px 0 0 4px;
+    width: 3px;
+    border-radius: 3px 0 0 3px;
 }
 
 .asset-category-item:nth-child(1)::before { background: #f7931a; }
@@ -252,82 +286,116 @@
 .category-header {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
+    gap: var(--space-1);
+    margin-bottom: var(--space-2);
 }
 
 .category-icon {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
+    flex-shrink: 0;
 }
 
 .category-name {
     font-weight: 500;
     color: rgba(255, 255, 255, 0.7);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .category-value {
-    font-size: var(--text-2xl);
+    font-size: var(--text-base);
     font-weight: 700;
     color: white;
     margin-bottom: var(--space-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .category-percent {
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     color: rgba(255, 255, 255, 0.5);
 }
 
 /* ============================================
-   크립토 상세 그리드 - 네온 테마
+   크립토 상세 그리드 - 네온 테마 (한 줄 배치)
    ============================================ */
 .crypto-detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--space-3);
+    display: flex;
+    gap: var(--space-2);
+    overflow-x: auto;
+    padding-bottom: var(--space-2);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+}
+
+.crypto-detail-grid::-webkit-scrollbar {
+    height: 4px;
+}
+
+.crypto-detail-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.crypto-detail-grid::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.3);
+    border-radius: 4px;
 }
 
 .crypto-type-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-4);
+    gap: var(--space-1);
+    padding: var(--space-3);
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(236, 72, 153, 0.05) 100%);
     border: 1px solid rgba(139, 92, 246, 0.2);
     border-radius: var(--radius-lg);
     transition: all 0.3s ease;
+    min-width: 90px;
+    flex-shrink: 0;
 }
 
 .crypto-type-item:hover {
     border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+    transform: translateY(-2px);
 }
 
 .crypto-type-icon {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
 }
 
 .crypto-type-info {
-    flex: 1;
+    text-align: center;
+    width: 100%;
 }
 
 .crypto-type-name {
     font-weight: 600;
     color: white;
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
+    white-space: nowrap;
 }
 
 .crypto-type-count {
-    font-size: var(--text-xs);
+    font-size: 10px;
     color: rgba(255, 255, 255, 0.5);
 }
 
 .crypto-type-value {
     font-weight: 700;
     color: #a78bfa;
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    text-align: center;
 }
 
 /* ============================================
@@ -755,8 +823,15 @@
     background: rgba(255, 255, 255, 0.05);
 }
 
-.airdrop-stats-grid .stat-item.claimed {
+.airdrop-stats-grid .stat-item.claimed,
+.airdrop-stats-grid .stat-item.total-earned {
     border-left: 3px solid #4ade80;
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%);
+}
+
+.airdrop-stats-grid .stat-item.total-earned .stat-value {
+    color: #4ade80;
+    font-size: var(--text-xl);
 }
 
 .airdrop-stats-grid .stat-item.pending {
@@ -823,6 +898,17 @@
 /* ============================================
    반응형
    ============================================ */
+@media (max-width: 1024px) {
+    .asset-category-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: var(--space-1);
+    }
+
+    .category-value {
+        font-size: var(--text-sm);
+    }
+}
+
 @media (max-width: 768px) {
     .home-container.v2 {
         padding: var(--space-4);
@@ -841,6 +927,16 @@
         gap: var(--space-2);
     }
 
+    /* 섹션 타이틀 - 모바일 */
+    .section-title {
+        font-size: var(--text-lg);
+    }
+
+    .toggle-icon {
+        font-size: var(--text-base);
+        padding: var(--space-1);
+    }
+
     .chart-and-legend {
         grid-template-columns: 1fr;
     }
@@ -849,12 +945,18 @@
         margin-bottom: var(--space-4);
     }
 
+    /* 자산 카테고리: 모바일에서 가로 스크롤 */
     .asset-category-grid {
-        grid-template-columns: repeat(2, 1fr);
+        display: flex;
+        overflow-x: auto;
+        gap: var(--space-2);
+        padding-bottom: var(--space-2);
+        scrollbar-width: thin;
     }
 
-    .crypto-detail-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .asset-category-item {
+        min-width: 100px;
+        flex-shrink: 0;
     }
 
     .two-column-grid {
@@ -862,8 +964,12 @@
     }
 
     .cashflow-summary-grid {
-        grid-template-columns: 1fr;
-        gap: var(--space-3);
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-2);
+    }
+
+    .cashflow-value {
+        font-size: var(--text-base);
     }
 
     .debt-item {
@@ -873,5 +979,29 @@
 
     .quick-actions-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .asset-category-item {
+        min-width: 85px;
+        padding: var(--space-2);
+    }
+
+    .category-icon {
+        font-size: 1rem;
+    }
+
+    .category-value {
+        font-size: var(--text-xs);
+    }
+
+    .crypto-type-item {
+        min-width: 75px;
+        padding: var(--space-2);
+    }
+
+    .crypto-type-icon {
+        font-size: 1.2rem;
     }
 }

@@ -1,0 +1,493 @@
+/* ============================================
+   V2: 현금흐름도 (Sankey) 스타일
+   ============================================ */
+
+.cashflow-container.v2 {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: var(--space-4);
+}
+
+.section-header h2 {
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-2);
+}
+
+.section-desc {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: var(--text-sm);
+}
+
+/* 기간 선택 */
+.period-selector {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.period-btn {
+    padding: var(--space-2) var(--space-4);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.period-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.period-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: transparent;
+    color: white;
+    font-weight: 600;
+}
+
+/* 요약 카드 */
+.cashflow-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+}
+
+.summary-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    border-radius: var(--radius-xl);
+    transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+}
+
+.income-card {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(74, 222, 128, 0.05) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.expense-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(248, 113, 113, 0.05) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.net-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(167, 139, 250, 0.05) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.summary-icon {
+    font-size: 2.5rem;
+}
+
+.summary-info {
+    flex: 1;
+}
+
+.summary-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--space-1);
+}
+
+.summary-value {
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    color: white;
+}
+
+.income-card .summary-value { color: #4ade80; }
+.expense-card .summary-value { color: #f87171; }
+.net-card .summary-value { color: #a78bfa; }
+.summary-value.positive { color: #4ade80; }
+.summary-value.negative { color: #f87171; }
+
+/* Sankey 차트 섹션 */
+.sankey-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.sankey-section h3 {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-lg);
+}
+
+.sankey-chart {
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.empty-chart {
+    text-align: center;
+    padding: var(--space-10);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: var(--space-4);
+    opacity: 0.5;
+}
+
+.empty-text {
+    font-size: var(--text-lg);
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--space-2);
+}
+
+.empty-hint {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Fallback Flow 시각화 */
+.fallback-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: var(--space-4);
+    width: 100%;
+    padding: var(--space-4);
+}
+
+.flow-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.flow-column h4 {
+    font-size: var(--text-base);
+    margin-bottom: var(--space-2);
+    text-align: center;
+}
+
+.flow-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.flow-bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    opacity: 0.3;
+    border-radius: var(--radius-md);
+}
+
+.flow-bar.income .flow-bar-fill {
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+
+.flow-bar.expense .flow-bar-fill {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.flow-label {
+    flex: 1;
+    font-size: var(--text-sm);
+    z-index: 1;
+}
+
+.flow-amount {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    z-index: 1;
+}
+
+.flow-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+.flow-arrow {
+    font-size: 2rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.flow-total {
+    font-size: var(--text-xl);
+    font-weight: 800;
+    color: #a78bfa;
+    padding: var(--space-3);
+    background: rgba(139, 92, 246, 0.2);
+    border-radius: var(--radius-lg);
+}
+
+/* 상세 그리드 */
+.flow-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-5);
+}
+
+.flow-detail-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.flow-detail-card h3 {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-lg);
+}
+
+.income-detail {
+    border-color: rgba(34, 197, 94, 0.2);
+}
+
+.expense-detail {
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.flow-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.flow-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.flow-item-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.flow-item-name {
+    font-weight: 500;
+    color: white;
+}
+
+.flow-item-percent {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.flow-item-bar {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.flow-item-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 0.5s ease;
+}
+
+.flow-item-fill.income {
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+
+.flow-item-fill.expense {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.flow-item-amount {
+    font-weight: 700;
+    font-size: var(--text-lg);
+    text-align: right;
+}
+
+.income-detail .flow-item-amount { color: #4ade80; }
+.expense-detail .flow-item-amount { color: #f87171; }
+
+/* 고정 지출 섹션 */
+.fixed-expense-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.fixed-expense-section h3 {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-lg);
+}
+
+.fixed-expense-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4);
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-4);
+}
+
+.fixed-expense-total .total-value {
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    color: #f87171;
+}
+
+.fixed-expense-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.fixed-expense-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-lg);
+}
+
+.expense-name {
+    font-weight: 500;
+    color: white;
+}
+
+.expense-creditor {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.expense-amount {
+    font-weight: 600;
+    color: #f87171;
+}
+
+/* 가족 부채 섹션 (참고용) */
+.family-debt-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(156, 163, 175, 0.2);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.family-debt-section h3 {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-lg);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.family-debt-summary {
+    display: flex;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+    padding: var(--space-4);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-lg);
+}
+
+.family-stat {
+    flex: 1;
+    text-align: center;
+}
+
+.family-stat .stat-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+    display: block;
+    margin-bottom: var(--space-1);
+}
+
+.family-stat .stat-value {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.family-debt-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.family-debt-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-lg);
+    border-left: 3px solid rgba(156, 163, 175, 0.3);
+}
+
+.family-debt-item .debt-name {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.family-debt-item .debt-detail {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.family-debt-item .debt-amounts {
+    text-align: right;
+}
+
+.family-debt-item .debt-principal {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.family-debt-item .debt-monthly {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .cashflow-summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .flow-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fallback-flow {
+        grid-template-columns: 1fr;
+    }
+
+    .flow-center {
+        flex-direction: row;
+        padding: var(--space-4) 0;
+    }
+
+    .flow-arrow {
+        transform: rotate(90deg);
+    }
+}

@@ -12,6 +12,7 @@
 
         <div class="tab-navigation">
             <button class="tab-button active" data-tab="home">🏠 홈</button>
+            <button class="tab-button" data-tab="cashflow">💹 현금흐름</button>
             <button class="tab-button" data-tab="assets">💰 자산관리</button>
             <button class="tab-button" data-tab="transactions">💸 거래</button>
         </div>
@@ -19,6 +20,9 @@
         <!-- 탭 컨텐츠는 JavaScript로 동적 생성 -->
         <div id="app-content"></div>
     </div>
+
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

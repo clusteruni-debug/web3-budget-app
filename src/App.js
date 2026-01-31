@@ -2,6 +2,7 @@ import { getCurrentUser, onAuthStateChange } from './services/supabase.js';
 import { autoSignUpAndLogin, getAutoLoginInfo, signOut, clearAutoLoginInfo } from './services/auth.js';
 import { createAuthComponent, initAuthComponent } from './components/AuthComponent.js';
 import { createHomeTab, initHomeTab } from './components/HomeTab.js';
+import { createCashflowTab, initCashflowTab } from './components/CashflowTab.js';
 import { createAssetManagementTab, initAssetManagementTab } from './components/AssetManagementTab.js';
 import { createDashboardTab, initDashboardTab, editTransaction } from './components/DashboardTab.js';
 import { createTransactionsTab, initTransactionsTab, refreshTransactions } from './components/TransactionsTab.js';
@@ -10,7 +11,7 @@ class App {
     constructor() {
         this.currentUser = null;
         this.currentTab = 'home';
-        this.isAutoLoginEnabled = true;
+        this.isAutoLoginEnabled = false; // 실제 이메일 로그인 사용
         this.init();
     }
 
@@ -182,6 +183,11 @@ class App {
             case 'home':
                 appContent.innerHTML = createHomeTab();
                 await initHomeTab((tab) => this.switchTab(tab));
+                break;
+
+            case 'cashflow':
+                appContent.innerHTML = createCashflowTab();
+                await initCashflowTab();
                 break;
 
             case 'assets':
