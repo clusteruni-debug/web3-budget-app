@@ -1,0 +1,598 @@
+/* ============================================
+   도구 탭 스타일
+   ============================================ */
+
+.tools-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: var(--space-6);
+}
+
+.tool-tabs {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+    padding: var(--space-2);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-xl);
+}
+
+.tool-tab-btn {
+    flex: 1;
+    padding: var(--space-3) var(--space-4);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-lg);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: var(--text-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tool-tab-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tool-tab-btn.active {
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* ============================================
+   캘린더
+   ============================================ */
+
+.calendar-container {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+}
+
+.cal-nav-btn {
+    padding: var(--space-2) var(--space-3);
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.cal-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.cal-title {
+    font-size: var(--text-xl);
+    font-weight: 700;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: var(--space-4);
+}
+
+.cal-weekday {
+    padding: var(--space-2);
+    text-align: center;
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+}
+
+#calendarDays {
+    display: contents;
+}
+
+.cal-day {
+    aspect-ratio: 1;
+    padding: var(--space-1);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cal-day:hover:not(.empty) {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.cal-day.empty {
+    background: transparent;
+    cursor: default;
+}
+
+.cal-day.today {
+    background: rgba(102, 126, 234, 0.3);
+    border: 2px solid #667eea;
+}
+
+.cal-day.has-events {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.day-number {
+    font-size: var(--text-sm);
+    font-weight: 500;
+}
+
+.day-dots {
+    display: flex;
+    gap: 2px;
+    margin-top: 2px;
+}
+
+.event-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.event-dot.recurring { background: #f87171; }
+.event-dot.staking { background: #a78bfa; }
+.event-dot.airdrop { background: #4ade80; }
+.event-dot.debt { background: #fbbf24; }
+
+.calendar-legend {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.legend-dot.recurring { background: #f87171; }
+.legend-dot.staking { background: #a78bfa; }
+.legend-dot.airdrop { background: #4ade80; }
+.legend-dot.debt { background: #fbbf24; }
+
+.calendar-events {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+}
+
+.calendar-events h4 {
+    margin-bottom: var(--space-3);
+    font-size: var(--text-base);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.events-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.event-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    border-left: 3px solid;
+}
+
+.event-item.recurring { border-color: #f87171; }
+.event-item.staking { border-color: #a78bfa; }
+.event-item.airdrop { border-color: #4ade80; }
+.event-item.debt { border-color: #fbbf24; }
+
+.event-icon {
+    font-size: 1.2rem;
+}
+
+.event-info {
+    flex: 1;
+}
+
+.event-title {
+    font-weight: 500;
+    color: white;
+}
+
+.event-date {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.event-amount {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.empty-events {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+    padding: var(--space-4);
+}
+
+/* ============================================
+   소비 분석
+   ============================================ */
+
+.spending-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.spending-period {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.spending-container .period-btn {
+    padding: var(--space-2) var(--space-4);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.spending-container .period-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.spending-container .period-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: transparent;
+    color: white;
+}
+
+.spending-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+}
+
+.spending-summary .summary-card {
+    padding: var(--space-4);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    text-align: center;
+}
+
+.spending-summary .summary-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--space-2);
+}
+
+.spending-summary .summary-value {
+    font-size: var(--text-2xl);
+    font-weight: 800;
+}
+
+.spending-summary .summary-value.positive { color: #4ade80; }
+.spending-summary .summary-value.negative { color: #f87171; }
+
+.spending-chart-container {
+    height: 300px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-xl);
+    padding: var(--space-4);
+}
+
+.category-breakdown {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.category-breakdown h4 {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-lg);
+}
+
+.category-breakdown .category-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+
+.category-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--space-1);
+}
+
+.category-name {
+    font-weight: 500;
+}
+
+.category-percent {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: var(--text-sm);
+}
+
+.category-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    grid-column: 1;
+}
+
+.category-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: var(--radius-full);
+    transition: width 0.5s ease;
+}
+
+.category-amount {
+    font-weight: 600;
+    color: #f87171;
+    text-align: right;
+    grid-row: 1 / 3;
+    align-self: center;
+}
+
+.spending-insights {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.spending-insights h4 {
+    margin-bottom: var(--space-3);
+}
+
+.insights-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.insights-list li {
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.insights-list li strong {
+    color: #a78bfa;
+}
+
+/* ============================================
+   대출 계산기
+   ============================================ */
+
+.debt-calc-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.debt-calc-container h3 {
+    text-align: center;
+    margin-bottom: var(--space-6);
+    font-size: var(--text-2xl);
+}
+
+.debt-select {
+    margin-bottom: var(--space-4);
+}
+
+.debt-select label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.debt-select select {
+    width: 100%;
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    color: white;
+    font-size: var(--text-base);
+}
+
+.calc-inputs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.input-group input {
+    width: 100%;
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    color: white;
+    font-size: var(--text-base);
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.calc-btn {
+    width: 100%;
+    padding: var(--space-4);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: var(--radius-lg);
+    color: white;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.calc-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.calc-results {
+    margin-top: var(--space-6);
+}
+
+.result-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    margin-bottom: var(--space-4);
+}
+
+.result-section.highlight {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.result-section h4 {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-lg);
+}
+
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+}
+
+.result-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.result-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.result-value {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: white;
+}
+
+.result-value.negative { color: #f87171; }
+.result-value.positive { color: #4ade80; }
+
+.savings-highlight {
+    display: flex;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.saving-item {
+    flex: 1;
+    text-align: center;
+}
+
+.saving-item span {
+    display: block;
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--space-1);
+}
+
+.saving-item strong {
+    font-size: var(--text-xl);
+    color: white;
+}
+
+.saving-item strong.positive { color: #4ade80; }
+
+/* ============================================
+   반응형
+   ============================================ */
+
+@media (max-width: 768px) {
+    .tools-container {
+        padding: var(--space-4);
+    }
+
+    .tool-tabs {
+        flex-direction: column;
+    }
+
+    .calendar-grid {
+        font-size: var(--text-sm);
+    }
+
+    .cal-day {
+        padding: 2px;
+    }
+
+    .day-number {
+        font-size: var(--text-xs);
+    }
+
+    .spending-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .calc-inputs {
+        grid-template-columns: 1fr;
+    }
+
+    .result-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .savings-highlight {
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+}

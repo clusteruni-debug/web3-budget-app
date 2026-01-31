@@ -6,6 +6,7 @@ import { createCashflowTab, initCashflowTab } from './components/CashflowTab.js'
 import { createAssetManagementTab, initAssetManagementTab } from './components/AssetManagementTab.js';
 import { createDashboardTab, initDashboardTab, editTransaction } from './components/DashboardTab.js';
 import { createTransactionsTab, initTransactionsTab, refreshTransactions } from './components/TransactionsTab.js';
+import { createToolsTab, initToolsTab } from './components/ToolsTab.js';
 
 class App {
     constructor() {
@@ -200,6 +201,11 @@ class App {
                 await initDashboardTab(() => {
                     // 홈 탭 새로고침이 필요할 수 있음
                 });
+                break;
+
+            case 'tools':
+                appContent.innerHTML = createToolsTab();
+                await initToolsTab();
                 break;
 
             default:

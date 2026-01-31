@@ -1,0 +1,672 @@
+// 도구 탭: 캘린더, 소비분석, 대출계산기
+import { getDebts, getRecurringItems, getStakingOverview, getAirdropOverview, getTransactions } from '../services/database.js';
+import { formatAmount, formatAmountShort } from '../utils/helpers.js';
+
+let currentTool = 'calendar';
+let debts = [];
+let recurringItems = [];
+let stakingList = [];
+let airdropList = [];
+let transactions = [];
+
+export function createToolsTab() {
+    return `
+        <div class="tools-container">
+            <!-- 도구 선택 탭 -->
+            <div class="tool-tabs">
+                <button class="tool-tab-btn active" data-tool="calendar">📅 캘린더</button>
+                <button class="tool-tab-btn" data-tool="spending">📊 소비 분석</button>
+                <button class="tool-tab-btn" data-tool="debt-calc">🧮 대출 계산기</button>
+            </div>
+
+            <!-- 도구 컨텐츠 영역 -->
+            <div class="tool-content" id="toolContent">
+                <!-- 동적으로 채워짐 -->
+            </div>
+        </div>
+    `;
+}
+
+export async function initToolsTab() {
+    // 데이터 로드
+    await loadToolsData();
+
+    // 도구 탭 이벤트
+    document.querySelectorAll('.tool-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tool-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTool = btn.dataset.tool;
+            renderCurrentTool();
+        });
+    });
+
+    // 기본 도구 렌더링
+    renderCurrentTool();
+}
+
+async function loadToolsData() {
+    const [debtsRes, recurringRes, stakingRes, airdropRes, transactionsRes] = await Promise.all([
+        getDebts(),
+        getRecurringItems(),
+        getStakingOverview(),
+        getAirdropOverview(),
+        getTransactions()
+    ]);
+
+    debts = debtsRes.data || [];
+    recurringItems = recurringRes.data || [];
+    stakingList = stakingRes.data || [];
+    airdropList = airdropRes.data || [];
+    transactions = transactionsRes.data || [];
+}
+
+function renderCurrentTool() {
+    const content = document.getElementById('toolContent');
+
+    switch (currentTool) {
+        case 'calendar':
+            content.innerHTML = renderCalendar();
+            initCalendar();
+            break;
+        case 'spending':
+            content.innerHTML = renderSpendingAnalysis();
+            initSpendingAnalysis();
+            break;
+        case 'debt-calc':
+            content.innerHTML = renderDebtCalculator();
+            initDebtCalculator();
+            break;
+    }
+}
+
+// ============================================
+// 캘린더 뷰
+// ============================================
+
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+
+function renderCalendar() {
+    return `
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button class="cal-nav-btn" id="prevMonth">◀</button>
+                <h3 class="cal-title" id="calTitle">${currentYear}년 ${currentMonth + 1}월</h3>
+                <button class="cal-nav-btn" id="nextMonth">▶</button>
+            </div>
+
+            <div class="calendar-grid">
+                <div class="cal-weekday">일</div>
+                <div class="cal-weekday">월</div>
+                <div class="cal-weekday">화</div>
+                <div class="cal-weekday">수</div>
+                <div class="cal-weekday">목</div>
+                <div class="cal-weekday">금</div>
+                <div class="cal-weekday">토</div>
+                <div id="calendarDays"></div>
+            </div>
+
+            <div class="calendar-legend">
+                <span class="legend-item"><span class="legend-dot recurring"></span> 고정지출</span>
+                <span class="legend-item"><span class="legend-dot staking"></span> 스테이킹 언락</span>
+                <span class="legend-item"><span class="legend-dot airdrop"></span> 에어드랍</span>
+                <span class="legend-item"><span class="legend-dot debt"></span> 대출 상환</span>
+            </div>
+
+            <div class="calendar-events" id="calendarEvents">
+                <h4>이번 달 일정</h4>
+                <div class="events-list" id="eventsList">
+                    <!-- 동적으로 채워짐 -->
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function initCalendar() {
+    document.getElementById('prevMonth').addEventListener('click', () => {
+        currentMonth--;
+        if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        updateCalendar();
+    });
+
+    document.getElementById('nextMonth').addEventListener('click', () => {
+        currentMonth++;
+        if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        }
+        updateCalendar();
+    });
+
+    updateCalendar();
+}
+
+function updateCalendar() {
+    document.getElementById('calTitle').textContent = `${currentYear}년 ${currentMonth + 1}월`;
+
+    const daysContainer = document.getElementById('calendarDays');
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const today = new Date();
+
+    // 이번 달 이벤트 수집
+    const events = collectMonthEvents(currentYear, currentMonth);
+
+    let html = '';
+
+    // 빈 칸 채우기
+    for (let i = 0; i < firstDay; i++) {
+        html += '<div class="cal-day empty"></div>';
+    }
+
+    // 날짜 채우기
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayEvents = events.filter(e => e.date === dateStr);
+        const isToday = today.getDate() === day && today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+
+        let eventDots = '';
+        if (dayEvents.length > 0) {
+            const types = [...new Set(dayEvents.map(e => e.type))];
+            eventDots = types.map(t => `<span class="event-dot ${t}"></span>`).join('');
+        }
+
+        html += `
+            <div class="cal-day ${isToday ? 'today' : ''} ${dayEvents.length > 0 ? 'has-events' : ''}" data-date="${dateStr}">
+                <span class="day-number">${day}</span>
+                <div class="day-dots">${eventDots}</div>
+            </div>
+        `;
+    }
+
+    daysContainer.innerHTML = html;
+
+    // 이벤트 목록 업데이트
+    updateEventsList(events);
+
+    // 날짜 클릭 이벤트
+    document.querySelectorAll('.cal-day:not(.empty)').forEach(dayEl => {
+        dayEl.addEventListener('click', () => {
+            const date = dayEl.dataset.date;
+            const dayEvents = events.filter(e => e.date === date);
+            if (dayEvents.length > 0) {
+                showDayEvents(date, dayEvents);
+            }
+        });
+    });
+}
+
+function collectMonthEvents(year, month) {
+    const events = [];
+    const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+    // 고정지출 (매월 반복)
+    recurringItems.forEach(item => {
+        if (item.type === 'expense' && item.day_of_month) {
+            const date = `${monthStr}-${String(item.day_of_month).padStart(2, '0')}`;
+            events.push({
+                date,
+                type: 'recurring',
+                title: item.description || item.category,
+                amount: item.amount,
+                icon: '💸'
+            });
+        }
+    });
+
+    // 대출 상환일
+    debts.forEach(debt => {
+        if (debt.payment_day) {
+            const date = `${monthStr}-${String(debt.payment_day).padStart(2, '0')}`;
+            events.push({
+                date,
+                type: 'debt',
+                title: `${debt.name} 상환`,
+                amount: debt.monthly_payment,
+                icon: '💳'
+            });
+        }
+    });
+
+    // 스테이킹 언락
+    stakingList.forEach(item => {
+        if (item.staking_unlock_date && item.staking_unlock_date.startsWith(monthStr)) {
+            events.push({
+                date: item.staking_unlock_date,
+                type: 'staking',
+                title: `${item.name} 언락`,
+                amount: item.current_value,
+                icon: '🔓'
+            });
+        }
+    });
+
+    // 에어드랍 (예정일이 있는 경우)
+    airdropList.forEach(item => {
+        if (item.airdrop_date && item.airdrop_date.startsWith(monthStr)) {
+            events.push({
+                date: item.airdrop_date,
+                type: 'airdrop',
+                title: item.name,
+                amount: item.airdrop_expected_value,
+                icon: '🎁'
+            });
+        }
+    });
+
+    return events.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function updateEventsList(events) {
+    const list = document.getElementById('eventsList');
+
+    if (events.length === 0) {
+        list.innerHTML = '<div class="empty-events">이번 달 예정된 일정이 없습니다</div>';
+        return;
+    }
+
+    list.innerHTML = events.map(e => `
+        <div class="event-item ${e.type}">
+            <span class="event-icon">${e.icon}</span>
+            <div class="event-info">
+                <div class="event-title">${e.title}</div>
+                <div class="event-date">${e.date.split('-').slice(1).join('/')}</div>
+            </div>
+            <div class="event-amount">${e.amount ? formatAmountShort(e.amount) : ''}</div>
+        </div>
+    `).join('');
+}
+
+function showDayEvents(date, events) {
+    const [year, month, day] = date.split('-');
+    alert(`${month}/${day} 일정:\n\n${events.map(e => `${e.icon} ${e.title}: ${e.amount ? formatAmount(e.amount) : ''}`).join('\n')}`);
+}
+
+// ============================================
+// 소비 분석
+// ============================================
+
+function renderSpendingAnalysis() {
+    return `
+        <div class="spending-container">
+            <div class="spending-period">
+                <button class="period-btn active" data-period="thisMonth">이번 달</button>
+                <button class="period-btn" data-period="lastMonth">지난 달</button>
+                <button class="period-btn" data-period="3months">3개월</button>
+                <button class="period-btn" data-period="year">올해</button>
+            </div>
+
+            <div class="spending-summary" id="spendingSummary">
+                <!-- 동적으로 채워짐 -->
+            </div>
+
+            <div class="spending-chart-container">
+                <canvas id="spendingChart"></canvas>
+            </div>
+
+            <div class="category-breakdown" id="categoryBreakdown">
+                <!-- 동적으로 채워짐 -->
+            </div>
+
+            <div class="spending-insights" id="spendingInsights">
+                <!-- 동적으로 채워짐 -->
+            </div>
+        </div>
+    `;
+}
+
+let spendingChart = null;
+
+function initSpendingAnalysis() {
+    document.querySelectorAll('.spending-container .period-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.spending-container .period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateSpendingAnalysis(btn.dataset.period);
+        });
+    });
+
+    updateSpendingAnalysis('thisMonth');
+}
+
+function updateSpendingAnalysis(period) {
+    const filtered = filterTransactionsByPeriod(transactions, period);
+    const expenses = filtered.filter(t => t.type === 'expense');
+    const income = filtered.filter(t => t.type === 'income');
+
+    const totalExpense = expenses.reduce((sum, t) => sum + t.amount, 0);
+    const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
+
+    // 요약
+    document.getElementById('spendingSummary').innerHTML = `
+        <div class="summary-card income-card">
+            <div class="summary-label">총 수입</div>
+            <div class="summary-value positive">${formatAmountShort(totalIncome)}</div>
+        </div>
+        <div class="summary-card expense-card">
+            <div class="summary-label">총 지출</div>
+            <div class="summary-value negative">${formatAmountShort(totalExpense)}</div>
+        </div>
+        <div class="summary-card net-card">
+            <div class="summary-label">순수익</div>
+            <div class="summary-value ${totalIncome - totalExpense >= 0 ? 'positive' : 'negative'}">${formatAmountShort(totalIncome - totalExpense)}</div>
+        </div>
+    `;
+
+    // 카테고리별 분석
+    const categoryData = {};
+    expenses.forEach(t => {
+        const cat = t.category || '기타';
+        categoryData[cat] = (categoryData[cat] || 0) + t.amount;
+    });
+
+    const sortedCategories = Object.entries(categoryData).sort((a, b) => b[1] - a[1]);
+
+    // 차트 업데이트
+    updateSpendingChart(sortedCategories);
+
+    // 카테고리 목록
+    document.getElementById('categoryBreakdown').innerHTML = `
+        <h4>카테고리별 지출</h4>
+        ${sortedCategories.map(([cat, amount]) => {
+            const percent = totalExpense > 0 ? ((amount / totalExpense) * 100).toFixed(1) : 0;
+            return `
+                <div class="category-item">
+                    <div class="category-info">
+                        <span class="category-name">${cat}</span>
+                        <span class="category-percent">${percent}%</span>
+                    </div>
+                    <div class="category-bar">
+                        <div class="category-fill" style="width: ${percent}%"></div>
+                    </div>
+                    <div class="category-amount">${formatAmountShort(amount)}</div>
+                </div>
+            `;
+        }).join('')}
+    `;
+
+    // 인사이트
+    updateSpendingInsights(sortedCategories, totalExpense, totalIncome);
+}
+
+function updateSpendingChart(categoryData) {
+    const canvas = document.getElementById('spendingChart');
+    if (!canvas) return;
+
+    if (spendingChart) {
+        spendingChart.destroy();
+    }
+
+    const colors = [
+        '#f87171', '#fb923c', '#fbbf24', '#a3e635', '#34d399',
+        '#22d3d8', '#60a5fa', '#a78bfa', '#f472b6', '#94a3b8'
+    ];
+
+    const ctx = canvas.getContext('2d');
+    spendingChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: categoryData.map(([cat]) => cat),
+            datasets: [{
+                data: categoryData.map(([, amount]) => amount),
+                backgroundColor: colors.slice(0, categoryData.length),
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        padding: 10
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.label}: ${formatAmountShort(context.raw)}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateSpendingInsights(categoryData, totalExpense, totalIncome) {
+    const insights = [];
+
+    if (categoryData.length > 0) {
+        const topCategory = categoryData[0];
+        insights.push(`💡 가장 많이 쓴 카테고리: <strong>${topCategory[0]}</strong> (${formatAmountShort(topCategory[1])})`);
+    }
+
+    if (totalIncome > 0) {
+        const savingRate = ((totalIncome - totalExpense) / totalIncome * 100).toFixed(1);
+        if (savingRate > 0) {
+            insights.push(`💰 저축률: <strong>${savingRate}%</strong>`);
+        } else {
+            insights.push(`⚠️ 지출이 수입보다 많습니다!`);
+        }
+    }
+
+    const avgDaily = totalExpense / 30;
+    insights.push(`📊 일 평균 지출: <strong>${formatAmountShort(avgDaily)}</strong>`);
+
+    document.getElementById('spendingInsights').innerHTML = `
+        <h4>💡 인사이트</h4>
+        <ul class="insights-list">
+            ${insights.map(i => `<li>${i}</li>`).join('')}
+        </ul>
+    `;
+}
+
+function filterTransactionsByPeriod(txs, period) {
+    const now = new Date();
+    let startDate;
+
+    switch (period) {
+        case 'thisMonth':
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            break;
+        case 'lastMonth':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+            return txs.filter(t => {
+                const d = new Date(t.date);
+                return d >= startDate && d <= endDate;
+            });
+        case '3months':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+            break;
+        case 'year':
+            startDate = new Date(now.getFullYear(), 0, 1);
+            break;
+        default:
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    return txs.filter(t => new Date(t.date) >= startDate);
+}
+
+// ============================================
+// 대출 상환 계산기
+// ============================================
+
+function renderDebtCalculator() {
+    return `
+        <div class="debt-calc-container">
+            <h3>🧮 대출 상환 시뮬레이션</h3>
+
+            <div class="debt-select">
+                <label>대출 선택</label>
+                <select id="debtSelect">
+                    <option value="">직접 입력</option>
+                    ${debts.map(d => `<option value="${d.id}" data-principal="${d.principal_amount}" data-remaining="${d.remaining_amount}" data-rate="${d.interest_rate}" data-monthly="${d.monthly_payment}">${d.name} (잔액: ${formatAmountShort(d.remaining_amount)})</option>`).join('')}
+                </select>
+            </div>
+
+            <div class="calc-inputs">
+                <div class="input-group">
+                    <label>대출 잔액</label>
+                    <input type="number" id="calcRemaining" placeholder="남은 대출금">
+                </div>
+                <div class="input-group">
+                    <label>연 이자율 (%)</label>
+                    <input type="number" id="calcRate" step="0.1" placeholder="예: 4.5">
+                </div>
+                <div class="input-group">
+                    <label>현재 월 상환액</label>
+                    <input type="number" id="calcMonthly" placeholder="매월 상환 금액">
+                </div>
+                <div class="input-group">
+                    <label>추가 상환액 (선택)</label>
+                    <input type="number" id="calcExtra" placeholder="추가로 상환할 금액" value="0">
+                </div>
+            </div>
+
+            <button class="calc-btn" id="calculateBtn">계산하기</button>
+
+            <div class="calc-results" id="calcResults">
+                <!-- 동적으로 채워짐 -->
+            </div>
+        </div>
+    `;
+}
+
+function initDebtCalculator() {
+    const debtSelect = document.getElementById('debtSelect');
+
+    debtSelect.addEventListener('change', () => {
+        const option = debtSelect.options[debtSelect.selectedIndex];
+        if (option.value) {
+            document.getElementById('calcRemaining').value = option.dataset.remaining || '';
+            document.getElementById('calcRate').value = option.dataset.rate || '';
+            document.getElementById('calcMonthly').value = option.dataset.monthly || '';
+        }
+    });
+
+    document.getElementById('calculateBtn').addEventListener('click', calculateDebtPayoff);
+}
+
+function calculateDebtPayoff() {
+    const remaining = parseFloat(document.getElementById('calcRemaining').value) || 0;
+    const annualRate = parseFloat(document.getElementById('calcRate').value) || 0;
+    const monthly = parseFloat(document.getElementById('calcMonthly').value) || 0;
+    const extra = parseFloat(document.getElementById('calcExtra').value) || 0;
+
+    if (remaining <= 0 || monthly <= 0) {
+        alert('대출 잔액과 월 상환액을 입력해주세요.');
+        return;
+    }
+
+    const monthlyRate = annualRate / 100 / 12;
+    const totalMonthly = monthly + extra;
+
+    // 현재 상환 계획
+    const currentPlan = simulatePayoff(remaining, monthlyRate, monthly);
+
+    // 추가 상환 시 계획
+    const newPlan = extra > 0 ? simulatePayoff(remaining, monthlyRate, totalMonthly) : null;
+
+    let html = `
+        <div class="result-section">
+            <h4>📊 현재 상환 계획</h4>
+            <div class="result-grid">
+                <div class="result-item">
+                    <span class="result-label">완납까지</span>
+                    <span class="result-value">${currentPlan.months}개월 (${(currentPlan.months / 12).toFixed(1)}년)</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">총 이자</span>
+                    <span class="result-value negative">${formatAmountShort(currentPlan.totalInterest)}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">총 상환액</span>
+                    <span class="result-value">${formatAmountShort(currentPlan.totalPaid)}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">완납 예정일</span>
+                    <span class="result-value">${currentPlan.endDate}</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    if (newPlan && extra > 0) {
+        const savedMonths = currentPlan.months - newPlan.months;
+        const savedInterest = currentPlan.totalInterest - newPlan.totalInterest;
+
+        html += `
+            <div class="result-section highlight">
+                <h4>🚀 추가 상환 시 (월 +${formatAmountShort(extra)})</h4>
+                <div class="result-grid">
+                    <div class="result-item">
+                        <span class="result-label">완납까지</span>
+                        <span class="result-value">${newPlan.months}개월 (${(newPlan.months / 12).toFixed(1)}년)</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">총 이자</span>
+                        <span class="result-value negative">${formatAmountShort(newPlan.totalInterest)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">완납 예정일</span>
+                        <span class="result-value">${newPlan.endDate}</span>
+                    </div>
+                </div>
+                <div class="savings-highlight">
+                    <div class="saving-item">
+                        <span>⏱️ 단축 기간</span>
+                        <strong>${savedMonths}개월</strong>
+                    </div>
+                    <div class="saving-item">
+                        <span>💰 절약 이자</span>
+                        <strong class="positive">${formatAmountShort(savedInterest)}</strong>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    document.getElementById('calcResults').innerHTML = html;
+}
+
+function simulatePayoff(principal, monthlyRate, monthlyPayment) {
+    let balance = principal;
+    let months = 0;
+    let totalInterest = 0;
+    const maxMonths = 600; // 50년 제한
+
+    while (balance > 0 && months < maxMonths) {
+        const interest = balance * monthlyRate;
+        totalInterest += interest;
+
+        const principalPayment = Math.min(monthlyPayment - interest, balance);
+        balance -= principalPayment;
+        months++;
+
+        if (monthlyPayment <= interest) {
+            // 이자보다 상환액이 적으면 영원히 못 갚음
+            return { months: Infinity, totalInterest: Infinity, totalPaid: Infinity, endDate: '상환 불가' };
+        }
+    }
+
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + months);
+    const endDateStr = `${endDate.getFullYear()}년 ${endDate.getMonth() + 1}월`;
+
+    return {
+        months,
+        totalInterest: Math.round(totalInterest),
+        totalPaid: Math.round(principal + totalInterest),
+        endDate: endDateStr
+    };
+}

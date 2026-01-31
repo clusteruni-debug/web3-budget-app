@@ -4,6 +4,7 @@ import './styles/auth.css';
 import './styles/v2-home.css';
 import './styles/v2-assets.css';
 import './styles/v2-cashflow.css';
+import './styles/v2-tools.css';
 
 // 앱 초기화
 document.addEventListener('DOMContentLoaded', () => {
