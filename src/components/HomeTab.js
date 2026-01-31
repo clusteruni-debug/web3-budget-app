@@ -1,7 +1,7 @@
 // V2: 통합 자산 관리 홈 대시보드
 import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview, saveNetWorthSnapshot, getNetWorthHistory } from '../services/database.js';
 import { calculateTotalIncome, calculateTotalExpense } from '../services/analytics.js';
-import { formatAmount, formatAmountShort } from '../utils/helpers.js';
+import { formatAmount, formatAmountShort, exportAssetsToCSV, exportDebtsToCSV, exportTransactionsToCSV, exportNetWorthHistoryToCSV, exportAllDataToJSON } from '../utils/helpers.js';
 import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, GOALS } from '../utils/constants.js';
 
 let netWorthData = null;
@@ -188,6 +188,38 @@ export function createHomeTab() {
                 </div>
             </div>
 
+            <!-- 데이터 내보내기 -->
+            <div class="section-card collapsible">
+                <h2 class="section-title" data-toggle="dataExport">
+                    💾 데이터 내보내기
+                    <span class="toggle-icon">▼</span>
+                </h2>
+                <div class="section-content" id="dataExportContent">
+                    <div class="export-grid">
+                        <button class="export-btn" data-export="assets">
+                            <span class="export-icon">📊</span>
+                            <span class="export-label">자산 (CSV)</span>
+                        </button>
+                        <button class="export-btn" data-export="debts">
+                            <span class="export-icon">💳</span>
+                            <span class="export-label">부채 (CSV)</span>
+                        </button>
+                        <button class="export-btn" data-export="transactions">
+                            <span class="export-icon">💸</span>
+                            <span class="export-label">거래내역 (CSV)</span>
+                        </button>
+                        <button class="export-btn" data-export="networth">
+                            <span class="export-icon">📈</span>
+                            <span class="export-label">순자산추이 (CSV)</span>
+                        </button>
+                        <button class="export-btn primary" data-export="backup">
+                            <span class="export-icon">🔐</span>
+                            <span class="export-label">전체 백업 (JSON)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- RPG 위젯 (간소화) -->
             <div class="rpg-widget">
                 <div class="rpg-level">
@@ -238,6 +270,54 @@ export async function initHomeTab(switchTabCallback) {
             await loadNetWorthTrendChart(months);
         });
     });
+
+    // 데이터 내보내기 버튼
+    document.querySelectorAll('.export-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleExport(btn.dataset.export));
+    });
+}
+
+async function handleExport(type) {
+    try {
+        switch (type) {
+            case 'assets':
+                exportAssetsToCSV(assets);
+                break;
+            case 'debts':
+                exportDebtsToCSV(debts);
+                break;
+            case 'transactions':
+                const txResult = await getTransactions();
+                if (txResult.success) {
+                    exportTransactionsToCSV(txResult.data);
+                }
+                break;
+            case 'networth':
+                const nwResult = await getNetWorthHistory(12);
+                if (nwResult.success) {
+                    exportNetWorthHistoryToCSV(nwResult.data);
+                }
+                break;
+            case 'backup':
+                const [assetsRes, debtsRes, txRes, nwRes] = await Promise.all([
+                    getAssets(),
+                    getDebts(),
+                    getTransactions(),
+                    getNetWorthHistory(12)
+                ]);
+                exportAllDataToJSON({
+                    exportDate: new Date().toISOString(),
+                    assets: assetsRes.data || [],
+                    debts: debtsRes.data || [],
+                    transactions: txRes.data || [],
+                    netWorthHistory: nwRes.data || []
+                });
+                break;
+        }
+    } catch (error) {
+        console.error('데이터 내보내기 오류:', error);
+        alert('내보내기 중 오류가 발생했습니다.');
+    }
 }
 
 async function loadHomeData() {

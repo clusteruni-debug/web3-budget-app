@@ -136,3 +136,127 @@ export function getTransactionColor(type) {
     };
     return colors[type] || 'var(--gray-500)';
 }
+
+// ============================================
+// 데이터 내보내기 (CSV)
+// ============================================
+
+// CSV 문자열 생성 (특수문자 이스케이프 처리)
+function escapeCsvValue(value) {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+}
+
+// 자산 데이터 CSV 내보내기
+export function exportAssetsToCSV(assets) {
+    const headers = ['이름', '카테고리', '크립토타입', '현재가치', '매입가', '수량', '메모', '생성일'];
+    const rows = assets.map(a => [
+        a.name,
+        a.category,
+        a.crypto_type || '',
+        a.current_value,
+        a.purchase_value || '',
+        a.quantity || '',
+        a.notes || '',
+        a.created_at?.split('T')[0] || ''
+    ]);
+
+    return generateAndDownloadCSV(headers, rows, '자산목록');
+}
+
+// 부채 데이터 CSV 내보내기
+export function exportDebtsToCSV(debts) {
+    const headers = ['이름', '채권자', '원금', '잔액', '이자율', '월상환액', '시작일', '만기일', '메모'];
+    const rows = debts.map(d => [
+        d.name,
+        d.creditor || '',
+        d.principal_amount,
+        d.remaining_amount,
+        d.interest_rate || '',
+        d.monthly_payment || '',
+        d.start_date || '',
+        d.end_date || '',
+        d.description || ''
+    ]);
+
+    return generateAndDownloadCSV(headers, rows, '부채목록');
+}
+
+// 거래 데이터 CSV 내보내기
+export function exportTransactionsToCSV(transactions) {
+    const headers = ['날짜', '유형', '카테고리', '금액', '설명', '계정'];
+    const rows = transactions.map(t => [
+        t.date,
+        t.type === 'income' ? '수입' : t.type === 'expense' ? '지출' : '이체',
+        t.category || '',
+        t.amount,
+        t.description || '',
+        t.account_name || ''
+    ]);
+
+    return generateAndDownloadCSV(headers, rows, '거래내역');
+}
+
+// 순자산 스냅샷 CSV 내보내기
+export function exportNetWorthHistoryToCSV(snapshots) {
+    const headers = ['날짜', '순자산', '총자산', '총부채', '크립토', '주식', '현금', '부동산', '기타'];
+    const rows = snapshots.map(s => [
+        s.recorded_at,
+        s.net_worth,
+        s.total_assets,
+        s.total_debts,
+        s.total_crypto || 0,
+        s.total_stock || 0,
+        s.total_cash || 0,
+        s.total_real_estate || 0,
+        s.total_other || 0
+    ]);
+
+    return generateAndDownloadCSV(headers, rows, '순자산추이');
+}
+
+// CSV 생성 및 다운로드
+function generateAndDownloadCSV(headers, rows, filename) {
+    // BOM 추가 (Excel 한글 호환)
+    const BOM = '\uFEFF';
+    const csvContent = BOM + [
+        headers.map(escapeCsvValue).join(','),
+        ...rows.map(row => row.map(escapeCsvValue).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}_${getToday()}.csv`);
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+    return true;
+}
+
+// 전체 데이터 백업 (JSON)
+export function exportAllDataToJSON(data) {
+    const jsonContent = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `자산관리_백업_${getToday()}.json`);
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+    return true;
+}
