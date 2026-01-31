@@ -1,5 +1,5 @@
 // V2: 통합 자산 관리 홈 대시보드
-import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview } from '../services/database.js';
+import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview, saveNetWorthSnapshot, getNetWorthHistory } from '../services/database.js';
 import { calculateTotalIncome, calculateTotalExpense } from '../services/analytics.js';
 import { formatAmount, formatAmountShort } from '../utils/helpers.js';
 import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, GOALS } from '../utils/constants.js';
@@ -9,6 +9,7 @@ let assets = [];
 let debts = [];
 let stakingList = [];
 let airdropList = [];
+let netWorthChart = null;
 
 export function createHomeTab() {
     return `
@@ -40,6 +41,27 @@ export function createHomeTab() {
                     <div class="goal-progress-fill" id="goalProgressFill" style="width: 0%"></div>
                 </div>
                 <div class="goal-remaining" id="goalRemaining">목표까지 0원 남음</div>
+            </div>
+
+            <!-- 순자산 추이 차트 -->
+            <div class="section-card collapsible">
+                <h2 class="section-title" data-toggle="netWorthTrend">
+                    📈 순자산 추이
+                    <span class="toggle-icon">▼</span>
+                </h2>
+                <div class="section-content" id="netWorthTrendContent">
+                    <div class="trend-period-selector">
+                        <button class="trend-period-btn active" data-months="3">3개월</button>
+                        <button class="trend-period-btn" data-months="6">6개월</button>
+                        <button class="trend-period-btn" data-months="12">1년</button>
+                    </div>
+                    <div class="trend-chart-container">
+                        <canvas id="netWorthTrendChart"></canvas>
+                    </div>
+                    <div class="trend-summary" id="trendSummary">
+                        <!-- 동적으로 채워짐 -->
+                    </div>
+                </div>
             </div>
 
             <!-- 자산 구성 차트 -->
@@ -206,6 +228,16 @@ export async function initHomeTab(switchTabCallback) {
             handleQuickAction(action, switchTabCallback);
         });
     });
+
+    // 순자산 추이 기간 선택 버튼
+    document.querySelectorAll('.trend-period-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            document.querySelectorAll('.trend-period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const months = parseInt(btn.dataset.months);
+            await loadNetWorthTrendChart(months);
+        });
+    });
 }
 
 async function loadHomeData() {
@@ -253,6 +285,12 @@ async function loadHomeData() {
         if (transactionsResult.success) {
             updateCashflowDisplay(transactionsResult.data || []);
         }
+
+        // 순자산 스냅샷 저장 (하루 1회)
+        await saveNetWorthSnapshot();
+
+        // 순자산 추이 차트 로드
+        await loadNetWorthTrendChart(3);
 
     } catch (error) {
         console.error('홈 데이터 로드 에러:', error);
@@ -652,5 +690,161 @@ function handleQuickAction(action, switchTabCallback) {
             break;
         default:
             break;
+    }
+}
+
+// 순자산 추이 차트
+async function loadNetWorthTrendChart(months = 3) {
+    const canvas = document.getElementById('netWorthTrendChart');
+    const summaryEl = document.getElementById('trendSummary');
+    if (!canvas) return;
+
+    try {
+        const result = await getNetWorthHistory(months);
+        if (!result.success || !result.data.length) {
+            // 데이터가 없으면 안내 메시지
+            if (summaryEl) {
+                summaryEl.innerHTML = `
+                    <div class="trend-empty">
+                        <p>📊 아직 기록된 데이터가 없습니다.</p>
+                        <p class="trend-empty-hint">매일 앱을 방문하면 순자산 변화가 기록됩니다.</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        const data = result.data;
+        const labels = data.map(d => {
+            const date = new Date(d.recorded_at);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        });
+        const netWorthValues = data.map(d => d.net_worth);
+        const assetValues = data.map(d => d.total_assets);
+        const debtValues = data.map(d => d.total_debts);
+
+        // 기존 차트 파괴
+        if (netWorthChart) {
+            netWorthChart.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+        netWorthChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '순자산',
+                        data: netWorthValues,
+                        borderColor: '#a78bfa',
+                        backgroundColor: 'rgba(167, 139, 250, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#a78bfa'
+                    },
+                    {
+                        label: '총자산',
+                        data: assetValues,
+                        borderColor: '#4ade80',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        pointRadius: 0
+                    },
+                    {
+                        label: '총부채',
+                        data: debtValues,
+                        borderColor: '#f87171',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${formatAmountShort(context.raw)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            callback: function(value) {
+                                return formatAmountShort(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 요약 정보 업데이트
+        if (summaryEl && data.length >= 2) {
+            const firstValue = data[0].net_worth;
+            const lastValue = data[data.length - 1].net_worth;
+            const change = lastValue - firstValue;
+            const changePercent = firstValue !== 0 ? ((change / Math.abs(firstValue)) * 100).toFixed(1) : 0;
+            const isPositive = change >= 0;
+
+            summaryEl.innerHTML = `
+                <div class="trend-summary-item">
+                    <span class="trend-label">기간 시작</span>
+                    <span class="trend-value">${formatAmountShort(firstValue)}</span>
+                </div>
+                <div class="trend-summary-item">
+                    <span class="trend-label">현재</span>
+                    <span class="trend-value">${formatAmountShort(lastValue)}</span>
+                </div>
+                <div class="trend-summary-item highlight ${isPositive ? 'positive' : 'negative'}">
+                    <span class="trend-label">변화</span>
+                    <span class="trend-value">${isPositive ? '+' : ''}${formatAmountShort(change)} (${isPositive ? '+' : ''}${changePercent}%)</span>
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error('순자산 추이 차트 로드 에러:', error);
     }
 }

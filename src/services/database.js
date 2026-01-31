@@ -757,3 +757,96 @@ export async function calculateNetWorth() {
         return { success: false, error: error.message };
     }
 }
+
+// ============================================
+// 순자산 스냅샷 (Net Worth Snapshots)
+// ============================================
+
+export async function saveNetWorthSnapshot() {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        // 현재 순자산 계산
+        const netWorthResult = await calculateNetWorth();
+        if (!netWorthResult.success) throw new Error('Failed to calculate net worth');
+
+        const { totalAssets, totalDebts, netWorth, byCategory } = netWorthResult.data;
+
+        // 오늘 날짜로 이미 스냅샷이 있는지 확인
+        const today = new Date().toISOString().split('T')[0];
+        const { data: existing } = await supabase
+            .from('net_worth_snapshots')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('recorded_at', today)
+            .single();
+
+        if (existing) {
+            // 오늘 스냅샷이 이미 있으면 업데이트
+            const { error } = await supabase
+                .from('net_worth_snapshots')
+                .update({
+                    total_assets: totalAssets,
+                    total_crypto: byCategory.crypto || 0,
+                    total_stock: byCategory.stock || 0,
+                    total_cash: byCategory.cash || 0,
+                    total_real_estate: byCategory.real_estate || 0,
+                    total_other: byCategory.other || 0,
+                    total_debts: totalDebts,
+                    net_worth: netWorth
+                })
+                .eq('id', existing.id);
+
+            if (error) throw error;
+            return { success: true, action: 'updated' };
+        } else {
+            // 새 스냅샷 생성
+            const { error } = await supabase
+                .from('net_worth_snapshots')
+                .insert({
+                    user_id: user.id,
+                    total_assets: totalAssets,
+                    total_crypto: byCategory.crypto || 0,
+                    total_stock: byCategory.stock || 0,
+                    total_cash: byCategory.cash || 0,
+                    total_real_estate: byCategory.real_estate || 0,
+                    total_other: byCategory.other || 0,
+                    total_debts: totalDebts,
+                    net_worth: netWorth,
+                    recorded_at: today
+                });
+
+            if (error) throw error;
+            return { success: true, action: 'created' };
+        }
+    } catch (error) {
+        console.error('Save net worth snapshot error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function getNetWorthHistory(months = 12) {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        // 지정된 개월 수만큼의 데이터 조회
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - months);
+
+        const { data, error } = await supabase
+            .from('net_worth_snapshots')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('recorded_at', startDate.toISOString().split('T')[0])
+            .order('recorded_at', { ascending: true });
+
+        if (error) throw error;
+
+        return { success: true, data: data || [] };
+    } catch (error) {
+        console.error('Get net worth history error:', error);
+        return { success: false, error: error.message };
+    }
+}

@@ -223,6 +223,113 @@
 }
 
 /* ============================================
+   순자산 추이 차트
+   ============================================ */
+.trend-period-selector {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+
+.trend-period-btn {
+    padding: var(--space-2) var(--space-4);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.trend-period-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.trend-period-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: transparent;
+    color: white;
+    font-weight: 600;
+}
+
+.trend-chart-container {
+    height: 280px;
+    margin-bottom: var(--space-4);
+}
+
+.trend-summary {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+}
+
+.trend-summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-lg);
+    min-width: 120px;
+}
+
+.trend-summary-item.highlight {
+    background: rgba(167, 139, 250, 0.1);
+    border: 1px solid rgba(167, 139, 250, 0.3);
+}
+
+.trend-summary-item.highlight.positive {
+    background: rgba(74, 222, 128, 0.1);
+    border-color: rgba(74, 222, 128, 0.3);
+}
+
+.trend-summary-item.highlight.negative {
+    background: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.3);
+}
+
+.trend-label {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.trend-value {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: white;
+}
+
+.trend-summary-item.positive .trend-value {
+    color: #4ade80;
+}
+
+.trend-summary-item.negative .trend-value {
+    color: #f87171;
+}
+
+.trend-empty {
+    text-align: center;
+    padding: var(--space-8);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.trend-empty p {
+    margin-bottom: var(--space-2);
+}
+
+.trend-empty-hint {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================
    자산 구성 차트 및 레전드
    ============================================ */
 .chart-and-legend {
@@ -935,6 +1042,24 @@
     .toggle-icon {
         font-size: var(--text-base);
         padding: var(--space-1);
+    }
+
+    /* 순자산 추이 - 모바일 */
+    .trend-chart-container {
+        height: 220px;
+    }
+
+    .trend-summary {
+        gap: var(--space-3);
+    }
+
+    .trend-summary-item {
+        min-width: 100px;
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .trend-value {
+        font-size: var(--text-base);
     }
 
     .chart-and-legend {
