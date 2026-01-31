@@ -127,7 +127,13 @@
             box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth;
+            overscroll-behavior: none;
+        }
+
         body {
+            overscroll-behavior: none;
             font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-feature-settings: 'tnum' on, 'lnum' on; /* 숫자 고정폭 */
             background: var(--bg-base);
@@ -195,6 +201,7 @@
 
         .tab-button {
             flex: 1;
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -3098,40 +3105,75 @@
 
 /* 반응형 추가 */
 @media (max-width: 768px) {
-    /* 탭 네비게이션 - 가로 스크롤 */
+    body {
+        padding: var(--space-2);
+        padding-bottom: 80px; /* 하단 탭바 공간 */
+    }
+
+    .container {
+        padding: var(--space-4);
+        padding-bottom: var(--space-8);
+        margin-bottom: var(--space-4);
+        border-radius: var(--radius-xl);
+    }
+
+    h1 {
+        font-size: var(--text-2xl);
+    }
+
+    .subtitle {
+        font-size: var(--text-xs);
+        margin-bottom: var(--space-4);
+    }
+
+    /* 모바일 하단 고정 탭바 */
     .tab-navigation {
-        overflow-x: auto;
-        gap: 4px;
-        padding: 6px;
-        scrollbar-width: thin;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .tab-navigation::-webkit-scrollbar {
-        height: 4px;
-    }
-
-    .tab-navigation::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 2px;
-    }
-
-    .tab-navigation::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 2px;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        margin: 0;
+        padding: var(--space-2) var(--space-2) env(safe-area-inset-bottom, var(--space-2));
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        background: rgba(18, 20, 28, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: none;
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
     }
 
     .tab-button {
-        flex: 0 0 auto;
-        padding: 10px 14px;
-        font-size: 0.85em;
-        white-space: nowrap;
+        flex: 1;
+        padding: var(--space-2) var(--space-1);
+        font-size: 10px;
+        gap: 2px;
+        border-radius: var(--radius-md);
+    }
+
+    .tab-button.active {
+        background: var(--primary-bg);
+        box-shadow: none;
+    }
+
+    .tab-button.active::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 20px;
+        height: 3px;
+        background: var(--primary);
+        border-radius: 2px;
     }
 
     .user-info-bar {
         flex-direction: column;
-        gap: 10px;
+        gap: var(--space-2);
         text-align: center;
+        font-size: var(--text-sm);
     }
 
     .user-actions {
@@ -3150,7 +3192,7 @@
 
     .category-item {
         grid-template-columns: 1fr;
-        gap: 8px;
+        gap: var(--space-2);
     }
 
     .milestone-badges {
@@ -3883,29 +3925,52 @@
 
 /* 매우 작은 화면 (모바일) */
 @media (max-width: 480px) {
-    .container {
-        padding: 10px;
+    body {
+        padding: var(--space-2);
+        padding-bottom: 70px; /* 하단 탭바 공간 */
     }
 
+    .container {
+        padding: var(--space-2);
+    }
+
+    /* 하단 탭바 - 더 컴팩트하게 */
     .tab-navigation {
-        gap: 3px;
-        padding: 4px;
+        gap: var(--space-1);
+        padding: var(--space-1) var(--space-1) calc(var(--space-1) + env(safe-area-inset-bottom, 0px));
     }
 
     .tab-button {
-        padding: 8px 10px;
-        font-size: 0.75em;
+        padding: var(--space-2) var(--space-1);
+        font-size: 9px;
+        gap: 1px;
+    }
+
+    .tab-button.active::before {
+        width: 16px;
+        height: 2px;
     }
 
     .summary {
         grid-template-columns: 1fr;
+        gap: var(--space-3);
     }
 
     .summary-card {
-        padding: 15px;
+        padding: var(--space-4);
     }
 
     .summary-card .amount {
-        font-size: 1.3em;
+        font-size: var(--text-xl);
+    }
+
+    /* 제목 크기 조정 */
+    h1 {
+        font-size: var(--text-2xl) !important;
+    }
+
+    /* 카드 내부 여백 축소 */
+    .card, .asset-card, .debt-card {
+        padding: var(--space-3);
     }
 }
