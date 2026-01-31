@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>통합 자산 관리</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="자산관리">
+    <link rel="apple-touch-icon" href="/icons/icon-192.svg">
+
+    <!-- 앱 설명 -->
+    <meta name="description" content="개인 자산/부채 추적, 현금 흐름 시각화, 크립토 포트폴리오 관리">
 </head>
 <body>
     <div class="container">
@@ -29,5 +40,16 @@
 
     <!-- 메인 앱 -->
     <script type="module" src="./src/main.js"></script>
+
+    <!-- Service Worker 등록 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker 등록됨:', reg.scope))
+                    .catch(err => console.log('Service Worker 등록 실패:', err));
+            });
+        }
+    </script>
 </body>
 </html>

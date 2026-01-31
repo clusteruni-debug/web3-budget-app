@@ -1,0 +1,26 @@
+{
+  "name": "Web3 자산관리",
+  "short_name": "자산관리",
+  "description": "개인 자산/부채 추적, 현금 흐름 시각화, 크립토 포트폴리오 관리",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0c29",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["finance", "productivity"],
+  "lang": "ko-KR"
+}
