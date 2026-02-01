@@ -215,6 +215,9 @@
     font-size: var(--text-xl);
     font-weight: var(--font-bold);
     color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .summary-value.warning {
@@ -291,6 +294,10 @@
     font-weight: var(--font-semibold);
     color: white;
     margin-bottom: var(--space-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
 }
 
 .asset-platform,
@@ -299,6 +306,10 @@
 .debt-creditor {
     font-size: var(--text-sm);
     color: var(--gray-400);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
 }
 
 .asset-value-info,
@@ -316,6 +327,7 @@
     font-size: var(--text-lg);
     font-weight: var(--font-semibold);
     color: white;
+    white-space: nowrap;
 }
 
 .asset-profit {

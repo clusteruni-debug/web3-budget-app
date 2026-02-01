@@ -45,6 +45,9 @@
     font-weight: var(--font-bold);
     color: white;
     margin-bottom: var(--space-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .net-worth-breakdown {
@@ -590,11 +593,19 @@
 .staking-name {
     font-weight: 600;
     color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
 }
 
 .staking-platform {
     font-size: var(--text-sm);
     color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
 }
 
 .staking-value {
@@ -643,6 +654,10 @@
     font-weight: 600;
     color: white;
     flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .airdrop-expected {
@@ -703,11 +718,18 @@
 .debt-name {
     font-weight: 600;
     color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
 }
 
 .debt-creditor {
     font-size: var(--text-sm);
     color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .debt-progress {
@@ -782,6 +804,9 @@
 .cashflow-value {
     font-size: var(--text-2xl);
     font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .cashflow-item.income .cashflow-value {
@@ -916,6 +941,9 @@
     color: white;
     font-size: var(--text-base);
     margin-bottom: var(--space-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .alert-banner.staking .alert-title {

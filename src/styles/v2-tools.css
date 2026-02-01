@@ -222,6 +222,10 @@
 .event-title {
     font-weight: 500;
     color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
 }
 
 .event-date {
@@ -339,6 +343,9 @@
 
 .category-name {
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .category-percent {
@@ -867,4 +874,434 @@
     border-radius: var(--radius-lg);
     text-align: center;
     font-weight: var(--font-medium);
+}
+
+/* ============================================
+   고정 지출 관리
+   ============================================ */
+
+.recurring-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.recurring-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-5);
+}
+
+.recurring-header h3 {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    margin: 0;
+}
+
+.recurring-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.recurring-summary-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-4);
+    text-align: center;
+}
+
+.recurring-summary-card.income {
+    border-left: 3px solid #4ade80;
+}
+
+.recurring-summary-card.expense {
+    border-left: 3px solid #f87171;
+}
+
+.recurring-summary-card.net {
+    border-left: 3px solid #a78bfa;
+}
+
+.recurring-summary-card .summary-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--space-2);
+}
+
+.recurring-summary-card .summary-value {
+    font-size: var(--text-xl);
+    font-weight: 700;
+}
+
+.recurring-summary-card .summary-value.positive {
+    color: #4ade80;
+}
+
+.recurring-summary-card .summary-value.negative {
+    color: #f87171;
+}
+
+.recurring-summary-card .summary-count {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: var(--space-1);
+}
+
+.recurring-tabs {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+
+.recurring-tab {
+    flex: 1;
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.recurring-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.recurring-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: transparent;
+    color: white;
+}
+
+.recurring-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.recurring-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    transition: all 0.2s;
+}
+
+.recurring-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.recurring-item.expense {
+    border-left: 3px solid #f87171;
+}
+
+.recurring-item.income {
+    border-left: 3px solid #4ade80;
+}
+
+.recurring-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.recurring-item-name {
+    font-weight: 600;
+    color: white;
+    margin-bottom: var(--space-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recurring-item-detail {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recurring-item-amount {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.recurring-item-amount.positive {
+    color: #4ade80;
+}
+
+.recurring-item-amount.negative {
+    color: #f87171;
+}
+
+.recurring-item-status {
+    min-width: 50px;
+    text-align: center;
+}
+
+.status-active {
+    display: inline-block;
+    padding: var(--space-1) var(--space-2);
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 600;
+}
+
+.status-inactive {
+    display: inline-block;
+    padding: var(--space-1) var(--space-2);
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 600;
+}
+
+.recurring-item-actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.recurring-item-actions .btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-base);
+}
+
+.recurring-item-actions .btn-icon:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.1);
+}
+
+/* 모달 공통 스타일 (도구 탭) */
+.tools-container .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-5);
+}
+
+.tools-container .modal-content {
+    background: linear-gradient(180deg, #1e1e2e 0%, #0f0f1a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-xl);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.tools-container .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-5) var(--space-6);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tools-container .modal-header h3 {
+    margin: 0;
+    font-size: var(--text-lg);
+    color: white;
+}
+
+.tools-container .close-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--text-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tools-container .close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.tools-container .modal-body {
+    padding: var(--space-6);
+}
+
+.tools-container .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tools-container .btn {
+    padding: var(--space-3) var(--space-5);
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tools-container .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.tools-container .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.tools-container .btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tools-container .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* 고정지출 모달 추가 스타일 */
+.recurring-container .modal .form-row,
+.tools-container .modal .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+}
+
+.recurring-container .modal .form-group,
+.tools-container .modal .form-group {
+    margin-bottom: var(--space-4);
+}
+
+.recurring-container .modal .form-group label,
+.tools-container .modal .form-group label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.recurring-container .modal .form-group input[type="checkbox"],
+.tools-container .modal .form-group input[type="checkbox"] {
+    width: auto;
+}
+
+.recurring-container .modal .form-group input,
+.recurring-container .modal .form-group select,
+.tools-container .modal .form-group input,
+.tools-container .modal .form-group select {
+    width: 100%;
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    color: white;
+    font-size: var(--text-base);
+}
+
+.recurring-container .modal .form-group input:focus,
+.recurring-container .modal .form-group select:focus,
+.tools-container .modal .form-group input:focus,
+.tools-container .modal .form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.recurring-container .modal .form-group select option,
+.tools-container .modal .form-group select option {
+    background: #1e1e2e;
+    color: white;
+}
+
+/* 반응형 - 고정지출 */
+@media (max-width: 768px) {
+    .recurring-header {
+        flex-wrap: wrap;
+        gap: var(--space-3);
+    }
+
+    .recurring-header h3 {
+        font-size: var(--text-xl);
+    }
+
+    .recurring-summary {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+
+    .recurring-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+    .recurring-tab {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    .recurring-item {
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    .recurring-item-info {
+        width: 100%;
+    }
+
+    .recurring-item-amount {
+        font-size: var(--text-base);
+    }
+
+    .recurring-container .modal .form-row,
+    .tools-container .modal .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .recurring-item-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .recurring-item-status {
+        width: auto;
+    }
 }

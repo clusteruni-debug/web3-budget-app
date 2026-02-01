@@ -1,8 +1,9 @@
-// 도구 탭: 캘린더, 소비분석, 대출계산기, 계정설정
-import { getDebts, getRecurringItems, getStakingOverview, getAirdropOverview, getTransactions } from '../services/database.js';
+// 도구 탭: 캘린더, 고정지출, 소비분석, 대출계산기, 계정설정
+import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions } from '../services/database.js';
 import { formatAmount, formatAmountShort } from '../utils/helpers.js';
 import { updatePassword } from '../services/auth.js';
 import { getCurrentUser } from '../services/supabase.js';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants.js';
 
 let currentTool = 'calendar';
 let debts = [];
@@ -17,9 +18,10 @@ export function createToolsTab() {
             <!-- 도구 선택 탭 -->
             <div class="tool-tabs">
                 <button class="tool-tab-btn active" data-tool="calendar">📅 캘린더</button>
-                <button class="tool-tab-btn" data-tool="spending">📊 소비 분석</button>
-                <button class="tool-tab-btn" data-tool="futures">📉 선물 손실</button>
-                <button class="tool-tab-btn" data-tool="debt-calc">🧮 대출 계산기</button>
+                <button class="tool-tab-btn" data-tool="recurring">🔄 고정지출</button>
+                <button class="tool-tab-btn" data-tool="spending">📊 소비분석</button>
+                <button class="tool-tab-btn" data-tool="futures">📉 선물손실</button>
+                <button class="tool-tab-btn" data-tool="debt-calc">🧮 계산기</button>
                 <button class="tool-tab-btn" data-tool="account">⚙️ 계정</button>
             </div>
 
@@ -72,6 +74,10 @@ function renderCurrentTool() {
         case 'calendar':
             content.innerHTML = renderCalendar();
             initCalendar();
+            break;
+        case 'recurring':
+            content.innerHTML = renderRecurringExpenses();
+            initRecurringExpenses();
             break;
         case 'spending':
             content.innerHTML = renderSpendingAnalysis();
@@ -297,6 +303,259 @@ function updateEventsList(events) {
 function showDayEvents(date, events) {
     const [year, month, day] = date.split('-');
     alert(`${month}/${day} 일정:\n\n${events.map(e => `${e.icon} ${e.title}: ${e.amount ? formatAmount(e.amount) : ''}`).join('\n')}`);
+}
+
+// ============================================
+// 고정 지출 관리
+// ============================================
+
+let editingRecurring = null;
+
+function renderRecurringExpenses() {
+    const expenseItems = recurringItems.filter(i => i.type === 'expense');
+    const incomeItems = recurringItems.filter(i => i.type === 'income');
+
+    const totalMonthlyExpense = expenseItems.reduce((sum, i) => sum + (i.amount || 0), 0);
+    const totalMonthlyIncome = incomeItems.reduce((sum, i) => sum + (i.amount || 0), 0);
+
+    return `
+        <div class="recurring-container">
+            <div class="recurring-header">
+                <h3>🔄 고정 수입/지출 관리</h3>
+                <button class="btn btn-primary" id="addRecurringBtn">+ 추가</button>
+            </div>
+
+            <div class="recurring-summary">
+                <div class="recurring-summary-card income">
+                    <div class="summary-label">월 고정 수입</div>
+                    <div class="summary-value positive">${formatAmountShort(totalMonthlyIncome)}</div>
+                    <div class="summary-count">${incomeItems.length}건</div>
+                </div>
+                <div class="recurring-summary-card expense">
+                    <div class="summary-label">월 고정 지출</div>
+                    <div class="summary-value negative">${formatAmountShort(totalMonthlyExpense)}</div>
+                    <div class="summary-count">${expenseItems.length}건</div>
+                </div>
+                <div class="recurring-summary-card net">
+                    <div class="summary-label">월 순수익</div>
+                    <div class="summary-value ${totalMonthlyIncome - totalMonthlyExpense >= 0 ? 'positive' : 'negative'}">${formatAmountShort(totalMonthlyIncome - totalMonthlyExpense)}</div>
+                </div>
+            </div>
+
+            <div class="recurring-tabs">
+                <button class="recurring-tab active" data-type="expense">💸 지출 (${expenseItems.length})</button>
+                <button class="recurring-tab" data-type="income">💰 수입 (${incomeItems.length})</button>
+            </div>
+
+            <div class="recurring-list" id="recurringList">
+                ${renderRecurringList(expenseItems, 'expense')}
+            </div>
+        </div>
+
+        <!-- 고정항목 추가/수정 모달 -->
+        <div id="recurringModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="recurringModalTitle">고정 항목 추가</h3>
+                    <button class="close-btn" id="closeRecurringModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>유형</label>
+                        <select id="recurringType">
+                            <option value="expense">지출</option>
+                            <option value="income">수입</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>카테고리</label>
+                        <select id="recurringCategory">
+                            ${EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>설명</label>
+                        <input type="text" id="recurringDescription" placeholder="예: 휴대폰 요금, 월세">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>금액</label>
+                            <input type="number" id="recurringAmount" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>결제일 (매월)</label>
+                            <select id="recurringDay">
+                                ${Array.from({length: 31}, (_, i) => `<option value="${i+1}">${i+1}일</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="recurringActive" checked>
+                            활성화
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelRecurringBtn">취소</button>
+                    <button class="btn btn-primary" id="saveRecurringBtn">저장</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderRecurringList(items, type) {
+    if (items.length === 0) {
+        return `<div class="empty-state">등록된 ${type === 'expense' ? '고정 지출' : '고정 수입'}이 없습니다</div>`;
+    }
+
+    return items.map(item => `
+        <div class="recurring-item ${type}" data-id="${item.id}">
+            <div class="recurring-item-info">
+                <div class="recurring-item-name">${item.description || item.category}</div>
+                <div class="recurring-item-detail">${item.category} · 매월 ${item.day_of_month || '-'}일</div>
+            </div>
+            <div class="recurring-item-amount ${type === 'expense' ? 'negative' : 'positive'}">
+                ${formatAmount(item.amount)}
+            </div>
+            <div class="recurring-item-status">
+                ${item.is_active ? '<span class="status-active">활성</span>' : '<span class="status-inactive">비활성</span>'}
+            </div>
+            <div class="recurring-item-actions">
+                <button class="btn-icon edit-recurring-btn" data-id="${item.id}" title="수정">✏️</button>
+                <button class="btn-icon delete-recurring-btn" data-id="${item.id}" title="삭제">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function initRecurringExpenses() {
+    // 탭 전환
+    document.querySelectorAll('.recurring-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.recurring-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const type = tab.dataset.type;
+            const items = recurringItems.filter(i => i.type === type);
+            document.getElementById('recurringList').innerHTML = renderRecurringList(items, type);
+            attachRecurringItemEvents();
+        });
+    });
+
+    // 추가 버튼
+    document.getElementById('addRecurringBtn').addEventListener('click', () => openRecurringModal());
+
+    // 모달 버튼
+    document.getElementById('closeRecurringModalBtn').addEventListener('click', closeRecurringModal);
+    document.getElementById('cancelRecurringBtn').addEventListener('click', closeRecurringModal);
+    document.getElementById('saveRecurringBtn').addEventListener('click', saveRecurringItem);
+
+    // 유형 변경 시 카테고리 업데이트
+    document.getElementById('recurringType').addEventListener('change', updateRecurringCategories);
+
+    attachRecurringItemEvents();
+}
+
+function attachRecurringItemEvents() {
+    document.querySelectorAll('.edit-recurring-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const item = recurringItems.find(i => i.id === id);
+            if (item) openRecurringModal(item);
+        });
+    });
+
+    document.querySelectorAll('.delete-recurring-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            if (confirm('정말 삭제하시겠습니까?')) {
+                const result = await deleteRecurringItem(id);
+                if (result.success) {
+                    await loadToolsData();
+                    renderCurrentTool();
+                } else {
+                    alert('삭제 실패: ' + result.error);
+                }
+            }
+        });
+    });
+}
+
+function updateRecurringCategories() {
+    const type = document.getElementById('recurringType').value;
+    const categorySelect = document.getElementById('recurringCategory');
+    const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+    categorySelect.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function openRecurringModal(item = null) {
+    editingRecurring = item;
+    document.getElementById('recurringModal').style.display = 'flex';
+    document.getElementById('recurringModalTitle').textContent = item ? '고정 항목 수정' : '고정 항목 추가';
+
+    if (item) {
+        document.getElementById('recurringType').value = item.type || 'expense';
+        updateRecurringCategories();
+        document.getElementById('recurringCategory').value = item.category || '';
+        document.getElementById('recurringDescription').value = item.description || '';
+        document.getElementById('recurringAmount').value = item.amount || '';
+        document.getElementById('recurringDay').value = item.day_of_month || 1;
+        document.getElementById('recurringActive').checked = item.is_active !== false;
+    } else {
+        document.getElementById('recurringType').value = 'expense';
+        updateRecurringCategories();
+        document.getElementById('recurringDescription').value = '';
+        document.getElementById('recurringAmount').value = '';
+        document.getElementById('recurringDay').value = 1;
+        document.getElementById('recurringActive').checked = true;
+    }
+}
+
+function closeRecurringModal() {
+    document.getElementById('recurringModal').style.display = 'none';
+    editingRecurring = null;
+}
+
+async function saveRecurringItem() {
+    const type = document.getElementById('recurringType').value;
+    const category = document.getElementById('recurringCategory').value;
+    const description = document.getElementById('recurringDescription').value.trim();
+    const amount = parseInt(document.getElementById('recurringAmount').value) || 0;
+    const dayOfMonth = parseInt(document.getElementById('recurringDay').value) || 1;
+    const isActive = document.getElementById('recurringActive').checked;
+
+    if (amount <= 0) {
+        alert('금액을 입력해주세요.');
+        return;
+    }
+
+    const data = {
+        type,
+        category,
+        description: description || null,
+        amount,
+        day_of_month: dayOfMonth,
+        is_active: isActive,
+        frequency: 'monthly'
+    };
+
+    let result;
+    if (editingRecurring) {
+        result = await updateRecurringItem(editingRecurring.id, data);
+    } else {
+        result = await createRecurringItem(data);
+    }
+
+    if (result.success) {
+        closeRecurringModal();
+        await loadToolsData();
+        renderCurrentTool();
+    } else {
+        alert('저장 실패: ' + result.error);
+    }
 }
 
 // ============================================
