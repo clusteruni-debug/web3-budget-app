@@ -1301,6 +1301,11 @@ let currentYear = new Date().getFullYear();
 function renderCalendar() {
     return `
         <div class="calendar-container">
+            <!-- 이번 주 결제 하이라이트 -->
+            <div class="weekly-payments-highlight" id="weeklyPayments">
+                <!-- 동적으로 채워짐 -->
+            </div>
+
             <div class="calendar-header">
                 <button class="cal-nav-btn" id="prevMonth">◀</button>
                 <h3 class="cal-title" id="calTitle">${currentYear}년 ${currentMonth + 1}월</h3>
@@ -1368,6 +1373,9 @@ function updateCalendar() {
     // 이번 달 이벤트 수집
     const events = collectMonthEvents(currentYear, currentMonth);
 
+    // 이번 주 결제 하이라이트 업데이트
+    updateWeeklyPaymentsHighlight();
+
     let html = '';
 
     // 빈 칸 채우기
@@ -1410,6 +1418,76 @@ function updateCalendar() {
             }
         });
     });
+}
+
+// 이번 주 결제 하이라이트
+function updateWeeklyPaymentsHighlight() {
+    const container = document.getElementById('weeklyPayments');
+    if (!container) return;
+
+    const today = new Date();
+    const weekLater = new Date(today);
+    weekLater.setDate(weekLater.getDate() + 7);
+
+    // 다음 7일간의 이벤트 수집
+    const upcomingEvents = [];
+
+    // 이번 달과 다음 달 이벤트 확인
+    const thisMonthEvents = collectMonthEvents(today.getFullYear(), today.getMonth());
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const nextMonthEvents = collectMonthEvents(nextMonth.getFullYear(), nextMonth.getMonth());
+
+    [...thisMonthEvents, ...nextMonthEvents].forEach(event => {
+        const eventDate = new Date(event.date);
+        if (eventDate >= today && eventDate <= weekLater) {
+            const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+            upcomingEvents.push({ ...event, daysUntil });
+        }
+    });
+
+    // 날짜순 정렬
+    upcomingEvents.sort((a, b) => a.daysUntil - b.daysUntil);
+
+    // 지출 이벤트만 필터링 (recurring, debt)
+    const paymentEvents = upcomingEvents.filter(e => e.type === 'recurring' || e.type === 'debt');
+    const totalAmount = paymentEvents.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    if (paymentEvents.length === 0) {
+        container.innerHTML = `
+            <div class="weekly-highlight-content no-payments">
+                <span class="highlight-icon">✨</span>
+                <span class="highlight-text">이번 주 예정된 결제가 없습니다</span>
+            </div>
+        `;
+        return;
+    }
+
+    const urgentPayments = paymentEvents.filter(e => e.daysUntil <= 3);
+    const isUrgent = urgentPayments.length > 0;
+
+    container.innerHTML = `
+        <div class="weekly-highlight-header ${isUrgent ? 'urgent' : ''}">
+            <span class="highlight-icon">${isUrgent ? '🔔' : '📅'}</span>
+            <span class="highlight-title">이번 주 결제 예정</span>
+            <span class="highlight-total">${formatAmountShort(totalAmount)}</span>
+        </div>
+        <div class="weekly-highlight-items">
+            ${paymentEvents.slice(0, 4).map(event => {
+                const dayLabel = event.daysUntil === 0 ? '오늘' :
+                                 event.daysUntil === 1 ? '내일' :
+                                 `D-${event.daysUntil}`;
+                const urgentClass = event.daysUntil <= 2 ? 'urgent' : '';
+                return `
+                    <div class="weekly-item ${urgentClass}">
+                        <span class="weekly-item-day ${urgentClass}">${dayLabel}</span>
+                        <span class="weekly-item-title">${event.title}</span>
+                        <span class="weekly-item-amount">${formatAmountShort(event.amount)}</span>
+                    </div>
+                `;
+            }).join('')}
+            ${paymentEvents.length > 4 ? `<div class="weekly-more">외 ${paymentEvents.length - 4}건</div>` : ''}
+        </div>
+    `;
 }
 
 function collectMonthEvents(year, month) {
@@ -1974,10 +2052,49 @@ function updateSpendingInsights(categoryData, totalExpense, totalIncome) {
         text: `일 평균 지출: <strong>${formatAmountShort(avgDaily)}</strong> (이 추세면 월 ${formatAmountShort(projectedMonthly)})`
     });
 
-    // 5. 절약 팁 생성
+    // 5. 예산 대비 분석 (AI 인사이트)
+    if (budgets && budgets.length > 0) {
+        const overBudgetCategories = [];
+        const nearBudgetCategories = [];
+
+        categoryData.forEach(([cat, amount]) => {
+            const budget = budgets.find(b => b.category === cat);
+            if (budget) {
+                const percent = (amount / budget.monthly_amount) * 100;
+                if (percent >= 100) {
+                    overBudgetCategories.push({ name: cat, percent: percent.toFixed(0), over: amount - budget.monthly_amount });
+                } else if (percent >= 80) {
+                    nearBudgetCategories.push({ name: cat, percent: percent.toFixed(0), remaining: budget.monthly_amount - amount });
+                }
+            }
+        });
+
+        if (overBudgetCategories.length > 0) {
+            overBudgetCategories.forEach(cat => {
+                warnings.push({
+                    icon: '🚫',
+                    text: `<strong>${cat.name}</strong> 예산 초과! (${cat.percent}%, ${formatAmountShort(cat.over)} 초과)`
+                });
+            });
+        }
+
+        if (nearBudgetCategories.length > 0) {
+            nearBudgetCategories.forEach(cat => {
+                warnings.push({
+                    icon: '⏰',
+                    text: `<strong>${cat.name}</strong> 예산 ${cat.percent}% 소진 (${formatAmountShort(cat.remaining)} 남음)`
+                });
+            });
+        }
+    }
+
+    // 6. 맞춤 AI 메시지 생성
+    generatePersonalizedInsights(categoryData, totalExpense, totalIncome, insights, tips);
+
+    // 7. 절약 팁 생성
     generateSavingTips(categoryData, tips);
 
-    // 6. 고정지출 vs 변동지출 분석
+    // 8. 고정지출 vs 변동지출 분석
     const fixedCategories = ['주거', '통신', '보험', '구독'];
     const fixedExpense = categoryData
         .filter(([cat]) => fixedCategories.some(fc => cat.includes(fc)))
@@ -2106,6 +2223,89 @@ function generateSavingTips(categoryData, tips) {
     // 기본 팁 (팁이 없을 경우)
     if (tips.length === 0 && categoryData.length > 0) {
         tips.push({ icon: '💡', text: '지출 내역을 정기적으로 확인하는 것만으로도 소비 습관이 개선됩니다!' });
+    }
+}
+
+// 맞춤 AI 인사이트 생성
+function generatePersonalizedInsights(categoryData, totalExpense, totalIncome, insights, tips) {
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const monthProgress = (dayOfMonth / daysInMonth) * 100;
+
+    // 1. 월 진행 대비 지출 분석
+    if (totalIncome > 0) {
+        const expectedSpendingRate = monthProgress;
+        const actualSpendingRate = (totalExpense / totalIncome) * 100;
+
+        if (actualSpendingRate < expectedSpendingRate * 0.7) {
+            insights.push({
+                icon: '🌟',
+                text: `이번 달 지출 속도가 <strong>느립니다</strong>. 목표 저축액을 달성할 가능성이 높아요!`
+            });
+        } else if (actualSpendingRate > expectedSpendingRate * 1.3) {
+            tips.push({
+                icon: '🐢',
+                text: `지출 속도가 월 진행률보다 빠릅니다. 남은 ${daysInMonth - dayOfMonth}일간 소비를 조절해보세요.`
+            });
+        }
+    }
+
+    // 2. 요일별 패턴 분석
+    const weekendCategories = ['외식', '유흥', '쇼핑', '레저'];
+    const weekendSpending = categoryData
+        .filter(([cat]) => weekendCategories.some(wc => cat.includes(wc)))
+        .reduce((sum, [, amount]) => sum + amount, 0);
+
+    if (weekendSpending > totalExpense * 0.4 && totalExpense > 0) {
+        insights.push({
+            icon: '🎭',
+            text: `주말/여가 관련 지출이 <strong>전체의 ${((weekendSpending / totalExpense) * 100).toFixed(0)}%</strong>를 차지합니다.`
+        });
+    }
+
+    // 3. 카테고리 다양성 분석
+    if (categoryData.length <= 3 && totalExpense > 500000) {
+        insights.push({
+            icon: '🎯',
+            text: `소비가 <strong>${categoryData.length}개 카테고리</strong>에 집중되어 있어요. 특정 분야 지출을 점검해보세요.`
+        });
+    }
+
+    // 4. 작은 지출 경고 (500원~5000원 소비 횟수가 많을 경우)
+    const smallExpenses = transactions.filter(t =>
+        t.type === 'expense' &&
+        t.amount >= 500 &&
+        t.amount <= 5000 &&
+        new Date(t.date).getMonth() === now.getMonth()
+    );
+
+    if (smallExpenses.length > 20) {
+        const smallTotal = smallExpenses.reduce((sum, t) => sum + t.amount, 0);
+        tips.push({
+            icon: '🔍',
+            text: `5천원 이하 소액 지출이 <strong>${smallExpenses.length}건</strong> (총 ${formatAmountShort(smallTotal)}). 라떼팩터를 주의하세요!`
+        });
+    }
+
+    // 5. 긍정적 피드백 (저축 중인 목표가 있는 경우)
+    if (goals && goals.length > 0) {
+        const activeGoals = goals.filter(g => !g.is_completed);
+        if (activeGoals.length > 0 && totalIncome > totalExpense) {
+            const monthlySaving = totalIncome - totalExpense;
+            const fastestGoal = activeGoals.reduce((min, g) => {
+                const remaining = g.target_amount - g.current_amount;
+                const monthsToComplete = remaining / monthlySaving;
+                return monthsToComplete < min.months ? { goal: g, months: monthsToComplete } : min;
+            }, { goal: null, months: Infinity });
+
+            if (fastestGoal.goal && fastestGoal.months < 12) {
+                insights.push({
+                    icon: '🎯',
+                    text: `이 저축률을 유지하면 <strong>"${fastestGoal.goal.name}"</strong> 목표를 약 ${Math.ceil(fastestGoal.months)}개월 후 달성해요!`
+                });
+            }
+        }
     }
 }
 

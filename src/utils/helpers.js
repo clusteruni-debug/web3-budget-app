@@ -277,3 +277,222 @@ export function exportAllDataToJSON(data) {
     URL.revokeObjectURL(url);
     return true;
 }
+
+// ============================================
+// 토스트 알림 시스템
+// ============================================
+
+let toastContainer = null;
+
+function ensureToastContainer() {
+    if (!toastContainer || !document.body.contains(toastContainer)) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+    return toastContainer;
+}
+
+/**
+ * 토스트 알림 표시
+ * @param {string} message - 표시할 메시지
+ * @param {string} type - 'success' | 'error' | 'warning' | 'info'
+ * @param {number} duration - 표시 시간 (ms), 기본 3000
+ */
+export function showToast(message, type = 'info', duration = 3000) {
+    const container = ensureToastContainer();
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    // 애니메이션을 위해 약간의 딜레이 후 show 클래스 추가
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+
+    // 자동 제거
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, duration);
+}
+
+// 편의 함수들
+export const toast = {
+    success: (msg, duration) => showToast(msg, 'success', duration),
+    error: (msg, duration) => showToast(msg, 'error', duration),
+    warning: (msg, duration) => showToast(msg, 'warning', duration),
+    info: (msg, duration) => showToast(msg, 'info', duration)
+};
+
+// ============================================
+// 스켈레톤 로딩
+// ============================================
+
+/**
+ * 스켈레톤 로딩 HTML 생성
+ * @param {string} type - 'card' | 'list' | 'text' | 'circle'
+ * @param {number} count - 반복 횟수
+ */
+export function createSkeleton(type, count = 1) {
+    const skeletons = {
+        card: `
+            <div class="skeleton-loading skeleton-card">
+                <div class="skeleton-loading skeleton-text large"></div>
+                <div class="skeleton-loading skeleton-text medium"></div>
+                <div class="skeleton-loading skeleton-text small"></div>
+            </div>
+        `,
+        list: `
+            <div style="display: flex; gap: 12px; align-items: center; padding: 12px 0;">
+                <div class="skeleton-loading skeleton-circle" style="width: 40px; height: 40px;"></div>
+                <div style="flex: 1;">
+                    <div class="skeleton-loading skeleton-text medium"></div>
+                    <div class="skeleton-loading skeleton-text small" style="margin-top: 8px;"></div>
+                </div>
+                <div class="skeleton-loading skeleton-text" style="width: 80px;"></div>
+            </div>
+        `,
+        text: `<div class="skeleton-loading skeleton-text medium"></div>`,
+        circle: `<div class="skeleton-loading skeleton-circle" style="width: 48px; height: 48px;"></div>`
+    };
+
+    const template = skeletons[type] || skeletons.text;
+    return Array(count).fill(template).join('');
+}
+
+/**
+ * 요소에 스켈레톤 로딩 표시
+ * @param {HTMLElement|string} element - 요소 또는 선택자
+ * @param {string} type - 스켈레톤 타입
+ * @param {number} count - 반복 횟수
+ */
+export function showSkeleton(element, type = 'list', count = 3) {
+    const el = typeof element === 'string' ? document.querySelector(element) : element;
+    if (el) {
+        el.innerHTML = createSkeleton(type, count);
+    }
+}
+
+// ============================================
+// 로딩 오버레이
+// ============================================
+
+let loadingOverlay = null;
+
+function ensureLoadingOverlay() {
+    if (!loadingOverlay || !document.body.contains(loadingOverlay)) {
+        loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'loading-overlay';
+        loadingOverlay.innerHTML = `
+            <div class="loading-content">
+                <div class="spinner large"></div>
+                <p class="loading-text">로딩 중...</p>
+            </div>
+        `;
+        document.body.appendChild(loadingOverlay);
+    }
+    return loadingOverlay;
+}
+
+/**
+ * 로딩 오버레이 표시
+ * @param {string} text - 로딩 텍스트 (선택)
+ */
+export function showLoading(text = '로딩 중...') {
+    const overlay = ensureLoadingOverlay();
+    const textEl = overlay.querySelector('.loading-text');
+    if (textEl) textEl.textContent = text;
+    document.body.classList.add('no-scroll');
+    requestAnimationFrame(() => {
+        overlay.classList.add('active');
+    });
+}
+
+/**
+ * 로딩 오버레이 숨기기
+ */
+export function hideLoading() {
+    if (loadingOverlay) {
+        loadingOverlay.classList.remove('active');
+        document.body.classList.remove('no-scroll');
+    }
+}
+
+// ============================================
+// 숫자 카운트업 애니메이션
+// ============================================
+
+/**
+ * 숫자 카운트업 애니메이션
+ * @param {HTMLElement} element - 타겟 요소
+ * @param {number} start - 시작 값
+ * @param {number} end - 종료 값
+ * @param {number} duration - 애니메이션 시간 (ms)
+ * @param {function} formatter - 포맷팅 함수
+ */
+export function animateCountUp(element, start, end, duration = 1000, formatter = formatAmountShort) {
+    const startTime = performance.now();
+    const diff = end - start;
+
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // easeOutQuart 이징
+        const eased = 1 - Math.pow(1 - progress, 4);
+        const current = start + diff * eased;
+
+        element.textContent = formatter(Math.round(current));
+
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        }
+    }
+
+    requestAnimationFrame(update);
+}
+
+// ============================================
+// 디바운스 & 스로틀
+// ============================================
+
+/**
+ * 디바운스 함수
+ * @param {function} func - 실행할 함수
+ * @param {number} wait - 대기 시간 (ms)
+ */
+export function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * 스로틀 함수
+ * @param {function} func - 실행할 함수
+ * @param {number} limit - 제한 시간 (ms)
+ */
+export function throttle(func, limit) {
+    let inThrottle;
+    return function executedFunction(...args) {
+        if (!inThrottle) {
+            func(...args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}

@@ -554,10 +554,12 @@ function createAssetItem(asset) {
             </div>
             <div class="asset-card-footer">
                 <button class="btn-action edit-asset-btn" data-id="${asset.id}">
-                    <span>✏️</span> 수정
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    수정
                 </button>
                 <button class="btn-action delete delete-asset-btn" data-id="${asset.id}">
-                    <span>🗑️</span> 삭제
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    삭제
                 </button>
             </div>
         </div>
@@ -622,8 +624,8 @@ function renderStakingList() {
                     <div class="unlock-date">${asset.staking_unlock_date || ''}</div>
                 </div>
                 <div class="asset-actions">
-                    <button class="btn-icon edit-asset-btn" data-id="${asset.id}" title="수정">✏️</button>
-                    <button class="btn-icon delete-asset-btn" data-id="${asset.id}" title="삭제">🗑️</button>
+                    <button class="btn-icon edit-asset-btn" data-id="${asset.id}" title="수정"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                    <button class="btn-icon delete-asset-btn" data-id="${asset.id}" title="삭제"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                 </div>
             </div>
         `;
@@ -701,8 +703,8 @@ function renderAirdropList(filter = 'all', sort = 'date-desc') {
                     <div class="expected-date">${asset.airdrop_expected_date || '미정'}</div>
                 </div>
                 <div class="asset-actions">
-                    <button class="btn-icon edit-asset-btn" data-id="${asset.id}" title="수정">✏️</button>
-                    <button class="btn-icon delete-asset-btn" data-id="${asset.id}" title="삭제">🗑️</button>
+                    <button class="btn-icon edit-asset-btn" data-id="${asset.id}" title="수정"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                    <button class="btn-icon delete-asset-btn" data-id="${asset.id}" title="삭제"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                 </div>
             </div>
         `;
@@ -752,8 +754,8 @@ function renderDebtList() {
                     <div class="debt-progress-text">${percent}% 상환</div>
                 </div>
                 <div class="asset-actions">
-                    <button class="btn-icon edit-debt-btn" data-id="${debt.id}" title="수정">✏️</button>
-                    <button class="btn-icon delete-debt-btn" data-id="${debt.id}" title="삭제">🗑️</button>
+                    <button class="btn-icon edit-debt-btn" data-id="${debt.id}" title="수정"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                    <button class="btn-icon delete-debt-btn" data-id="${debt.id}" title="삭제"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                 </div>
             </div>
         `;

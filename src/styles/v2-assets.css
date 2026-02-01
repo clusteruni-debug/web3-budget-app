@@ -769,10 +769,11 @@
    Enhanced 자산 카드 (뱅크샐러드 스타일)
    ============================================ */
 .asset-item.enhanced {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    padding: 0;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    padding: 0 !important;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
@@ -924,6 +925,11 @@
     background: var(--bg-card-hover);
     border-color: var(--primary);
     color: white;
+}
+
+.btn-action svg,
+.btn-icon svg {
+    flex-shrink: 0;
 }
 
 .btn-action.delete:hover {
