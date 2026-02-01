@@ -1066,3 +1066,71 @@ export async function deleteSubscription(id) {
         return { success: false, error: error.message };
     }
 }
+
+// ============================================
+// GOALS (목표 관리)
+// ============================================
+
+export async function getGoals() {
+    try {
+        const { data, error } = await supabase
+            .from('goals')
+            .select('*')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
+    } catch (error) {
+        console.error('Get goals error:', error);
+        return { success: false, error: error.message, data: [] };
+    }
+}
+
+export async function createGoal(goal) {
+    try {
+        const { data, error } = await supabase
+            .from('goals')
+            .insert(goal)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Create goal error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateGoal(id, updates) {
+    try {
+        const { data, error } = await supabase
+            .from('goals')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Update goal error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteGoal(id) {
+    try {
+        const { error } = await supabase
+            .from('goals')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Delete goal error:', error);
+        return { success: false, error: error.message };
+    }
+}

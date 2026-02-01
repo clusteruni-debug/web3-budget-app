@@ -1,5 +1,5 @@
 // 도구 탭: 예산, 캘린더, 고정지출, 소비분석, 대출계산기, 계정설정
-import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions, getBudgets, createBudget, updateBudget, deleteBudget, getBudgetVsActual, getSubscriptions, createSubscription, updateSubscription, deleteSubscription } from '../services/database.js';
+import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions, getBudgets, createBudget, updateBudget, deleteBudget, getBudgetVsActual, getSubscriptions, createSubscription, updateSubscription, deleteSubscription, getGoals, createGoal, updateGoal, deleteGoal } from '../services/database.js';
 import { formatAmount, formatAmountShort } from '../utils/helpers.js';
 import { updatePassword } from '../services/auth.js';
 import { getCurrentUser } from '../services/supabase.js';
@@ -14,6 +14,7 @@ let transactions = [];
 let budgets = [];
 let budgetData = null;
 let subscriptions = [];
+let goals = [];
 
 export function createToolsTab() {
     return `
@@ -21,11 +22,11 @@ export function createToolsTab() {
             <!-- 도구 선택 탭 -->
             <div class="tool-tabs">
                 <button class="tool-tab-btn active" data-tool="budget">💰 예산</button>
+                <button class="tool-tab-btn" data-tool="goals">🎯 목표</button>
                 <button class="tool-tab-btn" data-tool="subscriptions">📺 구독</button>
                 <button class="tool-tab-btn" data-tool="calendar">📅 캘린더</button>
-                <button class="tool-tab-btn" data-tool="recurring">🔄 고정지출</button>
-                <button class="tool-tab-btn" data-tool="spending">📊 소비분석</button>
-                <button class="tool-tab-btn" data-tool="futures">📉 선물손실</button>
+                <button class="tool-tab-btn" data-tool="recurring">🔄 고정</button>
+                <button class="tool-tab-btn" data-tool="spending">📊 분석</button>
                 <button class="tool-tab-btn" data-tool="debt-calc">🧮 계산기</button>
                 <button class="tool-tab-btn" data-tool="account">⚙️ 계정</button>
             </div>
@@ -57,7 +58,7 @@ export async function initToolsTab() {
 }
 
 async function loadToolsData() {
-    const [debtsRes, recurringRes, stakingRes, airdropRes, transactionsRes, budgetsRes, budgetVsActualRes, subscriptionsRes] = await Promise.all([
+    const [debtsRes, recurringRes, stakingRes, airdropRes, transactionsRes, budgetsRes, budgetVsActualRes, subscriptionsRes, goalsRes] = await Promise.all([
         getDebts(),
         getRecurringItems(),
         getStakingOverview(),
@@ -65,7 +66,8 @@ async function loadToolsData() {
         getTransactions(),
         getBudgets(),
         getBudgetVsActual(),
-        getSubscriptions()
+        getSubscriptions(),
+        getGoals()
     ]);
 
     debts = debtsRes.data || [];
@@ -76,6 +78,7 @@ async function loadToolsData() {
     budgets = budgetsRes.data || [];
     budgetData = budgetVsActualRes.success ? budgetVsActualRes.data : null;
     subscriptions = subscriptionsRes.data || [];
+    goals = goalsRes.data || [];
 }
 
 function renderCurrentTool() {
@@ -85,6 +88,10 @@ function renderCurrentTool() {
         case 'budget':
             content.innerHTML = renderBudgetManager();
             initBudgetManager();
+            break;
+        case 'goals':
+            content.innerHTML = renderGoals();
+            initGoals();
             break;
         case 'subscriptions':
             content.innerHTML = renderSubscriptions();
@@ -799,6 +806,477 @@ async function saveSubscriptionItem() {
         renderCurrentTool();
     } else {
         alert('저장 실패: ' + result.error);
+    }
+}
+
+// ============================================
+// 목표 관리
+// ============================================
+
+const GOAL_CATEGORIES = ['저축', '투자', '부채상환', '구매', '여행', '교육', '기타'];
+const GOAL_ICONS = ['🎯', '💰', '📈', '🏠', '🚗', '✈️', '📚', '💎', '🎓', '💪'];
+const GOAL_COLORS = ['#667eea', '#4ade80', '#f59e0b', '#f87171', '#a78bfa', '#22d3d8', '#fb923c', '#ec4899'];
+
+let editingGoal = null;
+
+function renderGoals() {
+    const activeGoals = goals.filter(g => g.is_active && !g.is_completed);
+    const completedGoals = goals.filter(g => g.is_completed);
+
+    // 전체 진행률 계산
+    const totalTarget = activeGoals.reduce((sum, g) => sum + (g.target_amount || 0), 0);
+    const totalCurrent = activeGoals.reduce((sum, g) => sum + (g.current_amount || 0), 0);
+    const overallPercent = totalTarget > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0;
+
+    return `
+        <div class="goals-container">
+            <div class="goals-header">
+                <h3>🎯 목표 관리</h3>
+                <button class="btn btn-primary" id="addGoalBtn">+ 목표 추가</button>
+            </div>
+
+            <!-- 전체 요약 -->
+            <div class="goals-overview">
+                <div class="goals-progress-main">
+                    <div class="goals-progress-ring">
+                        <svg viewBox="0 0 100 100">
+                            <circle class="progress-bg" cx="50" cy="50" r="45"/>
+                            <circle class="progress-fill" cx="50" cy="50" r="45"
+                                    stroke-dasharray="${Math.min(overallPercent, 100) * 2.83} 283"/>
+                        </svg>
+                        <div class="progress-text">
+                            <span class="progress-percent">${overallPercent}%</span>
+                            <span class="progress-label">달성</span>
+                        </div>
+                    </div>
+                    <div class="goals-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">${activeGoals.length}</span>
+                            <span class="stat-label">진행중</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${completedGoals.length}</span>
+                            <span class="stat-label">완료</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${formatAmountShort(totalCurrent)}</span>
+                            <span class="stat-label">모은 금액</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 진행 중인 목표 -->
+            <div class="goals-section">
+                <h4>진행 중인 목표 (${activeGoals.length})</h4>
+                ${activeGoals.length === 0 ? `
+                    <div class="empty-state">
+                        <p>설정된 목표가 없습니다</p>
+                        <p class="hint">위의 '+ 목표 추가' 버튼으로 새로운 목표를 설정하세요</p>
+                    </div>
+                ` : `
+                    <div class="goals-list">
+                        ${activeGoals.map(g => renderGoalCard(g)).join('')}
+                    </div>
+                `}
+            </div>
+
+            <!-- 완료된 목표 -->
+            ${completedGoals.length > 0 ? `
+                <div class="goals-section completed-section">
+                    <h4>🎉 완료된 목표 (${completedGoals.length})</h4>
+                    <div class="goals-list completed">
+                        ${completedGoals.map(g => renderGoalCard(g, true)).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+
+        <!-- 목표 추가/수정 모달 -->
+        ${renderGoalModal()}
+    `;
+}
+
+function renderGoalCard(goal, isCompleted = false) {
+    const percent = goal.target_amount > 0 ? Math.round((goal.current_amount / goal.target_amount) * 100) : 0;
+    const remaining = goal.target_amount - goal.current_amount;
+    const color = goal.color || '#667eea';
+    const icon = goal.icon || '🎯';
+
+    // 남은 기간 계산
+    let daysRemaining = '';
+    if (goal.target_date) {
+        const targetDate = new Date(goal.target_date);
+        const today = new Date();
+        const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+        if (diffDays > 0) {
+            daysRemaining = `D-${diffDays}`;
+        } else if (diffDays === 0) {
+            daysRemaining = 'D-Day';
+        } else {
+            daysRemaining = `D+${Math.abs(diffDays)}`;
+        }
+    }
+
+    return `
+        <div class="goal-card ${isCompleted ? 'completed' : ''}" data-id="${goal.id}" style="--goal-color: ${color}">
+            <div class="goal-card-header">
+                <div class="goal-icon-wrap" style="background: ${color}20; border-color: ${color}">
+                    <span class="goal-icon">${icon}</span>
+                </div>
+                <div class="goal-title-wrap">
+                    <span class="goal-name">${goal.name}</span>
+                    ${goal.category ? `<span class="goal-category">${goal.category}</span>` : ''}
+                </div>
+                ${daysRemaining ? `<span class="goal-deadline ${daysRemaining.startsWith('D+') ? 'overdue' : ''}">${daysRemaining}</span>` : ''}
+            </div>
+
+            <div class="goal-card-body">
+                <div class="goal-progress-bar">
+                    <div class="goal-progress-fill" style="width: ${Math.min(percent, 100)}%; background: ${color}"></div>
+                </div>
+                <div class="goal-amounts">
+                    <span class="goal-current">${formatAmountShort(goal.current_amount)}</span>
+                    <span class="goal-target">/ ${formatAmountShort(goal.target_amount)}</span>
+                    <span class="goal-percent">${percent}%</span>
+                </div>
+                ${!isCompleted && remaining > 0 ? `
+                    <div class="goal-remaining">
+                        남은 금액: <strong>${formatAmountShort(remaining)}</strong>
+                    </div>
+                ` : ''}
+            </div>
+
+            <div class="goal-card-actions">
+                ${!isCompleted ? `
+                    <button class="btn-icon add-amount-btn" data-id="${goal.id}" title="금액 추가">💵</button>
+                ` : ''}
+                <button class="btn-icon edit-goal-btn" data-id="${goal.id}" title="수정">✏️</button>
+                ${!isCompleted ? `
+                    <button class="btn-icon complete-goal-btn" data-id="${goal.id}" title="완료">✅</button>
+                ` : ''}
+                <button class="btn-icon delete-goal-btn" data-id="${goal.id}" title="삭제">🗑️</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderGoalModal() {
+    return `
+        <div id="goalModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="goalModalTitle">목표 추가</h3>
+                    <button class="close-btn" id="closeGoalModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>목표명 *</label>
+                        <input type="text" id="goalName" placeholder="예: 비상금 모으기, 해외여행">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>카테고리</label>
+                            <select id="goalCategory">
+                                ${GOAL_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>목표일</label>
+                            <input type="date" id="goalTargetDate">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>목표 금액 *</label>
+                            <input type="number" id="goalTargetAmount" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>현재 금액</label>
+                            <input type="number" id="goalCurrentAmount" placeholder="0" value="0">
+                        </div>
+                    </div>
+                    <div class="goal-preset-amounts">
+                        <span class="preset-label">빠른 선택:</span>
+                        <button class="preset-btn" data-amount="1000000">100만</button>
+                        <button class="preset-btn" data-amount="3000000">300만</button>
+                        <button class="preset-btn" data-amount="5000000">500만</button>
+                        <button class="preset-btn" data-amount="10000000">1000만</button>
+                    </div>
+                    <div class="form-group">
+                        <label>아이콘</label>
+                        <div class="goal-icon-picker" id="goalIconPicker">
+                            ${GOAL_ICONS.map((icon, idx) => `
+                                <button type="button" class="icon-option ${idx === 0 ? 'selected' : ''}" data-icon="${icon}">${icon}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>색상</label>
+                        <div class="goal-color-picker" id="goalColorPicker">
+                            ${GOAL_COLORS.map((color, idx) => `
+                                <button type="button" class="color-option ${idx === 0 ? 'selected' : ''}" data-color="${color}" style="background: ${color}"></button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>메모</label>
+                        <input type="text" id="goalNotes" placeholder="목표에 대한 메모">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelGoalBtn">취소</button>
+                    <button class="btn btn-primary" id="saveGoalBtn">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 금액 추가 모달 -->
+        <div id="addAmountModal" class="modal" style="display: none;">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h3>금액 추가</h3>
+                    <button class="close-btn" id="closeAddAmountModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>추가할 금액</label>
+                        <input type="number" id="addAmountValue" placeholder="0">
+                    </div>
+                    <div class="goal-preset-amounts">
+                        <button class="preset-btn" data-amount="10000">1만</button>
+                        <button class="preset-btn" data-amount="50000">5만</button>
+                        <button class="preset-btn" data-amount="100000">10만</button>
+                        <button class="preset-btn" data-amount="500000">50만</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelAddAmountBtn">취소</button>
+                    <button class="btn btn-primary" id="confirmAddAmountBtn">추가</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+let currentGoalForAmount = null;
+
+function initGoals() {
+    // 목표 추가 버튼
+    document.getElementById('addGoalBtn')?.addEventListener('click', () => openGoalModal());
+
+    // 목표 모달 버튼
+    document.getElementById('closeGoalModalBtn')?.addEventListener('click', closeGoalModal);
+    document.getElementById('cancelGoalBtn')?.addEventListener('click', closeGoalModal);
+    document.getElementById('saveGoalBtn')?.addEventListener('click', saveGoal);
+
+    // 금액 추가 모달 버튼
+    document.getElementById('closeAddAmountModalBtn')?.addEventListener('click', closeAddAmountModal);
+    document.getElementById('cancelAddAmountBtn')?.addEventListener('click', closeAddAmountModal);
+    document.getElementById('confirmAddAmountBtn')?.addEventListener('click', confirmAddAmount);
+
+    // 빠른 금액 선택 (목표 모달)
+    document.querySelectorAll('.goal-preset-amounts .preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const modal = btn.closest('.modal');
+            if (modal.id === 'goalModal') {
+                document.getElementById('goalTargetAmount').value = btn.dataset.amount;
+            } else if (modal.id === 'addAmountModal') {
+                document.getElementById('addAmountValue').value = btn.dataset.amount;
+            }
+        });
+    });
+
+    // 아이콘 선택
+    document.querySelectorAll('#goalIconPicker .icon-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#goalIconPicker .icon-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        });
+    });
+
+    // 색상 선택
+    document.querySelectorAll('#goalColorPicker .color-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#goalColorPicker .color-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        });
+    });
+
+    // 목표 카드 이벤트
+    attachGoalCardEvents();
+}
+
+function attachGoalCardEvents() {
+    // 금액 추가
+    document.querySelectorAll('.add-amount-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const goal = goals.find(g => g.id === btn.dataset.id);
+            if (goal) openAddAmountModal(goal);
+        });
+    });
+
+    // 수정
+    document.querySelectorAll('.edit-goal-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const goal = goals.find(g => g.id === btn.dataset.id);
+            if (goal) openGoalModal(goal);
+        });
+    });
+
+    // 완료 처리
+    document.querySelectorAll('.complete-goal-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (confirm('이 목표를 완료로 표시하시겠습니까?')) {
+                const result = await updateGoal(btn.dataset.id, { is_completed: true });
+                if (result.success) {
+                    await loadToolsData();
+                    renderCurrentTool();
+                } else {
+                    alert('완료 처리 실패: ' + result.error);
+                }
+            }
+        });
+    });
+
+    // 삭제
+    document.querySelectorAll('.delete-goal-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (confirm('이 목표를 삭제하시겠습니까?')) {
+                const result = await deleteGoal(btn.dataset.id);
+                if (result.success) {
+                    await loadToolsData();
+                    renderCurrentTool();
+                } else {
+                    alert('삭제 실패: ' + result.error);
+                }
+            }
+        });
+    });
+}
+
+function openGoalModal(goal = null) {
+    editingGoal = goal;
+    document.getElementById('goalModal').style.display = 'flex';
+    document.getElementById('goalModalTitle').textContent = goal ? '목표 수정' : '목표 추가';
+
+    if (goal) {
+        document.getElementById('goalName').value = goal.name || '';
+        document.getElementById('goalCategory').value = goal.category || '저축';
+        document.getElementById('goalTargetDate').value = goal.target_date || '';
+        document.getElementById('goalTargetAmount').value = goal.target_amount || '';
+        document.getElementById('goalCurrentAmount').value = goal.current_amount || 0;
+        document.getElementById('goalNotes').value = goal.notes || '';
+
+        // 아이콘 선택
+        const iconBtn = document.querySelector(`#goalIconPicker .icon-option[data-icon="${goal.icon || '🎯'}"]`);
+        document.querySelectorAll('#goalIconPicker .icon-option').forEach(b => b.classList.remove('selected'));
+        if (iconBtn) iconBtn.classList.add('selected');
+
+        // 색상 선택
+        const colorBtn = document.querySelector(`#goalColorPicker .color-option[data-color="${goal.color || '#667eea'}"]`);
+        document.querySelectorAll('#goalColorPicker .color-option').forEach(b => b.classList.remove('selected'));
+        if (colorBtn) colorBtn.classList.add('selected');
+    } else {
+        document.getElementById('goalName').value = '';
+        document.getElementById('goalCategory').value = '저축';
+        document.getElementById('goalTargetDate').value = '';
+        document.getElementById('goalTargetAmount').value = '';
+        document.getElementById('goalCurrentAmount').value = 0;
+        document.getElementById('goalNotes').value = '';
+
+        // 첫 번째 아이콘/색상 선택
+        document.querySelectorAll('#goalIconPicker .icon-option').forEach((b, i) => b.classList.toggle('selected', i === 0));
+        document.querySelectorAll('#goalColorPicker .color-option').forEach((b, i) => b.classList.toggle('selected', i === 0));
+    }
+}
+
+function closeGoalModal() {
+    document.getElementById('goalModal').style.display = 'none';
+    editingGoal = null;
+}
+
+async function saveGoal() {
+    const name = document.getElementById('goalName').value.trim();
+    const targetAmount = parseInt(document.getElementById('goalTargetAmount').value) || 0;
+
+    if (!name) {
+        alert('목표명을 입력해주세요.');
+        return;
+    }
+    if (targetAmount <= 0) {
+        alert('목표 금액을 입력해주세요.');
+        return;
+    }
+
+    const selectedIcon = document.querySelector('#goalIconPicker .icon-option.selected')?.dataset.icon || '🎯';
+    const selectedColor = document.querySelector('#goalColorPicker .color-option.selected')?.dataset.color || '#667eea';
+
+    const data = {
+        name,
+        category: document.getElementById('goalCategory').value,
+        target_amount: targetAmount,
+        current_amount: parseInt(document.getElementById('goalCurrentAmount').value) || 0,
+        target_date: document.getElementById('goalTargetDate').value || null,
+        icon: selectedIcon,
+        color: selectedColor,
+        notes: document.getElementById('goalNotes').value.trim() || null
+    };
+
+    let result;
+    if (editingGoal) {
+        result = await updateGoal(editingGoal.id, data);
+    } else {
+        result = await createGoal(data);
+    }
+
+    if (result.success) {
+        closeGoalModal();
+        await loadToolsData();
+        renderCurrentTool();
+    } else {
+        alert('저장 실패: ' + result.error);
+    }
+}
+
+function openAddAmountModal(goal) {
+    currentGoalForAmount = goal;
+    document.getElementById('addAmountModal').style.display = 'flex';
+    document.getElementById('addAmountValue').value = '';
+}
+
+function closeAddAmountModal() {
+    document.getElementById('addAmountModal').style.display = 'none';
+    currentGoalForAmount = null;
+}
+
+async function confirmAddAmount() {
+    if (!currentGoalForAmount) return;
+
+    const addAmount = parseInt(document.getElementById('addAmountValue').value) || 0;
+    if (addAmount <= 0) {
+        alert('추가할 금액을 입력해주세요.');
+        return;
+    }
+
+    const newAmount = (currentGoalForAmount.current_amount || 0) + addAmount;
+    const result = await updateGoal(currentGoalForAmount.id, { current_amount: newAmount });
+
+    if (result.success) {
+        closeAddAmountModal();
+        await loadToolsData();
+        renderCurrentTool();
+
+        // 목표 달성 시 알림
+        if (newAmount >= currentGoalForAmount.target_amount) {
+            alert(`🎉 축하합니다! "${currentGoalForAmount.name}" 목표를 달성했습니다!`);
+        }
+    } else {
+        alert('금액 추가 실패: ' + result.error);
     }
 }
 
