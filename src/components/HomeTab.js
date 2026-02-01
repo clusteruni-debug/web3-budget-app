@@ -13,6 +13,8 @@ let netWorthChart = null;
 let budgetData = null;
 let recurringItems = [];
 let switchTabCallbackRef = null; // 탭 전환 콜백 저장
+let netWorthHistory = []; // 순자산 히스토리
+let transactions = []; // 거래 내역
 
 export function createHomeTab() {
     return `
@@ -22,15 +24,51 @@ export function createHomeTab() {
                 <!-- 동적으로 채워짐 -->
             </div>
 
-            <!-- 순자산 히어로 섹션 -->
+            <!-- 순자산 히어로 섹션 (개선) -->
             <div class="net-worth-hero">
                 <div class="net-worth-label">💰 총 순자산</div>
                 <div class="net-worth-value" id="netWorthValue">0원</div>
+                <div class="net-worth-change" id="netWorthChange">
+                    <span class="change-icon">-</span>
+                    <span class="change-value">0원</span>
+                    <span class="change-percent">(0%)</span>
+                    <span class="change-period">지난달 대비</span>
+                </div>
                 <div class="net-worth-breakdown">
                     <span class="assets-total">자산 <span id="totalAssetsValue">0원</span></span>
                     <span class="separator">-</span>
                     <span class="debts-total">부채 <span id="totalDebtsValue">0원</span></span>
                 </div>
+            </div>
+
+            <!-- 월간 요약 카드 (수입/지출/저축) -->
+            <div class="monthly-summary-cards">
+                <div class="summary-card income">
+                    <div class="summary-icon">📈</div>
+                    <div class="summary-info">
+                        <div class="summary-label">이번 달 수입</div>
+                        <div class="summary-value" id="monthlyIncome">0원</div>
+                    </div>
+                </div>
+                <div class="summary-card expense">
+                    <div class="summary-icon">📉</div>
+                    <div class="summary-info">
+                        <div class="summary-label">이번 달 지출</div>
+                        <div class="summary-value" id="monthlyExpense">0원</div>
+                    </div>
+                </div>
+                <div class="summary-card savings">
+                    <div class="summary-icon">💵</div>
+                    <div class="summary-info">
+                        <div class="summary-label">순 저축</div>
+                        <div class="summary-value" id="monthlySavings">0원</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 인사이트 카드 -->
+            <div class="insight-cards" id="insightCards">
+                <!-- 동적으로 채워짐 -->
             </div>
 
             <!-- 목표 진행률 -->
@@ -445,7 +483,7 @@ async function handleExport(type) {
 async function loadHomeData() {
     try {
         // 병렬로 모든 데이터 로드
-        const [netWorthResult, assetsResult, debtsResult, stakingResult, airdropResult, transactionsResult, budgetResult, recurringResult] = await Promise.all([
+        const [netWorthResult, assetsResult, debtsResult, stakingResult, airdropResult, transactionsResult, budgetResult, recurringResult, historyResult] = await Promise.all([
             calculateNetWorth(),
             getAssets(),
             getDebts(),
@@ -453,12 +491,19 @@ async function loadHomeData() {
             getAirdropOverview(),
             getTransactions(),
             getBudgetVsActual(),
-            getRecurringItems()
+            getRecurringItems(),
+            getNetWorthHistory(2) // 지난달 대비를 위해 2개월
         ]);
+
+        // 순자산 히스토리 저장
+        if (historyResult.success) {
+            netWorthHistory = historyResult.data || [];
+        }
 
         if (netWorthResult.success) {
             netWorthData = netWorthResult.data;
             updateNetWorthDisplay();
+            updateNetWorthChange(); // 변동률 업데이트
         }
 
         if (assetsResult.success) {
@@ -488,7 +533,9 @@ async function loadHomeData() {
         updateAlertBanners();
 
         if (transactionsResult.success) {
-            updateCashflowDisplay(transactionsResult.data || []);
+            transactions = transactionsResult.data || [];
+            updateCashflowDisplay(transactions);
+            updateMonthlySummary(transactions); // 월간 요약 업데이트
         }
 
         // 예산 현황 업데이트
@@ -502,6 +549,9 @@ async function loadHomeData() {
             recurringItems = recurringResult.data || [];
             updateCashflowFixedSummary();
         }
+
+        // 인사이트 카드 업데이트
+        updateInsightCards();
 
         // 순자산 스냅샷 저장 (하루 1회)
         await saveNetWorthSnapshot();
@@ -531,6 +581,162 @@ function updateNetWorthDisplay() {
     document.getElementById('goalPercent').textContent = `${goalPercent.toFixed(2)}%`;
     document.getElementById('goalProgressFill').style.width = `${goalPercent}%`;
     document.getElementById('goalRemaining').textContent = `목표까지 ${formatAmountShort(remaining)} 남음`;
+}
+
+// 순자산 변동률 업데이트
+function updateNetWorthChange() {
+    const changeEl = document.getElementById('netWorthChange');
+    if (!changeEl || !netWorthData || netWorthHistory.length < 2) {
+        if (changeEl) changeEl.style.display = 'none';
+        return;
+    }
+
+    const currentNetWorth = netWorthData.netWorth;
+    const lastMonth = netWorthHistory[1]; // 지난달 데이터
+    const lastNetWorth = lastMonth?.net_worth || currentNetWorth;
+
+    const change = currentNetWorth - lastNetWorth;
+    const changePercent = lastNetWorth !== 0 ? (change / Math.abs(lastNetWorth)) * 100 : 0;
+
+    const isPositive = change >= 0;
+    const iconEl = changeEl.querySelector('.change-icon');
+    const valueEl = changeEl.querySelector('.change-value');
+    const percentEl = changeEl.querySelector('.change-percent');
+
+    changeEl.className = `net-worth-change ${isPositive ? 'positive' : 'negative'}`;
+    iconEl.textContent = isPositive ? '▲' : '▼';
+    valueEl.textContent = formatAmountShort(Math.abs(change));
+    percentEl.textContent = `(${isPositive ? '+' : ''}${changePercent.toFixed(1)}%)`;
+
+    changeEl.style.display = 'flex';
+}
+
+// 월간 수입/지출/저축 요약 업데이트
+function updateMonthlySummary(transactionList) {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // 이번 달 거래만 필터
+    const thisMonthTx = transactionList.filter(tx => {
+        const txDate = new Date(tx.date);
+        return txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
+    });
+
+    const income = thisMonthTx.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0);
+    const expense = thisMonthTx.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
+    const savings = income - expense;
+
+    document.getElementById('monthlyIncome').textContent = formatAmountShort(income);
+    document.getElementById('monthlyExpense').textContent = formatAmountShort(expense);
+
+    const savingsEl = document.getElementById('monthlySavings');
+    savingsEl.textContent = formatAmountShort(savings);
+    savingsEl.className = `summary-value ${savings >= 0 ? 'positive' : 'negative'}`;
+}
+
+// 인사이트 카드 업데이트
+function updateInsightCards() {
+    const container = document.getElementById('insightCards');
+    if (!container) return;
+
+    const insights = [];
+
+    // 1. 예산 진행률 인사이트
+    if (budgetData && budgetData.totalBudget > 0) {
+        const budgetPercent = Math.round((budgetData.totalSpent / budgetData.totalBudget) * 100);
+        const remaining = budgetData.totalBudget - budgetData.totalSpent;
+        const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+        const today = new Date().getDate();
+        const expectedPercent = Math.round((today / daysInMonth) * 100);
+
+        let status = 'normal';
+        let message = '';
+        if (budgetPercent > expectedPercent + 20) {
+            status = 'warning';
+            message = `예산 ${budgetPercent}% 사용 (예상보다 빠름!)`;
+        } else if (budgetPercent < expectedPercent - 10) {
+            status = 'good';
+            message = `예산 ${budgetPercent}% 사용 (절약 중!)`;
+        } else {
+            message = `예산 ${budgetPercent}% 사용 중`;
+        }
+
+        insights.push({
+            icon: '💰',
+            title: '이번 달 예산',
+            message: message,
+            sub: `남은 예산: ${formatAmountShort(remaining)}`,
+            status: status
+        });
+    }
+
+    // 2. 다음 결제일 인사이트
+    const upcomingPayments = recurringItems
+        .filter(item => item.type === 'expense' && item.is_active)
+        .sort((a, b) => new Date(a.next_date) - new Date(b.next_date))
+        .slice(0, 3);
+
+    if (upcomingPayments.length > 0) {
+        const next = upcomingPayments[0];
+        const nextDate = new Date(next.next_date);
+        const today = new Date();
+        const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+
+        insights.push({
+            icon: '📅',
+            title: '다음 결제',
+            message: `${next.title}`,
+            sub: diffDays <= 0 ? '오늘 결제일!' : `D-${diffDays} (${formatAmountShort(next.amount)})`,
+            status: diffDays <= 3 ? 'warning' : 'normal'
+        });
+    }
+
+    // 3. 순자산 변동 인사이트
+    if (netWorthHistory.length >= 2 && netWorthData) {
+        const currentNetWorth = netWorthData.netWorth;
+        const lastMonth = netWorthHistory[1];
+        const change = currentNetWorth - (lastMonth?.net_worth || 0);
+        const isPositive = change >= 0;
+
+        insights.push({
+            icon: isPositive ? '📈' : '📉',
+            title: '순자산 변동',
+            message: isPositive ? '지난달보다 증가' : '지난달보다 감소',
+            sub: `${isPositive ? '+' : ''}${formatAmountShort(change)}`,
+            status: isPositive ? 'good' : 'warning'
+        });
+    }
+
+    // 4. 에어드랍 인사이트
+    const claimableAirdrops = airdropList.filter(a => a.airdrop_status === 'claimable');
+    if (claimableAirdrops.length > 0) {
+        const totalValue = claimableAirdrops.reduce((sum, a) => sum + (a.expected_value || 0), 0);
+        insights.push({
+            icon: '🎁',
+            title: '클레임 가능',
+            message: `${claimableAirdrops.length}개 에어드랍`,
+            sub: `예상 가치: ${formatAmountShort(totalValue)}`,
+            status: 'good'
+        });
+    }
+
+    // HTML 생성
+    if (insights.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = insights.map(insight => `
+        <div class="insight-card ${insight.status}">
+            <div class="insight-icon">${insight.icon}</div>
+            <div class="insight-content">
+                <div class="insight-title">${insight.title}</div>
+                <div class="insight-message">${insight.message}</div>
+                <div class="insight-sub">${insight.sub}</div>
+            </div>
+        </div>
+    `).join('');
 }
 
 let assetPieChart = null;

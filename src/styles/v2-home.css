@@ -78,6 +78,202 @@
     font-size: 1.5rem;
 }
 
+/* 순자산 변동률 */
+.net-worth-change {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.net-worth-change.positive {
+    color: #4ade80;
+}
+
+.net-worth-change.negative {
+    color: #f87171;
+}
+
+.net-worth-change .change-icon {
+    font-size: var(--text-xs);
+}
+
+.net-worth-change .change-value {
+    font-weight: var(--font-semibold);
+}
+
+.net-worth-change .change-percent {
+    opacity: 0.9;
+}
+
+.net-worth-change .change-period {
+    opacity: 0.7;
+    font-size: var(--text-xs);
+}
+
+/* ============================================
+   월간 요약 카드 (수입/지출/저축)
+   ============================================ */
+.monthly-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+}
+
+.monthly-summary-cards .summary-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+}
+
+.monthly-summary-cards .summary-card:hover {
+    border-color: var(--border-color-hover);
+    transform: translateY(-2px);
+}
+
+.monthly-summary-cards .summary-icon {
+    font-size: var(--text-2xl);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+}
+
+.monthly-summary-cards .summary-card.income .summary-icon {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.monthly-summary-cards .summary-card.expense .summary-icon {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.monthly-summary-cards .summary-card.savings .summary-icon {
+    background: rgba(34, 197, 94, 0.15);
+}
+
+.monthly-summary-cards .summary-info {
+    flex: 1;
+}
+
+.monthly-summary-cards .summary-label {
+    font-size: var(--text-xs);
+    color: var(--gray-400);
+    margin-bottom: var(--space-1);
+}
+
+.monthly-summary-cards .summary-value {
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    color: white;
+}
+
+.monthly-summary-cards .summary-value.positive {
+    color: var(--positive);
+}
+
+.monthly-summary-cards .summary-value.negative {
+    color: var(--negative);
+}
+
+/* ============================================
+   인사이트 카드
+   ============================================ */
+.insight-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--space-3);
+}
+
+.insight-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border-left: 4px solid var(--gray-600);
+    transition: all var(--transition-fast);
+}
+
+.insight-card:hover {
+    background: var(--bg-card-hover);
+}
+
+.insight-card.good {
+    border-left-color: var(--positive);
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, var(--bg-card) 100%);
+}
+
+.insight-card.warning {
+    border-left-color: var(--warning);
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.05) 0%, var(--bg-card) 100%);
+}
+
+.insight-card.normal {
+    border-left-color: var(--primary);
+}
+
+.insight-icon {
+    font-size: var(--text-2xl);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+}
+
+.insight-content {
+    flex: 1;
+}
+
+.insight-title {
+    font-size: var(--text-xs);
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-1);
+}
+
+.insight-message {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: white;
+    margin-bottom: var(--space-1);
+}
+
+.insight-sub {
+    font-size: var(--text-sm);
+    color: var(--gray-300);
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .monthly-summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .insight-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
 .assets-total {
     color: #a7f3d0;
 }
