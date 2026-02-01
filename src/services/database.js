@@ -999,3 +999,70 @@ export async function getBudgetVsActual() {
         return { success: false, error: error.message };
     }
 }
+
+// ============================================
+// SUBSCRIPTIONS (구독 관리)
+// ============================================
+
+export async function getSubscriptions() {
+    try {
+        const { data, error } = await supabase
+            .from('subscriptions')
+            .select('*')
+            .order('next_billing_date', { ascending: true });
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
+    } catch (error) {
+        console.error('Get subscriptions error:', error);
+        return { success: false, error: error.message, data: [] };
+    }
+}
+
+export async function createSubscription(subscription) {
+    try {
+        const { data, error } = await supabase
+            .from('subscriptions')
+            .insert(subscription)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Create subscription error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateSubscription(id, updates) {
+    try {
+        const { data, error } = await supabase
+            .from('subscriptions')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Update subscription error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteSubscription(id) {
+    try {
+        const { error } = await supabase
+            .from('subscriptions')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Delete subscription error:', error);
+        return { success: false, error: error.message };
+    }
+}

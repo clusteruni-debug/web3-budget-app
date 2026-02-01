@@ -1,5 +1,5 @@
 // 도구 탭: 예산, 캘린더, 고정지출, 소비분석, 대출계산기, 계정설정
-import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions, getBudgets, createBudget, updateBudget, deleteBudget, getBudgetVsActual } from '../services/database.js';
+import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions, getBudgets, createBudget, updateBudget, deleteBudget, getBudgetVsActual, getSubscriptions, createSubscription, updateSubscription, deleteSubscription } from '../services/database.js';
 import { formatAmount, formatAmountShort } from '../utils/helpers.js';
 import { updatePassword } from '../services/auth.js';
 import { getCurrentUser } from '../services/supabase.js';
@@ -13,6 +13,7 @@ let airdropList = [];
 let transactions = [];
 let budgets = [];
 let budgetData = null;
+let subscriptions = [];
 
 export function createToolsTab() {
     return `
@@ -20,6 +21,7 @@ export function createToolsTab() {
             <!-- 도구 선택 탭 -->
             <div class="tool-tabs">
                 <button class="tool-tab-btn active" data-tool="budget">💰 예산</button>
+                <button class="tool-tab-btn" data-tool="subscriptions">📺 구독</button>
                 <button class="tool-tab-btn" data-tool="calendar">📅 캘린더</button>
                 <button class="tool-tab-btn" data-tool="recurring">🔄 고정지출</button>
                 <button class="tool-tab-btn" data-tool="spending">📊 소비분석</button>
@@ -55,14 +57,15 @@ export async function initToolsTab() {
 }
 
 async function loadToolsData() {
-    const [debtsRes, recurringRes, stakingRes, airdropRes, transactionsRes, budgetsRes, budgetVsActualRes] = await Promise.all([
+    const [debtsRes, recurringRes, stakingRes, airdropRes, transactionsRes, budgetsRes, budgetVsActualRes, subscriptionsRes] = await Promise.all([
         getDebts(),
         getRecurringItems(),
         getStakingOverview(),
         getAirdropOverview(),
         getTransactions(),
         getBudgets(),
-        getBudgetVsActual()
+        getBudgetVsActual(),
+        getSubscriptions()
     ]);
 
     debts = debtsRes.data || [];
@@ -72,6 +75,7 @@ async function loadToolsData() {
     transactions = transactionsRes.data || [];
     budgets = budgetsRes.data || [];
     budgetData = budgetVsActualRes.success ? budgetVsActualRes.data : null;
+    subscriptions = subscriptionsRes.data || [];
 }
 
 function renderCurrentTool() {
@@ -81,6 +85,10 @@ function renderCurrentTool() {
         case 'budget':
             content.innerHTML = renderBudgetManager();
             initBudgetManager();
+            break;
+        case 'subscriptions':
+            content.innerHTML = renderSubscriptions();
+            initSubscriptions();
             break;
         case 'calendar':
             content.innerHTML = renderCalendar();
@@ -481,6 +489,312 @@ async function saveBudgetItem() {
 
     if (result.success) {
         closeBudgetModal();
+        await loadToolsData();
+        renderCurrentTool();
+    } else {
+        alert('저장 실패: ' + result.error);
+    }
+}
+
+// ============================================
+// 구독 관리
+// ============================================
+
+const SUBSCRIPTION_CATEGORIES = ['영상', '음악', '소프트웨어', '게임', '뉴스/매거진', '클라우드', '기타'];
+
+let editingSubscription = null;
+
+function renderSubscriptions() {
+    const activeSubscriptions = subscriptions.filter(s => s.is_active);
+    const inactiveSubscriptions = subscriptions.filter(s => !s.is_active);
+
+    const totalMonthly = activeSubscriptions.reduce((sum, s) => {
+        if (s.billing_cycle === 'yearly') return sum + Math.round(s.amount / 12);
+        if (s.billing_cycle === 'weekly') return sum + (s.amount * 4);
+        return sum + s.amount;
+    }, 0);
+
+    const totalYearly = totalMonthly * 12;
+
+    // 다가오는 결제
+    const today = new Date();
+    const upcomingPayments = activeSubscriptions
+        .filter(s => s.next_billing_date)
+        .sort((a, b) => new Date(a.next_billing_date) - new Date(b.next_billing_date))
+        .slice(0, 5);
+
+    return `
+        <div class="subscriptions-container">
+            <div class="subscriptions-header">
+                <h3>📺 구독 서비스 관리</h3>
+                <button class="btn btn-primary" id="addSubscriptionBtn">+ 구독 추가</button>
+            </div>
+
+            <!-- 구독 요약 -->
+            <div class="subscription-summary">
+                <div class="summary-card">
+                    <div class="summary-icon">💳</div>
+                    <div class="summary-info">
+                        <div class="summary-value">${formatAmountShort(totalMonthly)}</div>
+                        <div class="summary-label">월 구독료</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">📅</div>
+                    <div class="summary-info">
+                        <div class="summary-value">${formatAmountShort(totalYearly)}</div>
+                        <div class="summary-label">연간 예상</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">📊</div>
+                    <div class="summary-info">
+                        <div class="summary-value">${activeSubscriptions.length}개</div>
+                        <div class="summary-label">활성 구독</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 다가오는 결제 -->
+            ${upcomingPayments.length > 0 ? `
+                <div class="upcoming-payments">
+                    <h4>📆 다가오는 결제</h4>
+                    <div class="upcoming-list">
+                        ${upcomingPayments.map(s => {
+                            const daysUntil = Math.ceil((new Date(s.next_billing_date) - today) / (1000 * 60 * 60 * 24));
+                            const isUrgent = daysUntil <= 3;
+                            return `
+                                <div class="upcoming-item ${isUrgent ? 'urgent' : ''}">
+                                    <span class="upcoming-name">${s.name}</span>
+                                    <span class="upcoming-date">${isUrgent ? `D-${daysUntil}` : s.next_billing_date}</span>
+                                    <span class="upcoming-amount">${formatAmountShort(s.amount)}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- 구독 목록 -->
+            <div class="subscription-list">
+                <h4>활성 구독 (${activeSubscriptions.length})</h4>
+                ${activeSubscriptions.length === 0 ? `
+                    <div class="empty-state">
+                        <p>등록된 구독이 없습니다</p>
+                        <p class="hint">위의 '+ 구독 추가' 버튼으로 구독 서비스를 등록하세요</p>
+                    </div>
+                ` : `
+                    <div class="subscriptions-grid">
+                        ${activeSubscriptions.map(s => renderSubscriptionCard(s)).join('')}
+                    </div>
+                `}
+
+                ${inactiveSubscriptions.length > 0 ? `
+                    <h4 style="margin-top: var(--space-5);">비활성 구독 (${inactiveSubscriptions.length})</h4>
+                    <div class="subscriptions-grid inactive">
+                        ${inactiveSubscriptions.map(s => renderSubscriptionCard(s)).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+
+        <!-- 구독 추가/수정 모달 -->
+        ${renderSubscriptionModal()}
+    `;
+}
+
+function renderSubscriptionCard(sub) {
+    const billingText = sub.billing_cycle === 'yearly' ? '연간' : sub.billing_cycle === 'weekly' ? '주간' : '월간';
+
+    return `
+        <div class="subscription-card ${sub.is_active ? '' : 'inactive'}">
+            <div class="subscription-card-header">
+                <span class="subscription-name">${sub.name}</span>
+                <span class="subscription-category">${sub.category || '기타'}</span>
+            </div>
+            <div class="subscription-card-body">
+                <div class="subscription-amount">${formatAmountShort(sub.amount)}<span class="billing-cycle">/${billingText}</span></div>
+                ${sub.next_billing_date ? `<div class="subscription-next">다음 결제: ${sub.next_billing_date}</div>` : ''}
+            </div>
+            <div class="subscription-card-actions">
+                <button class="btn-icon edit-subscription-btn" data-id="${sub.id}" title="수정">✏️</button>
+                <button class="btn-icon toggle-subscription-btn" data-id="${sub.id}" data-active="${sub.is_active}" title="${sub.is_active ? '비활성화' : '활성화'}">
+                    ${sub.is_active ? '⏸️' : '▶️'}
+                </button>
+                <button class="btn-icon delete-subscription-btn" data-id="${sub.id}" title="삭제">🗑️</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderSubscriptionModal() {
+    return `
+        <div id="subscriptionModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="subscriptionModalTitle">구독 추가</h3>
+                    <button class="close-btn" id="closeSubscriptionModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>서비스명 *</label>
+                        <input type="text" id="subName" placeholder="예: Netflix, YouTube Premium">
+                    </div>
+                    <div class="form-group">
+                        <label>카테고리</label>
+                        <select id="subCategory">
+                            ${SUBSCRIPTION_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>구독료 *</label>
+                            <input type="number" id="subAmount" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>결제 주기</label>
+                            <select id="subBillingCycle">
+                                <option value="monthly">월간</option>
+                                <option value="yearly">연간</option>
+                                <option value="weekly">주간</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>결제일</label>
+                            <select id="subBillingDay">
+                                ${Array.from({length: 31}, (_, i) => `<option value="${i+1}">${i+1}일</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>다음 결제일</label>
+                            <input type="date" id="subNextBilling">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>메모</label>
+                        <input type="text" id="subNotes" placeholder="계정 정보, 공유 여부 등">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelSubscriptionBtn">취소</button>
+                    <button class="btn btn-primary" id="saveSubscriptionBtn">저장</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function initSubscriptions() {
+    // 추가 버튼
+    document.getElementById('addSubscriptionBtn')?.addEventListener('click', () => openSubscriptionModal());
+
+    // 모달 버튼
+    document.getElementById('closeSubscriptionModalBtn')?.addEventListener('click', closeSubscriptionModal);
+    document.getElementById('cancelSubscriptionBtn')?.addEventListener('click', closeSubscriptionModal);
+    document.getElementById('saveSubscriptionBtn')?.addEventListener('click', saveSubscriptionItem);
+
+    // 구독 카드 이벤트
+    attachSubscriptionEvents();
+}
+
+function attachSubscriptionEvents() {
+    document.querySelectorAll('.edit-subscription-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sub = subscriptions.find(s => s.id === btn.dataset.id);
+            if (sub) openSubscriptionModal(sub);
+        });
+    });
+
+    document.querySelectorAll('.toggle-subscription-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            const isActive = btn.dataset.active === 'true';
+            const result = await updateSubscription(id, { is_active: !isActive });
+            if (result.success) {
+                await loadToolsData();
+                renderCurrentTool();
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-subscription-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (confirm('이 구독을 삭제하시겠습니까?')) {
+                const result = await deleteSubscription(btn.dataset.id);
+                if (result.success) {
+                    await loadToolsData();
+                    renderCurrentTool();
+                } else {
+                    alert('삭제 실패: ' + result.error);
+                }
+            }
+        });
+    });
+}
+
+function openSubscriptionModal(sub = null) {
+    editingSubscription = sub;
+    document.getElementById('subscriptionModal').style.display = 'flex';
+    document.getElementById('subscriptionModalTitle').textContent = sub ? '구독 수정' : '구독 추가';
+
+    if (sub) {
+        document.getElementById('subName').value = sub.name || '';
+        document.getElementById('subCategory').value = sub.category || '기타';
+        document.getElementById('subAmount').value = sub.amount || '';
+        document.getElementById('subBillingCycle').value = sub.billing_cycle || 'monthly';
+        document.getElementById('subBillingDay').value = sub.billing_day || 1;
+        document.getElementById('subNextBilling').value = sub.next_billing_date || '';
+        document.getElementById('subNotes').value = sub.notes || '';
+    } else {
+        document.getElementById('subName').value = '';
+        document.getElementById('subCategory').value = '영상';
+        document.getElementById('subAmount').value = '';
+        document.getElementById('subBillingCycle').value = 'monthly';
+        document.getElementById('subBillingDay').value = 1;
+        document.getElementById('subNextBilling').value = '';
+        document.getElementById('subNotes').value = '';
+    }
+}
+
+function closeSubscriptionModal() {
+    document.getElementById('subscriptionModal').style.display = 'none';
+    editingSubscription = null;
+}
+
+async function saveSubscriptionItem() {
+    const name = document.getElementById('subName').value.trim();
+    const amount = parseInt(document.getElementById('subAmount').value) || 0;
+
+    if (!name) {
+        alert('서비스명을 입력해주세요.');
+        return;
+    }
+    if (amount <= 0) {
+        alert('구독료를 입력해주세요.');
+        return;
+    }
+
+    const data = {
+        name,
+        category: document.getElementById('subCategory').value,
+        amount,
+        billing_cycle: document.getElementById('subBillingCycle').value,
+        billing_day: parseInt(document.getElementById('subBillingDay').value) || 1,
+        next_billing_date: document.getElementById('subNextBilling').value || null,
+        notes: document.getElementById('subNotes').value.trim() || null
+    };
+
+    let result;
+    if (editingSubscription) {
+        result = await updateSubscription(editingSubscription.id, data);
+    } else {
+        result = await createSubscription(data);
+    }
+
+    if (result.success) {
+        closeSubscriptionModal();
         await loadToolsData();
         renderCurrentTool();
     } else {
