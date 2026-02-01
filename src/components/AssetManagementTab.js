@@ -1,7 +1,7 @@
 // V2: 통합 자산 관리 탭
 import { getAssets, createAsset, updateAsset, deleteAsset, getDebts, createDebt, updateDebt, deleteDebt } from '../services/database.js';
 import { formatAmount, getToday } from '../utils/helpers.js';
-import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, STAKING_STATUS_INFO, AIRDROP_STATUS_INFO, DEBT_TYPE_INFO } from '../utils/constants.js';
+import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, CASH_TYPE_INFO, STAKING_STATUS_INFO, AIRDROP_STATUS_INFO, DEBT_TYPE_INFO } from '../utils/constants.js';
 
 // 상수 별칭
 const STAKING_STATUS = STAKING_STATUS_INFO;
@@ -84,26 +84,34 @@ export function createAssetManagementTab() {
 
                 <!-- 에어드랍 요약 -->
                 <div class="airdrop-summary-grid">
-                    <div class="summary-card">
-                        <div class="summary-label">총 예상 가치</div>
+                    <div class="summary-card success">
+                        <div class="summary-label">총 에어드랍 수익</div>
                         <div class="summary-value" id="totalAirdropValue">0원</div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-label">클레임 가능</div>
-                        <div class="summary-value highlight" id="claimableCount">0개</div>
+                        <div class="summary-label">대기 중</div>
+                        <div class="summary-value" id="pendingCount">0개</div>
                     </div>
-                    <div class="summary-card">
-                        <div class="summary-label">확정됨</div>
-                        <div class="summary-value" id="confirmedCount">0개</div>
+                    <div class="summary-card highlight">
+                        <div class="summary-label">클레임 가능</div>
+                        <div class="summary-value" id="claimableCount">0개</div>
                     </div>
                 </div>
 
-                <!-- 상태별 필터 -->
-                <div class="filter-tabs" id="airdropFilterTabs">
-                    <button class="filter-tab active" data-filter="all">전체</button>
-                    ${AIRDROP_STATUS.map(s =>
-                        `<button class="filter-tab" data-filter="${s.id}">${s.icon} ${s.name}</button>`
-                    ).join('')}
+                <!-- 상태별 필터 + 정렬 -->
+                <div class="filter-row">
+                    <div class="filter-tabs" id="airdropFilterTabs">
+                        <button class="filter-tab active" data-filter="all">전체</button>
+                        ${AIRDROP_STATUS.map(s =>
+                            `<button class="filter-tab" data-filter="${s.id}">${s.icon} ${s.name}</button>`
+                        ).join('')}
+                    </div>
+                    <select class="sort-select" id="airdropSort">
+                        <option value="date-desc">최신순</option>
+                        <option value="date-asc">오래된순</option>
+                        <option value="value-desc">금액 높은순</option>
+                        <option value="value-asc">금액 낮은순</option>
+                    </select>
                 </div>
 
                 <!-- 에어드랍 목록 -->
@@ -376,9 +384,19 @@ function initEventListeners() {
         tab.addEventListener('click', () => {
             document.querySelectorAll('#airdropFilterTabs .filter-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            renderAirdropList(tab.dataset.filter);
+            const sortValue = document.getElementById('airdropSort')?.value || 'date-desc';
+            renderAirdropList(tab.dataset.filter, sortValue);
         });
     });
+
+    // 에어드랍 정렬
+    const airdropSort = document.getElementById('airdropSort');
+    if (airdropSort) {
+        airdropSort.addEventListener('change', () => {
+            const activeFilter = document.querySelector('#airdropFilterTabs .filter-tab.active')?.dataset.filter || 'all';
+            renderAirdropList(activeFilter, airdropSort.value);
+        });
+    }
 
     // 자산 모달
     document.getElementById('addAssetBtn').addEventListener('click', () => openAssetModal());
@@ -566,13 +584,34 @@ function renderStakingList() {
     attachAssetItemEvents();
 }
 
-function renderAirdropList(filter = 'all') {
+function renderAirdropList(filter = 'all', sort = 'date-desc') {
     const list = document.getElementById('airdropListFull');
     let airdropAssets = assets.filter(a => a.sub_type === 'airdrop');
 
     if (filter !== 'all') {
         airdropAssets = airdropAssets.filter(a => a.airdrop_status === filter);
     }
+
+    // 정렬
+    airdropAssets.sort((a, b) => {
+        const aValue = a.airdrop_status === 'claimed' ? (a.purchase_value || 0) : (a.airdrop_expected_value || 0);
+        const bValue = b.airdrop_status === 'claimed' ? (b.purchase_value || 0) : (b.airdrop_expected_value || 0);
+        const aDate = a.airdrop_expected_date || a.created_at || '';
+        const bDate = b.airdrop_expected_date || b.created_at || '';
+
+        switch (sort) {
+            case 'date-desc':
+                return bDate.localeCompare(aDate);
+            case 'date-asc':
+                return aDate.localeCompare(bDate);
+            case 'value-desc':
+                return bValue - aValue;
+            case 'value-asc':
+                return aValue - bValue;
+            default:
+                return bDate.localeCompare(aDate);
+        }
+    });
 
     // 요약 계산
     const allAirdrops = assets.filter(a => a.sub_type === 'airdrop');
@@ -587,8 +626,8 @@ function renderAirdropList(filter = 'all') {
     const confirmed = allAirdrops.filter(a => a.airdrop_status === 'confirmed').length;
 
     document.getElementById('totalAirdropValue').textContent = formatAmount(totalValue);
+    document.getElementById('pendingCount').textContent = `${allAirdrops.filter(a => a.airdrop_status === 'pending' || a.airdrop_status === 'confirmed').length}개`;
     document.getElementById('claimableCount').textContent = `${claimable}개`;
-    document.getElementById('confirmedCount').textContent = `${confirmed}개`;
 
     if (airdropAssets.length === 0) {
         list.innerHTML = '<div class="empty-state">등록된 에어드랍이 없습니다</div>';
@@ -738,6 +777,12 @@ function handleCategoryChange() {
             ${CRYPTO_TYPE_INFO.map(t => `<option value="${t.id}">${t.icon} ${t.name}</option>`).join('')}
         `;
         document.getElementById('cryptoFields').style.display = '';
+    } else if (category === 'cash') {
+        subTypeSelect.innerHTML = `
+            <option value="">선택 안함</option>
+            ${CASH_TYPE_INFO.map(t => `<option value="${t.id}">${t.icon} ${t.name}</option>`).join('')}
+        `;
+        document.getElementById('cryptoFields').style.display = 'none';
     } else {
         subTypeSelect.innerHTML = '<option value="">선택 안함</option>';
         document.getElementById('cryptoFields').style.display = 'none';

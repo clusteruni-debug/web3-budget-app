@@ -33,6 +33,27 @@ export const ASSET_CATEGORY_INFO = [
 ];
 
 // ============================================
+// 현금/예금 세부 유형 (Cash Sub-types)
+// ============================================
+export const CASH_TYPES = {
+    BANK: 'bank',               // 은행 예금
+    CMA: 'cma',                 // CMA
+    CASH: 'cash',               // 현금
+    LIVING: 'living',           // 생활비 계좌
+    EMERGENCY: 'emergency',     // 비상금
+    FAMILY: 'family_account'    // 가족 공동 계좌
+};
+
+export const CASH_TYPE_INFO = [
+    { id: 'bank', name: '은행 예금', icon: '🏦', description: '일반 은행 예금' },
+    { id: 'cma', name: 'CMA', icon: '💰', description: 'CMA 계좌' },
+    { id: 'cash', name: '현금', icon: '💵', description: '보유 현금' },
+    { id: 'living', name: '생활비', icon: '🏠', description: '생활비 계좌' },
+    { id: 'emergency', name: '비상금', icon: '🆘', description: '비상금 계좌' },
+    { id: 'family_account', name: '가족 공동', icon: '👨‍👩‍👧', description: '가족 공동 계좌' }
+];
+
+// ============================================
 // 크립토 자산 유형 (Crypto Sub-types)
 // ============================================
 export const CRYPTO_TYPES = {

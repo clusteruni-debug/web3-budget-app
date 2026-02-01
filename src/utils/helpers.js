@@ -153,17 +153,34 @@ function escapeCsvValue(value) {
 
 // 자산 데이터 CSV 내보내기
 export function exportAssetsToCSV(assets) {
-    const headers = ['이름', '카테고리', '크립토타입', '현재가치', '매입가', '수량', '메모', '생성일'];
-    const rows = assets.map(a => [
-        a.name,
-        a.category,
-        a.crypto_type || '',
-        a.current_value,
-        a.purchase_value || '',
-        a.quantity || '',
-        a.notes || '',
-        a.created_at?.split('T')[0] || ''
-    ]);
+    const headers = ['이름', '카테고리', '세부유형', '현재가치', '매입가/청산가', '수량', '토큰명', '플랫폼', '상태', '예상일', '메모', '생성일'];
+    const rows = assets.map(a => {
+        // 에어드랍은 purchase_value가 청산 금액
+        const valueOrClaimed = a.sub_type === 'airdrop' && a.airdrop_status === 'claimed'
+            ? a.purchase_value
+            : a.purchase_value;
+        const status = a.sub_type === 'airdrop' ? a.airdrop_status
+            : a.sub_type === 'staking' ? a.staking_status
+            : '';
+        const expectedDate = a.sub_type === 'airdrop' ? a.airdrop_expected_date
+            : a.sub_type === 'staking' ? a.staking_unlock_date
+            : '';
+
+        return [
+            a.name,
+            a.category,
+            a.sub_type || '',
+            a.current_value,
+            valueOrClaimed || '',
+            a.quantity || '',
+            a.token_name || '',
+            a.platform || '',
+            status,
+            expectedDate || '',
+            a.notes || '',
+            a.created_at?.split('T')[0] || ''
+        ];
+    });
 
     return generateAndDownloadCSV(headers, rows, '자산목록');
 }

@@ -18,6 +18,7 @@ export function createToolsTab() {
             <div class="tool-tabs">
                 <button class="tool-tab-btn active" data-tool="calendar">📅 캘린더</button>
                 <button class="tool-tab-btn" data-tool="spending">📊 소비 분석</button>
+                <button class="tool-tab-btn" data-tool="futures">📉 선물 손실</button>
                 <button class="tool-tab-btn" data-tool="debt-calc">🧮 대출 계산기</button>
                 <button class="tool-tab-btn" data-tool="account">⚙️ 계정</button>
             </div>
@@ -75,6 +76,10 @@ function renderCurrentTool() {
         case 'spending':
             content.innerHTML = renderSpendingAnalysis();
             initSpendingAnalysis();
+            break;
+        case 'futures':
+            content.innerHTML = renderFuturesLoss();
+            initFuturesLoss();
             break;
         case 'debt-calc':
             content.innerHTML = renderDebtCalculator();
@@ -676,6 +681,73 @@ function simulatePayoff(principal, monthlyRate, monthlyPayment) {
         totalPaid: Math.round(principal + totalInterest),
         endDate: endDateStr
     };
+}
+
+// ============================================
+// 선물 손실 추적
+// ============================================
+
+function renderFuturesLoss() {
+    // 선물거래 카테고리 손실 계산
+    const futuresLosses = transactions.filter(t =>
+        t.type === 'expense' && t.category === '선물거래'
+    );
+    const totalLoss = futuresLosses.reduce((sum, t) => sum + t.amount, 0);
+
+    // 월별 손실 집계
+    const monthlyLosses = {};
+    futuresLosses.forEach(t => {
+        const month = t.date.substring(0, 7); // YYYY-MM
+        monthlyLosses[month] = (monthlyLosses[month] || 0) + t.amount;
+    });
+
+    const sortedMonths = Object.entries(monthlyLosses).sort((a, b) => b[0].localeCompare(a[0]));
+
+    return `
+        <div class="futures-loss-container">
+            <h3>📉 선물 손실 현황</h3>
+
+            <div class="futures-warning">
+                <span class="warning-icon">⚠️</span>
+                <span>선물 거래는 원금 손실 위험이 매우 높습니다!</span>
+            </div>
+
+            <div class="futures-summary">
+                <div class="futures-total-card">
+                    <div class="futures-label">총 선물 손실</div>
+                    <div class="futures-value negative">${formatAmountShort(totalLoss)}</div>
+                    <div class="futures-count">${futuresLosses.length}건의 거래</div>
+                </div>
+            </div>
+
+            <div class="futures-message">
+                <p>💪 ${totalLoss > 0 ? `${formatAmountShort(totalLoss)}을 선물로 잃었지만, 다시 선물을 안 하면 됩니다!` : '선물 거래 손실이 없습니다. 이대로 유지하세요!'}</p>
+            </div>
+
+            <div class="futures-monthly">
+                <h4>월별 손실 내역</h4>
+                ${sortedMonths.length > 0 ? `
+                    <div class="monthly-loss-list">
+                        ${sortedMonths.map(([month, amount]) => `
+                            <div class="monthly-loss-item">
+                                <span class="month-label">${month.replace('-', '년 ')}월</span>
+                                <span class="month-value negative">${formatAmountShort(amount)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '<div class="empty-state">선물 손실 기록이 없습니다</div>'}
+            </div>
+
+            <div class="futures-record">
+                <h4>손실 기록하기</h4>
+                <p class="hint">선물 손실을 기록하려면 거래 탭에서 "지출 > 선물거래" 카테고리로 추가하세요.</p>
+            </div>
+        </div>
+    `;
+}
+
+function initFuturesLoss() {
+    // 현재는 별도 초기화 필요 없음
 }
 
 // ============================================

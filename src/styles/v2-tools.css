@@ -555,6 +555,137 @@
 .saving-item strong.positive { color: #4ade80; }
 
 /* ============================================
+   선물 손실 추적
+   ============================================ */
+
+.futures-loss-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.futures-loss-container h3 {
+    text-align: center;
+    margin-bottom: var(--space-5);
+    font-size: var(--text-2xl);
+}
+
+.futures-loss-container h4 {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-lg);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.futures-warning {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-5);
+    color: #fca5a5;
+}
+
+.futures-warning .warning-icon {
+    font-size: 1.5rem;
+}
+
+.futures-summary {
+    margin-bottom: var(--space-5);
+}
+
+.futures-total-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.05) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    text-align: center;
+}
+
+.futures-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--space-2);
+}
+
+.futures-value {
+    font-size: var(--text-3xl);
+    font-weight: 800;
+}
+
+.futures-value.negative {
+    color: #f87171;
+}
+
+.futures-count {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: var(--space-2);
+}
+
+.futures-message {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    text-align: center;
+    margin-bottom: var(--space-5);
+}
+
+.futures-message p {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+}
+
+.futures-monthly {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    margin-bottom: var(--space-5);
+}
+
+.monthly-loss-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.monthly-loss-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+}
+
+.month-label {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.month-value {
+    font-weight: 600;
+}
+
+.month-value.negative {
+    color: #f87171;
+}
+
+.futures-record {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.futures-record .hint {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: var(--text-sm);
+    margin: 0;
+}
+
+/* ============================================
    반응형
    ============================================ */
 
@@ -563,8 +694,24 @@
         padding: var(--space-4);
     }
 
+    /* 도구 탭 - 가로 스크롤 */
     .tool-tabs {
-        flex-direction: column;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        gap: var(--space-1);
+    }
+
+    .tool-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tool-tab-btn {
+        flex: 0 0 auto;
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--text-xs);
+        white-space: nowrap;
     }
 
     .calendar-grid {
@@ -594,6 +741,10 @@
     .savings-highlight {
         flex-direction: column;
         gap: var(--space-3);
+    }
+
+    .futures-value {
+        font-size: var(--text-2xl);
     }
 }
 
