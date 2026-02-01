@@ -576,7 +576,13 @@ function renderAirdropList(filter = 'all') {
 
     // 요약 계산
     const allAirdrops = assets.filter(a => a.sub_type === 'airdrop');
-    const totalValue = allAirdrops.reduce((sum, a) => sum + (a.airdrop_expected_value || 0), 0);
+    // claimed는 purchase_value, 나머지는 expected_value
+    const totalValue = allAirdrops.reduce((sum, a) => {
+        if (a.airdrop_status === 'claimed') {
+            return sum + (a.purchase_value || 0);
+        }
+        return sum + (a.airdrop_expected_value || 0);
+    }, 0);
     const claimable = allAirdrops.filter(a => a.airdrop_status === 'claimable').length;
     const confirmed = allAirdrops.filter(a => a.airdrop_status === 'confirmed').length;
 
@@ -591,6 +597,10 @@ function renderAirdropList(filter = 'all') {
 
     list.innerHTML = airdropAssets.map(asset => {
         const statusInfo = AIRDROP_STATUS.find(s => s.id === asset.airdrop_status) || { icon: '⏳', name: '대기중', color: '#888' };
+        // claimed 상태면 purchase_value(청산 금액) 표시, 아니면 expected_value
+        const displayValue = asset.airdrop_status === 'claimed'
+            ? asset.purchase_value
+            : asset.airdrop_expected_value;
 
         return `
             <div class="airdrop-item-full" data-id="${asset.id}">
@@ -600,7 +610,7 @@ function renderAirdropList(filter = 'all') {
                     <div class="airdrop-status-text">${statusInfo.name}</div>
                 </div>
                 <div class="airdrop-expected">
-                    <div class="expected-value">${asset.airdrop_expected_value ? formatAmount(asset.airdrop_expected_value) : '-'}</div>
+                    <div class="expected-value">${displayValue ? formatAmount(displayValue) : '-'}</div>
                     <div class="expected-date">${asset.airdrop_expected_date || '미정'}</div>
                 </div>
                 <div class="asset-actions">

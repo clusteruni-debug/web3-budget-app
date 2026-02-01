@@ -43,6 +43,18 @@ export function createHomeTab() {
                 <div class="goal-remaining" id="goalRemaining">목표까지 0원 남음</div>
             </div>
 
+            <!-- 빠른 액션 (상단 배치) -->
+            <div class="quick-actions-bar">
+                <button class="quick-action-btn" data-action="add-transaction">
+                    <span class="quick-action-icon">💸</span>
+                    <span class="quick-action-label">거래 추가</span>
+                </button>
+                <button class="quick-action-btn" data-action="add-asset">
+                    <span class="quick-action-icon">➕</span>
+                    <span class="quick-action-label">자산 추가</span>
+                </button>
+            </div>
+
             <!-- 순자산 추이 차트 -->
             <div class="section-card collapsible">
                 <h2 class="section-title" data-toggle="netWorthTrend">
@@ -162,21 +174,6 @@ export function createHomeTab() {
                         <div class="cashflow-label">순수익</div>
                         <div class="cashflow-value" id="monthlyNet">0원</div>
                     </div>
-                </div>
-            </div>
-
-            <!-- 빠른 액션 (심플) -->
-            <div class="section-card">
-                <h2 class="section-title">⚡ 빠른 액션</h2>
-                <div class="quick-actions-grid">
-                    <button class="quick-action-btn" data-action="add-transaction">
-                        <span class="quick-action-icon">💸</span>
-                        <span class="quick-action-label">거래 추가</span>
-                    </button>
-                    <button class="quick-action-btn" data-action="add-asset">
-                        <span class="quick-action-icon">➕</span>
-                        <span class="quick-action-label">자산 추가</span>
-                    </button>
                 </div>
             </div>
 

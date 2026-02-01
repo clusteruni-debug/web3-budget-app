@@ -47,13 +47,22 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-5);
+    gap: var(--space-3);
+    flex-wrap: nowrap;
 }
 
 .section-header h2 {
-    font-size: var(--text-xl);
+    font-size: var(--text-lg);
     font-weight: var(--font-semibold);
     color: white;
     margin: 0;
+    white-space: nowrap;
+}
+
+.section-header .btn {
+    white-space: nowrap;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
 }
 
 /* 버튼 스타일 */
