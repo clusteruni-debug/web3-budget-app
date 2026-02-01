@@ -205,13 +205,19 @@ function renderBudgetManager() {
 }
 
 function renderBudgetItem(budget) {
-    const { category, monthly_amount, spent, remaining, percent, isOver } = budget;
+    const { category, monthly_amount, spent, remaining, percent, isOver, sub_items } = budget;
     const progressClass = isOver ? 'over' : percent > 80 ? 'warning' : 'normal';
+    const subItems = sub_items || [];
+    const hasSubItems = subItems.length > 0;
 
     return `
-        <div class="budget-item ${isOver ? 'over-budget' : ''}">
+        <div class="budget-item ${isOver ? 'over-budget' : ''}" data-budget-id="${budget.id}">
             <div class="budget-item-header">
-                <span class="budget-category">${category}</span>
+                <div class="budget-category-wrap">
+                    ${hasSubItems ? `<button class="btn-icon toggle-subitems-btn" data-id="${budget.id}">▶</button>` : ''}
+                    <span class="budget-category">${category}</span>
+                    ${hasSubItems ? `<span class="subitem-count">(${subItems.length})</span>` : ''}
+                </div>
                 <div class="budget-item-actions">
                     <button class="btn-icon edit-budget-btn" data-id="${budget.id}" title="수정">✏️</button>
                     <button class="btn-icon delete-budget-btn" data-id="${budget.id}" title="삭제">🗑️</button>
@@ -232,6 +238,16 @@ function renderBudgetItem(budget) {
                 </span>
             </div>
             ${isOver ? `<div class="budget-warning">⚠️ 예산 초과!</div>` : ''}
+            ${hasSubItems ? `
+                <div class="budget-subitems collapsed" id="subitems-${budget.id}">
+                    ${subItems.map((item, idx) => `
+                        <div class="budget-subitem">
+                            <span class="subitem-name">${item.name}</span>
+                            <span class="subitem-amount">${formatAmountShort(item.amount)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
         </div>
     `;
 }
@@ -252,7 +268,7 @@ function renderBudgetModal() {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>월 예산 금액</label>
+                        <label>월 예산 금액 (총액)</label>
                         <input type="number" id="budgetAmount" placeholder="0">
                     </div>
                     <div class="budget-preset-amounts">
@@ -263,6 +279,18 @@ function renderBudgetModal() {
                         <button class="preset-btn" data-amount="500000">50만</button>
                         <button class="preset-btn" data-amount="1000000">100만</button>
                     </div>
+
+                    <!-- 세부항목 섹션 -->
+                    <div class="budget-subitems-section">
+                        <div class="subitems-header">
+                            <label>세부항목 (선택)</label>
+                            <button type="button" class="btn btn-sm" id="addSubItemBtn">+ 추가</button>
+                        </div>
+                        <div class="subitems-list" id="subItemsList">
+                            <!-- 동적으로 채워짐 -->
+                        </div>
+                        <p class="subitems-hint">예: 생활비 안에 식비, 교통비, 유틸리티 등</p>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" id="cancelBudgetBtn">취소</button>
@@ -272,6 +300,19 @@ function renderBudgetModal() {
         </div>
     `;
 }
+
+// 세부항목 입력 필드 렌더링
+function renderSubItemInput(name = '', amount = '', index) {
+    return `
+        <div class="subitem-input-row" data-index="${index}">
+            <input type="text" class="subitem-name-input" placeholder="항목명" value="${name}">
+            <input type="number" class="subitem-amount-input" placeholder="금액" value="${amount}">
+            <button type="button" class="btn-icon remove-subitem-btn" data-index="${index}">🗑️</button>
+        </div>
+    `;
+}
+
+let tempSubItems = []; // 모달에서 임시로 관리하는 세부항목
 
 function initBudgetManager() {
     // 예산 추가 버튼
@@ -289,11 +330,56 @@ function initBudgetManager() {
         });
     });
 
+    // 세부항목 추가 버튼
+    document.getElementById('addSubItemBtn')?.addEventListener('click', addSubItemInput);
+
     // 예산 항목 이벤트
     attachBudgetItemEvents();
 }
 
+function addSubItemInput() {
+    const list = document.getElementById('subItemsList');
+    const index = list.children.length;
+    const html = renderSubItemInput('', '', index);
+    list.insertAdjacentHTML('beforeend', html);
+    attachSubItemEvents();
+}
+
+function attachSubItemEvents() {
+    document.querySelectorAll('.remove-subitem-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            e.target.closest('.subitem-input-row').remove();
+        };
+    });
+}
+
+function getSubItemsFromForm() {
+    const rows = document.querySelectorAll('.subitem-input-row');
+    const items = [];
+    rows.forEach(row => {
+        const name = row.querySelector('.subitem-name-input').value.trim();
+        const amount = parseInt(row.querySelector('.subitem-amount-input').value) || 0;
+        if (name && amount > 0) {
+            items.push({ name, amount });
+        }
+    });
+    return items;
+}
+
 function attachBudgetItemEvents() {
+    // 세부항목 토글
+    document.querySelectorAll('.toggle-subitems-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const subitemsEl = document.getElementById(`subitems-${id}`);
+            if (subitemsEl) {
+                const isCollapsed = subitemsEl.classList.toggle('collapsed');
+                btn.textContent = isCollapsed ? '▶' : '▼';
+            }
+        });
+    });
+
     document.querySelectorAll('.edit-budget-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -326,11 +412,22 @@ function openBudgetModal(budget = null) {
     document.getElementById('budgetModalTitle').textContent = budget ? '예산 수정' : '예산 추가';
 
     const categorySelect = document.getElementById('budgetCategory');
+    const subItemsList = document.getElementById('subItemsList');
+
+    // 세부항목 초기화
+    subItemsList.innerHTML = '';
 
     if (budget) {
         categorySelect.value = budget.category;
         categorySelect.disabled = true; // 수정 시 카테고리 변경 불가
         document.getElementById('budgetAmount').value = budget.monthly_amount;
+
+        // 기존 세부항목 로드
+        const subItems = budget.sub_items || [];
+        subItems.forEach((item, idx) => {
+            subItemsList.insertAdjacentHTML('beforeend', renderSubItemInput(item.name, item.amount, idx));
+        });
+        attachSubItemEvents();
     } else {
         // 이미 예산이 설정된 카테고리 제외
         const existingCategories = budgets.map(b => b.category);
@@ -351,6 +448,7 @@ function closeBudgetModal() {
 async function saveBudgetItem() {
     const category = document.getElementById('budgetCategory').value;
     const amount = parseInt(document.getElementById('budgetAmount').value) || 0;
+    const subItems = getSubItemsFromForm();
 
     if (!category) {
         alert('카테고리를 선택해주세요.');
@@ -361,9 +459,17 @@ async function saveBudgetItem() {
         return;
     }
 
+    // 세부항목 합계가 총액을 초과하는지 확인
+    const subItemsTotal = subItems.reduce((sum, item) => sum + item.amount, 0);
+    if (subItemsTotal > amount) {
+        alert(`세부항목 합계(${formatAmountShort(subItemsTotal)})가 총 예산(${formatAmountShort(amount)})을 초과합니다.`);
+        return;
+    }
+
     const data = {
         category,
-        monthly_amount: amount
+        monthly_amount: amount,
+        sub_items: subItems
     };
 
     let result;
