@@ -254,8 +254,16 @@ export function createHomeTab() {
 export async function initHomeTab(switchTabCallback) {
     await loadHomeData();
 
-    // 기본적으로 일부 섹션만 접기 (데이터 내보내기 등)
+    // 기본적으로 모든 상세 섹션 접기
     const sectionsToCollapse = [
+        'netWorthTrend',
+        'assetComposition',
+        'assetList',
+        'cryptoDetail',
+        'staking',
+        'airdrop',
+        'debt',
+        'budgetStatus',
         'dataExport'
     ];
 
@@ -585,7 +593,27 @@ function updateAssetList() {
         }))
         .sort((a, b) => b.total - a.total);
 
-    const html = sortedCategories.map(({ catId, catInfo, items, total }) => `
+    // 업데이트 필요한 자산 수 계산 (7일 이상 지난 것)
+    const staleAssets = assets.filter(a => {
+        if (!a.updated_at) return true;
+        const diffDays = Math.floor((new Date() - new Date(a.updated_at)) / (1000 * 60 * 60 * 24));
+        return diffDays >= 7;
+    });
+
+    let updateAlertHtml = '';
+    if (staleAssets.length > 0) {
+        updateAlertHtml = `
+            <div class="asset-update-alert">
+                <span class="update-alert-icon">⚠️</span>
+                <span class="update-alert-text">
+                    <strong>${staleAssets.length}개</strong> 자산이 7일 이상 업데이트되지 않았습니다
+                </span>
+                <span class="update-alert-hint">자산 탭에서 금액을 업데이트하세요</span>
+            </div>
+        `;
+    }
+
+    const html = updateAlertHtml + sortedCategories.map(({ catId, catInfo, items, total }) => `
         <div class="asset-category-group" data-category="${catId}">
             <div class="asset-category-header" data-toggle-category="${catId}">
                 <div class="category-header-left">
@@ -595,19 +623,27 @@ function updateAssetList() {
                 </div>
                 <div class="category-header-right">
                     <span class="category-total">${formatAmountShort(total)}</span>
-                    <span class="category-toggle-icon">▼</span>
+                    <span class="category-toggle-icon">▶</span>
                 </div>
             </div>
-            <div class="asset-category-items" id="assetItems-${catId}">
-                ${items.map(asset => `
-                    <div class="asset-list-item">
-                        <div class="asset-item-info">
-                            <span class="asset-item-name">${asset.name}</span>
-                            ${asset.platform ? `<span class="asset-item-platform">${asset.platform}</span>` : ''}
+            <div class="asset-category-items collapsed" id="assetItems-${catId}">
+                ${items.map(asset => {
+                    const updateInfo = getUpdateStatus(asset.updated_at);
+                    return `
+                        <div class="asset-list-item ${updateInfo.isStale ? 'needs-update' : ''}">
+                            <div class="asset-item-info">
+                                <span class="asset-item-name">${asset.name}</span>
+                                <div class="asset-item-meta">
+                                    ${asset.platform ? `<span class="asset-item-platform">${asset.platform}</span>` : ''}
+                                    <span class="asset-item-updated ${updateInfo.class}" title="${updateInfo.fullDate}">
+                                        ${updateInfo.icon} ${updateInfo.text}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="asset-item-value">${formatAmount(asset.current_value || 0)}</div>
                         </div>
-                        <div class="asset-item-value">${formatAmount(asset.current_value || 0)}</div>
-                    </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         </div>
     `).join('');
@@ -627,6 +663,35 @@ function updateAssetList() {
             }
         });
     });
+}
+
+// 자산 업데이트 상태 확인
+function getUpdateStatus(updatedAt) {
+    if (!updatedAt) {
+        return { text: '업데이트 필요', icon: '⚠️', class: 'stale', isStale: true, fullDate: '업데이트 기록 없음' };
+    }
+
+    const now = new Date();
+    const updated = new Date(updatedAt);
+    const diffMs = now - updated;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    const fullDate = updated.toLocaleDateString('ko-KR', {
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    if (diffDays >= 30) {
+        return { text: `${diffDays}일 전`, icon: '🔴', class: 'very-stale', isStale: true, fullDate };
+    } else if (diffDays >= 7) {
+        return { text: `${diffDays}일 전`, icon: '🟡', class: 'stale', isStale: true, fullDate };
+    } else if (diffDays >= 1) {
+        return { text: `${diffDays}일 전`, icon: '🟢', class: 'recent', isStale: false, fullDate };
+    } else if (diffHours >= 1) {
+        return { text: `${diffHours}시간 전`, icon: '🟢', class: 'recent', isStale: false, fullDate };
+    } else {
+        return { text: '방금 전', icon: '✅', class: 'fresh', isStale: false, fullDate };
+    }
 }
 
 function updateCryptoDetails() {
