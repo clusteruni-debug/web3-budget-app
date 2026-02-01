@@ -467,18 +467,29 @@ function renderAssetList(filter = 'all') {
         grouped[asset.category].push(asset);
     });
 
-    let html = '';
+    let html = `
+        <div class="asset-list-controls">
+            <button class="btn-expand-all" id="expandAllCategories">📂 모두 펼치기</button>
+            <button class="btn-collapse-all" id="collapseAllCategories">📁 모두 접기</button>
+        </div>
+    `;
+
     for (const [category, categoryAssets] of Object.entries(grouped)) {
         const catInfo = ASSET_CATEGORY_INFO.find(c => c.id === category) || { icon: '📦', name: category, color: '#888' };
         const totalValue = categoryAssets.reduce((sum, a) => sum + (a.current_value || 0), 0);
+        const assetCount = categoryAssets.length;
 
         html += `
-            <div class="asset-category-section">
-                <div class="category-header-bar" style="border-left-color: ${catInfo.color}">
-                    <span>${catInfo.icon} ${catInfo.name}</span>
+            <div class="asset-category-section" data-category="${category}">
+                <div class="category-header-bar collapsible" style="border-left-color: ${catInfo.color}" data-toggle-category="${category}">
+                    <div class="category-header-left">
+                        <span class="toggle-icon">▼</span>
+                        <span>${catInfo.icon} ${catInfo.name}</span>
+                        <span class="category-count">(${assetCount})</span>
+                    </div>
                     <span class="category-total">${formatAmount(totalValue)}</span>
                 </div>
-                <div class="asset-items">
+                <div class="asset-items" id="assetItems-${category}">
                     ${categoryAssets.map(asset => createAssetItem(asset)).join('')}
                 </div>
             </div>
@@ -487,6 +498,7 @@ function renderAssetList(filter = 'all') {
 
     list.innerHTML = html;
     attachAssetItemEvents();
+    attachCategoryToggleEvents();
 }
 
 function createAssetItem(asset) {
@@ -738,6 +750,56 @@ function attachAssetItemEvents() {
             }
         });
     });
+}
+
+// 카테고리별 접기/펼치기 이벤트
+function attachCategoryToggleEvents() {
+    // 각 카테고리 헤더 클릭 시 토글
+    document.querySelectorAll('.category-header-bar.collapsible').forEach(header => {
+        header.addEventListener('click', () => {
+            const category = header.dataset.toggleCategory;
+            const itemsContainer = document.getElementById(`assetItems-${category}`);
+            const toggleIcon = header.querySelector('.toggle-icon');
+
+            if (itemsContainer) {
+                itemsContainer.classList.toggle('collapsed');
+                header.classList.toggle('collapsed');
+                if (toggleIcon) {
+                    toggleIcon.textContent = itemsContainer.classList.contains('collapsed') ? '▶' : '▼';
+                }
+            }
+        });
+    });
+
+    // 모두 펼치기 버튼
+    const expandAllBtn = document.getElementById('expandAllCategories');
+    if (expandAllBtn) {
+        expandAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('.asset-items').forEach(el => {
+                el.classList.remove('collapsed');
+            });
+            document.querySelectorAll('.category-header-bar.collapsible').forEach(header => {
+                header.classList.remove('collapsed');
+                const icon = header.querySelector('.toggle-icon');
+                if (icon) icon.textContent = '▼';
+            });
+        });
+    }
+
+    // 모두 접기 버튼
+    const collapseAllBtn = document.getElementById('collapseAllCategories');
+    if (collapseAllBtn) {
+        collapseAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('.asset-items').forEach(el => {
+                el.classList.add('collapsed');
+            });
+            document.querySelectorAll('.category-header-bar.collapsible').forEach(header => {
+                header.classList.add('collapsed');
+                const icon = header.querySelector('.toggle-icon');
+                if (icon) icon.textContent = '▶';
+            });
+        });
+    }
 }
 
 function attachDebtItemEvents() {
