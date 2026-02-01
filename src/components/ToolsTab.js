@@ -21,14 +21,14 @@ export function createToolsTab() {
         <div class="tools-container">
             <!-- 도구 선택 탭 -->
             <div class="tool-tabs">
-                <button class="tool-tab-btn active" data-tool="budget">💰 예산</button>
-                <button class="tool-tab-btn" data-tool="goals">🎯 목표</button>
-                <button class="tool-tab-btn" data-tool="subscriptions">📺 구독</button>
-                <button class="tool-tab-btn" data-tool="calendar">📅 캘린더</button>
-                <button class="tool-tab-btn" data-tool="recurring">🔄 고정</button>
-                <button class="tool-tab-btn" data-tool="spending">📊 분석</button>
-                <button class="tool-tab-btn" data-tool="debt-calc">🧮 계산기</button>
-                <button class="tool-tab-btn" data-tool="account">⚙️ 계정</button>
+                <button class="tool-tab-btn active" data-tool="budget">💰 월 예산</button>
+                <button class="tool-tab-btn" data-tool="goals">🎯 저축 목표</button>
+                <button class="tool-tab-btn" data-tool="subscriptions">📺 구독 서비스</button>
+                <button class="tool-tab-btn" data-tool="calendar">📅 결제 일정</button>
+                <button class="tool-tab-btn" data-tool="recurring">💳 고정 지출</button>
+                <button class="tool-tab-btn" data-tool="spending">📊 소비 분석</button>
+                <button class="tool-tab-btn" data-tool="debt-calc">🧮 대출 계산</button>
+                <button class="tool-tab-btn" data-tool="account">⚙️ 설정</button>
             </div>
 
             <!-- 도구 컨텐츠 영역 -->
@@ -39,9 +39,20 @@ export function createToolsTab() {
     `;
 }
 
-export async function initToolsTab() {
+export async function initToolsTab(initialTool = 'budget') {
+    // 초기 도구 탭 설정
+    currentTool = initialTool;
+
     // 데이터 로드
     await loadToolsData();
+
+    // 도구 탭 버튼 활성화 상태 업데이트
+    document.querySelectorAll('.tool-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.tool === currentTool) {
+            btn.classList.add('active');
+        }
+    });
 
     // 도구 탭 이벤트
     document.querySelectorAll('.tool-tab-btn').forEach(btn => {
@@ -144,7 +155,7 @@ function renderBudgetManager() {
         return `
             <div class="budget-container">
                 <div class="budget-header">
-                    <h3>💰 ${monthName} 예산 관리</h3>
+                    <h3>💰 ${monthName} 월 예산</h3>
                     <button class="btn btn-primary" id="addBudgetBtn">+ 예산 추가</button>
                 </div>
                 <div class="empty-state">
@@ -165,7 +176,7 @@ function renderBudgetManager() {
     return `
         <div class="budget-container">
             <div class="budget-header">
-                <h3>💰 ${monthName} 예산 관리</h3>
+                <h3>💰 ${monthName} 월 예산</h3>
                 <button class="btn btn-primary" id="addBudgetBtn">+ 예산 추가</button>
             </div>
 
@@ -533,7 +544,7 @@ function renderSubscriptions() {
     return `
         <div class="subscriptions-container">
             <div class="subscriptions-header">
-                <h3>📺 구독 서비스 관리</h3>
+                <h3>📺 구독 서비스</h3>
                 <button class="btn btn-primary" id="addSubscriptionBtn">+ 구독 추가</button>
             </div>
 
@@ -831,7 +842,7 @@ function renderGoals() {
     return `
         <div class="goals-container">
             <div class="goals-header">
-                <h3>🎯 목표 관리</h3>
+                <h3>🎯 저축 목표</h3>
                 <button class="btn btn-primary" id="addGoalBtn">+ 목표 추가</button>
             </div>
 
@@ -1503,7 +1514,7 @@ function renderRecurringExpenses() {
     return `
         <div class="recurring-container">
             <div class="recurring-header">
-                <h3>🔄 고정 수입/지출 관리</h3>
+                <h3>💳 고정 수입/지출</h3>
                 <button class="btn btn-primary" id="addRecurringBtn">+ 추가</button>
             </div>
 
@@ -2133,7 +2144,7 @@ function filterTransactionsByPeriod(txs, period) {
 function renderDebtCalculator() {
     return `
         <div class="debt-calc-container">
-            <h3>🧮 대출 상환 시뮬레이션</h3>
+            <h3>🧮 대출 계산기</h3>
 
             <div class="debt-select">
                 <label>대출 선택</label>
@@ -2374,7 +2385,7 @@ function initFuturesLoss() {
 function renderAccountSettings() {
     return `
         <div class="account-settings-container">
-            <h3>⚙️ 계정 설정</h3>
+            <h3>⚙️ 설정</h3>
 
             <div class="account-info-section">
                 <h4>👤 계정 정보</h4>

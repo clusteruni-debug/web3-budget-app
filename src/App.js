@@ -166,7 +166,7 @@ class App {
         });
     }
 
-    async switchTab(tabName) {
+    async switchTab(tabName, subtab = null) {
         this.currentTab = tabName;
 
         // 탭 버튼 활성화
@@ -183,7 +183,7 @@ class App {
         switch (tabName) {
             case 'home':
                 appContent.innerHTML = createHomeTab();
-                await initHomeTab((tab) => this.switchTab(tab));
+                await initHomeTab((tab, sub) => this.switchTab(tab, sub));
                 break;
 
             case 'cashflow':
@@ -205,7 +205,7 @@ class App {
 
             case 'tools':
                 appContent.innerHTML = createToolsTab();
-                await initToolsTab();
+                await initToolsTab(subtab || 'budget');
                 break;
 
             default:

@@ -1,5 +1,5 @@
 // V2: 통합 자산 관리 홈 대시보드
-import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview, saveNetWorthSnapshot, getNetWorthHistory, getBudgetVsActual } from '../services/database.js';
+import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview, saveNetWorthSnapshot, getNetWorthHistory, getBudgetVsActual, getRecurringItems } from '../services/database.js';
 import { calculateTotalIncome, calculateTotalExpense } from '../services/analytics.js';
 import { formatAmount, formatAmountShort, exportAssetsToCSV, exportDebtsToCSV, exportTransactionsToCSV, exportNetWorthHistoryToCSV, exportAllDataToJSON } from '../utils/helpers.js';
 import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, GOALS } from '../utils/constants.js';
@@ -11,6 +11,8 @@ let stakingList = [];
 let airdropList = [];
 let netWorthChart = null;
 let budgetData = null;
+let recurringItems = [];
+let switchTabCallbackRef = null; // 탭 전환 콜백 저장
 
 export function createHomeTab() {
     return `
@@ -53,6 +55,14 @@ export function createHomeTab() {
                 <button class="quick-action-btn" data-action="add-asset">
                     <span class="quick-action-icon">➕</span>
                     <span class="quick-action-label">자산 추가</span>
+                </button>
+                <button class="quick-action-btn" data-action="view-budget">
+                    <span class="quick-action-icon">💰</span>
+                    <span class="quick-action-label">예산 확인</span>
+                </button>
+                <button class="quick-action-btn" data-action="manage-fixed">
+                    <span class="quick-action-icon">💳</span>
+                    <span class="quick-action-label">고정 지출</span>
                 </button>
             </div>
 
@@ -102,6 +112,10 @@ export function createHomeTab() {
                     <span class="toggle-icon">▼</span>
                 </h2>
                 <div class="section-content" id="assetListContent">
+                    <div class="asset-list-actions">
+                        <button class="btn-expand-all" id="expandAllAssets">📂 모두 펼치기</button>
+                        <button class="btn-collapse-all" id="collapseAllAssets">📁 모두 접기</button>
+                    </div>
                     <div class="asset-list-container" id="assetListContainer">
                         <!-- 동적으로 채워짐 -->
                     </div>
@@ -133,6 +147,9 @@ export function createHomeTab() {
                         <div class="staking-list" id="stakingList">
                             <div class="empty-state">스테이킹 자산이 없습니다</div>
                         </div>
+                        <button class="btn-section-link" data-link-action="assets">
+                            ➕ 자산 관리 →
+                        </button>
                     </div>
                 </div>
 
@@ -149,6 +166,9 @@ export function createHomeTab() {
                         <div class="airdrop-list" id="airdropList">
                             <div class="empty-state">등록된 에어드랍이 없습니다</div>
                         </div>
+                        <button class="btn-section-link" data-link-action="assets">
+                            ➕ 자산 관리 →
+                        </button>
                     </div>
                 </div>
             </div>
@@ -169,6 +189,9 @@ export function createHomeTab() {
                     <div class="debt-list" id="debtList">
                         <div class="empty-state">등록된 부채가 없습니다</div>
                     </div>
+                    <button class="btn-section-link" data-link-action="debt-calc">
+                        🧮 대출 상환 계산기 →
+                    </button>
                 </div>
             </div>
 
@@ -189,6 +212,10 @@ export function createHomeTab() {
                         <div class="cashflow-value" id="monthlyNet">0원</div>
                     </div>
                 </div>
+                <!-- 고정 수입/지출 요약 -->
+                <div class="cashflow-fixed-summary" id="cashflowFixedSummary">
+                    <!-- 동적으로 채워짐 -->
+                </div>
             </div>
 
             <!-- 예산 현황 (간략) -->
@@ -201,6 +228,9 @@ export function createHomeTab() {
                     <div class="budget-home-summary" id="budgetHomeSummary">
                         <!-- 동적으로 채워짐 -->
                     </div>
+                    <button class="btn-section-link" data-link-action="budget">
+                        📊 예산 상세 관리 →
+                    </button>
                 </div>
             </div>
 
@@ -252,6 +282,7 @@ export function createHomeTab() {
 }
 
 export async function initHomeTab(switchTabCallback) {
+    switchTabCallbackRef = switchTabCallback; // 콜백 저장
     await loadHomeData();
 
     // 기본적으로 모든 상세 섹션 접기
@@ -319,6 +350,53 @@ export async function initHomeTab(switchTabCallback) {
     document.querySelectorAll('.export-btn').forEach(btn => {
         btn.addEventListener('click', () => handleExport(btn.dataset.export));
     });
+
+    // 자산 목록 모두 펼치기/접기 버튼
+    document.getElementById('expandAllAssets')?.addEventListener('click', () => {
+        document.querySelectorAll('.asset-category-items').forEach(el => {
+            el.classList.remove('collapsed');
+        });
+        document.querySelectorAll('.category-toggle-icon').forEach(icon => {
+            icon.textContent = '▼';
+        });
+    });
+
+    document.getElementById('collapseAllAssets')?.addEventListener('click', () => {
+        document.querySelectorAll('.asset-category-items').forEach(el => {
+            el.classList.add('collapsed');
+        });
+        document.querySelectorAll('.category-toggle-icon').forEach(icon => {
+            icon.textContent = '▶';
+        });
+    });
+
+    // 섹션 링크 버튼 이벤트
+    document.querySelectorAll('.btn-section-link').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const action = btn.dataset.linkAction;
+            if (switchTabCallbackRef) {
+                switch (action) {
+                    case 'budget':
+                        switchTabCallbackRef('tools', 'budget');
+                        break;
+                    case 'debt-calc':
+                        switchTabCallbackRef('tools', 'debt-calc');
+                        break;
+                    case 'spending':
+                        switchTabCallbackRef('tools', 'spending');
+                        break;
+                    case 'calendar':
+                        switchTabCallbackRef('tools', 'calendar');
+                        break;
+                    case 'assets':
+                        switchTabCallbackRef('assets');
+                        break;
+                    default:
+                        break;
+                }
+            }
+        });
+    });
 }
 
 async function handleExport(type) {
@@ -367,14 +445,15 @@ async function handleExport(type) {
 async function loadHomeData() {
     try {
         // 병렬로 모든 데이터 로드
-        const [netWorthResult, assetsResult, debtsResult, stakingResult, airdropResult, transactionsResult, budgetResult] = await Promise.all([
+        const [netWorthResult, assetsResult, debtsResult, stakingResult, airdropResult, transactionsResult, budgetResult, recurringResult] = await Promise.all([
             calculateNetWorth(),
             getAssets(),
             getDebts(),
             getStakingOverview(),
             getAirdropOverview(),
             getTransactions(),
-            getBudgetVsActual()
+            getBudgetVsActual(),
+            getRecurringItems()
         ]);
 
         if (netWorthResult.success) {
@@ -416,6 +495,12 @@ async function loadHomeData() {
         if (budgetResult.success) {
             budgetData = budgetResult.data;
             updateBudgetHomeDisplay();
+        }
+
+        // 고정 수입/지출 업데이트
+        if (recurringResult.success) {
+            recurringItems = recurringResult.data || [];
+            updateCashflowFixedSummary();
         }
 
         // 순자산 스냅샷 저장 (하루 1회)
@@ -845,6 +930,58 @@ function updateCashflowDisplay(transactions) {
     netEl.className = `cashflow-value ${netCashflow >= 0 ? 'positive' : 'negative'}`;
 }
 
+function updateCashflowFixedSummary() {
+    const container = document.getElementById('cashflowFixedSummary');
+    if (!container) return;
+
+    const activeItems = recurringItems.filter(i => i.is_active !== false);
+    const incomeItems = activeItems.filter(i => i.type === 'income');
+    const expenseItems = activeItems.filter(i => i.type === 'expense');
+
+    const totalFixedIncome = incomeItems.reduce((sum, i) => sum + (i.amount || 0), 0);
+    const totalFixedExpense = expenseItems.reduce((sum, i) => sum + (i.amount || 0), 0);
+
+    if (activeItems.length === 0) {
+        container.innerHTML = `
+            <div class="cashflow-fixed-empty">
+                <p>등록된 고정 수입/지출이 없습니다</p>
+                <button class="btn-link" data-action="manage-recurring">+ 고정 수입/지출 등록하기</button>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <div class="cashflow-fixed-info">
+                <div class="fixed-summary-row">
+                    <span class="fixed-label">월 고정 수입</span>
+                    <span class="fixed-value positive">+${formatAmountShort(totalFixedIncome)}</span>
+                </div>
+                <div class="fixed-summary-row">
+                    <span class="fixed-label">월 고정 지출</span>
+                    <span class="fixed-value negative">-${formatAmountShort(totalFixedExpense)}</span>
+                </div>
+                <div class="fixed-summary-row highlight">
+                    <span class="fixed-label">고정 순수익</span>
+                    <span class="fixed-value ${totalFixedIncome - totalFixedExpense >= 0 ? 'positive' : 'negative'}">
+                        ${formatAmountShort(totalFixedIncome - totalFixedExpense)}
+                    </span>
+                </div>
+            </div>
+            <button class="btn-manage-fixed" data-action="manage-recurring">
+                💳 고정 수입/지출 관리
+            </button>
+        `;
+    }
+
+    // 고정 수입/지출 관리 버튼 이벤트
+    container.querySelectorAll('[data-action="manage-recurring"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (switchTabCallbackRef) {
+                switchTabCallbackRef('tools', 'recurring');
+            }
+        });
+    });
+}
+
 function updateBudgetHomeDisplay() {
     const container = document.getElementById('budgetHomeSummary');
     if (!container || !budgetData) return;
@@ -1033,6 +1170,12 @@ function handleQuickAction(action, switchTabCallback) {
             break;
         case 'add-transaction':
             if (switchTabCallback) switchTabCallback('transactions');
+            break;
+        case 'view-budget':
+            if (switchTabCallback) switchTabCallback('tools', 'budget');
+            break;
+        case 'manage-fixed':
+            if (switchTabCallback) switchTabCallback('tools', 'recurring');
             break;
         default:
             break;
