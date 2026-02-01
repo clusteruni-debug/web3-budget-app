@@ -41,6 +41,374 @@
 }
 
 /* ============================================
+   예산 관리
+   ============================================ */
+
+.budget-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.budget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-5);
+}
+
+.budget-header h3 {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    margin: 0;
+}
+
+/* 전체 예산 요약 */
+.budget-overview {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    margin-bottom: var(--space-5);
+}
+
+.budget-overview-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    margin-bottom: var(--space-4);
+}
+
+/* 원형 진행률 */
+.budget-progress-ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+}
+
+.budget-progress-ring svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.budget-progress-ring .progress-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 8;
+}
+
+.budget-progress-ring .progress-fill {
+    fill: none;
+    stroke: #4ade80;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.5s ease;
+}
+
+.budget-progress-ring .progress-fill.over {
+    stroke: #f87171;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.progress-percent {
+    display: block;
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    color: white;
+}
+
+.progress-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.budget-overview-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.overview-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.overview-item:last-child {
+    border-bottom: none;
+}
+
+.overview-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: var(--text-sm);
+}
+
+.overview-value {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: white;
+}
+
+.overview-value.spent {
+    color: #fbbf24;
+}
+
+.overview-value.remaining {
+    color: #4ade80;
+}
+
+.overview-value.over {
+    color: #f87171;
+}
+
+.budget-daily-hint {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.budget-daily-hint .hint-icon {
+    font-size: 1.2rem;
+}
+
+.budget-daily-hint strong {
+    color: #4ade80;
+}
+
+/* 카테고리별 예산 */
+.budget-categories {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+}
+
+.budget-categories h4 {
+    margin: 0 0 var(--space-4) 0;
+    font-size: var(--text-lg);
+    color: white;
+}
+
+.budget-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.budget-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    transition: all 0.2s;
+}
+
+.budget-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.budget-item.over-budget {
+    border-color: rgba(248, 113, 113, 0.4);
+    background: rgba(248, 113, 113, 0.05);
+}
+
+.budget-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-3);
+}
+
+.budget-category {
+    font-weight: 600;
+    color: white;
+    font-size: var(--text-base);
+}
+
+.budget-item-actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.budget-item-actions .btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-sm);
+}
+
+.budget-item-actions .btn-icon:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.budget-item-progress {
+    margin-bottom: var(--space-2);
+}
+
+.budget-bar {
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
+    overflow: visible;
+    position: relative;
+}
+
+.budget-bar-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 0.5s ease;
+}
+
+.budget-bar-fill.normal {
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+}
+
+.budget-bar-fill.warning {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.budget-bar-fill.over {
+    background: linear-gradient(90deg, #f87171, #ef4444);
+}
+
+.budget-bar-over {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(248, 113, 113, 0.8),
+        rgba(248, 113, 113, 0.8) 5px,
+        rgba(239, 68, 68, 0.8) 5px,
+        rgba(239, 68, 68, 0.8) 10px
+    );
+    border-radius: 0 var(--radius-full) var(--radius-full) 0;
+}
+
+.budget-item-details {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.budget-spent {
+    color: white;
+    font-weight: 600;
+}
+
+.budget-separator {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.budget-remaining {
+    margin-left: auto;
+}
+
+.budget-remaining.over {
+    color: #f87171;
+    font-weight: 600;
+}
+
+.budget-warning {
+    margin-top: var(--space-2);
+    padding: var(--space-2);
+    background: rgba(248, 113, 113, 0.2);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: #fca5a5;
+    text-align: center;
+}
+
+/* 빠른 금액 선택 버튼 */
+.budget-preset-amounts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+    margin-top: var(--space-3);
+}
+
+.preset-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.preset-btn {
+    padding: var(--space-2) var(--space-3);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.preset-btn:hover {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.4);
+}
+
+/* 반응형 - 예산 */
+@media (max-width: 768px) {
+    .budget-overview-main {
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    .budget-progress-ring {
+        width: 100px;
+        height: 100px;
+    }
+
+    .progress-percent {
+        font-size: var(--text-xl);
+    }
+
+    .budget-overview-details {
+        width: 100%;
+    }
+
+    .budget-item-details {
+        flex-wrap: wrap;
+    }
+
+    .budget-remaining {
+        width: 100%;
+        margin-left: 0;
+        margin-top: var(--space-1);
+    }
+}
+
+/* ============================================
    캘린더
    ============================================ */
 

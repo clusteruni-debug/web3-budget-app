@@ -1,23 +1,26 @@
-// 도구 탭: 캘린더, 고정지출, 소비분석, 대출계산기, 계정설정
-import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions } from '../services/database.js';
+// 도구 탭: 예산, 캘린더, 고정지출, 소비분석, 대출계산기, 계정설정
+import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions, getBudgets, createBudget, updateBudget, deleteBudget, getBudgetVsActual } from '../services/database.js';
 import { formatAmount, formatAmountShort } from '../utils/helpers.js';
 import { updatePassword } from '../services/auth.js';
 import { getCurrentUser } from '../services/supabase.js';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants.js';
 
-let currentTool = 'calendar';
+let currentTool = 'budget';
 let debts = [];
 let recurringItems = [];
 let stakingList = [];
 let airdropList = [];
 let transactions = [];
+let budgets = [];
+let budgetData = null;
 
 export function createToolsTab() {
     return `
         <div class="tools-container">
             <!-- 도구 선택 탭 -->
             <div class="tool-tabs">
-                <button class="tool-tab-btn active" data-tool="calendar">📅 캘린더</button>
+                <button class="tool-tab-btn active" data-tool="budget">💰 예산</button>
+                <button class="tool-tab-btn" data-tool="calendar">📅 캘린더</button>
                 <button class="tool-tab-btn" data-tool="recurring">🔄 고정지출</button>
                 <button class="tool-tab-btn" data-tool="spending">📊 소비분석</button>
                 <button class="tool-tab-btn" data-tool="futures">📉 선물손실</button>
@@ -52,12 +55,14 @@ export async function initToolsTab() {
 }
 
 async function loadToolsData() {
-    const [debtsRes, recurringRes, stakingRes, airdropRes, transactionsRes] = await Promise.all([
+    const [debtsRes, recurringRes, stakingRes, airdropRes, transactionsRes, budgetsRes, budgetVsActualRes] = await Promise.all([
         getDebts(),
         getRecurringItems(),
         getStakingOverview(),
         getAirdropOverview(),
-        getTransactions()
+        getTransactions(),
+        getBudgets(),
+        getBudgetVsActual()
     ]);
 
     debts = debtsRes.data || [];
@@ -65,12 +70,18 @@ async function loadToolsData() {
     stakingList = stakingRes.data || [];
     airdropList = airdropRes.data || [];
     transactions = transactionsRes.data || [];
+    budgets = budgetsRes.data || [];
+    budgetData = budgetVsActualRes.success ? budgetVsActualRes.data : null;
 }
 
 function renderCurrentTool() {
     const content = document.getElementById('toolContent');
 
     switch (currentTool) {
+        case 'budget':
+            content.innerHTML = renderBudgetManager();
+            initBudgetManager();
+            break;
         case 'calendar':
             content.innerHTML = renderCalendar();
             initCalendar();
@@ -95,6 +106,269 @@ function renderCurrentTool() {
             content.innerHTML = renderAccountSettings();
             initAccountSettings();
             break;
+    }
+}
+
+// ============================================
+// 예산 관리
+// ============================================
+
+let editingBudget = null;
+
+function renderBudgetManager() {
+    const now = new Date();
+    const monthName = `${now.getFullYear()}년 ${now.getMonth() + 1}월`;
+
+    if (!budgetData) {
+        return `
+            <div class="budget-container">
+                <div class="budget-header">
+                    <h3>💰 ${monthName} 예산 관리</h3>
+                    <button class="btn btn-primary" id="addBudgetBtn">+ 예산 추가</button>
+                </div>
+                <div class="empty-state">예산 데이터를 불러오는 중...</div>
+            </div>
+        `;
+    }
+
+    const { budgets: budgetItems, totalBudget, totalSpent, daysRemaining } = budgetData;
+    const remainingBudget = totalBudget - totalSpent;
+    const overallPercent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+    const dailyAvailable = daysRemaining > 0 ? Math.round(remainingBudget / daysRemaining) : 0;
+
+    return `
+        <div class="budget-container">
+            <div class="budget-header">
+                <h3>💰 ${monthName} 예산 관리</h3>
+                <button class="btn btn-primary" id="addBudgetBtn">+ 예산 추가</button>
+            </div>
+
+            <!-- 전체 예산 요약 -->
+            <div class="budget-overview">
+                <div class="budget-overview-main">
+                    <div class="budget-progress-ring">
+                        <svg viewBox="0 0 100 100">
+                            <circle class="progress-bg" cx="50" cy="50" r="45"/>
+                            <circle class="progress-fill ${overallPercent > 100 ? 'over' : ''}"
+                                    cx="50" cy="50" r="45"
+                                    stroke-dasharray="${Math.min(overallPercent, 100) * 2.83} 283"/>
+                        </svg>
+                        <div class="progress-text">
+                            <span class="progress-percent">${overallPercent}%</span>
+                            <span class="progress-label">사용</span>
+                        </div>
+                    </div>
+                    <div class="budget-overview-details">
+                        <div class="overview-item">
+                            <span class="overview-label">총 예산</span>
+                            <span class="overview-value">${formatAmountShort(totalBudget)}</span>
+                        </div>
+                        <div class="overview-item">
+                            <span class="overview-label">사용</span>
+                            <span class="overview-value spent">${formatAmountShort(totalSpent)}</span>
+                        </div>
+                        <div class="overview-item">
+                            <span class="overview-label">남은 예산</span>
+                            <span class="overview-value ${remainingBudget < 0 ? 'over' : 'remaining'}">${formatAmountShort(remainingBudget)}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="budget-daily-hint">
+                    <span class="hint-icon">💡</span>
+                    <span>남은 ${daysRemaining}일 동안 하루 <strong>${formatAmountShort(Math.max(0, dailyAvailable))}</strong> 사용 가능</span>
+                </div>
+            </div>
+
+            <!-- 카테고리별 예산 -->
+            <div class="budget-categories">
+                <h4>카테고리별 예산</h4>
+                ${budgetItems.length === 0 ? `
+                    <div class="empty-state">
+                        <p>설정된 예산이 없습니다</p>
+                        <p class="hint">위의 '+ 예산 추가' 버튼을 눌러 카테고리별 예산을 설정하세요</p>
+                    </div>
+                ` : `
+                    <div class="budget-list">
+                        ${budgetItems.map(b => renderBudgetItem(b)).join('')}
+                    </div>
+                `}
+            </div>
+        </div>
+
+        <!-- 예산 추가/수정 모달 -->
+        <div id="budgetModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="budgetModalTitle">예산 추가</h3>
+                    <button class="close-btn" id="closeBudgetModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>카테고리</label>
+                        <select id="budgetCategory">
+                            ${EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>월 예산 금액</label>
+                        <input type="number" id="budgetAmount" placeholder="0">
+                    </div>
+                    <div class="budget-preset-amounts">
+                        <span class="preset-label">빠른 선택:</span>
+                        <button class="preset-btn" data-amount="100000">10만</button>
+                        <button class="preset-btn" data-amount="200000">20만</button>
+                        <button class="preset-btn" data-amount="300000">30만</button>
+                        <button class="preset-btn" data-amount="500000">50만</button>
+                        <button class="preset-btn" data-amount="1000000">100만</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelBudgetBtn">취소</button>
+                    <button class="btn btn-primary" id="saveBudgetBtn">저장</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderBudgetItem(budget) {
+    const { category, monthly_amount, spent, remaining, percent, isOver } = budget;
+    const progressClass = isOver ? 'over' : percent > 80 ? 'warning' : 'normal';
+
+    return `
+        <div class="budget-item ${isOver ? 'over-budget' : ''}">
+            <div class="budget-item-header">
+                <span class="budget-category">${category}</span>
+                <div class="budget-item-actions">
+                    <button class="btn-icon edit-budget-btn" data-id="${budget.id}" title="수정">✏️</button>
+                    <button class="btn-icon delete-budget-btn" data-id="${budget.id}" title="삭제">🗑️</button>
+                </div>
+            </div>
+            <div class="budget-item-progress">
+                <div class="budget-bar">
+                    <div class="budget-bar-fill ${progressClass}" style="width: ${Math.min(percent, 100)}%"></div>
+                    ${isOver ? `<div class="budget-bar-over" style="width: ${Math.min(percent - 100, 50)}%"></div>` : ''}
+                </div>
+            </div>
+            <div class="budget-item-details">
+                <span class="budget-spent">${formatAmountShort(spent)} 사용</span>
+                <span class="budget-separator">/</span>
+                <span class="budget-total">${formatAmountShort(monthly_amount)}</span>
+                <span class="budget-remaining ${isOver ? 'over' : ''}">
+                    (${isOver ? '초과 ' : '남은 '}${formatAmountShort(Math.abs(remaining))})
+                </span>
+            </div>
+            ${isOver ? `<div class="budget-warning">⚠️ 예산 초과!</div>` : ''}
+        </div>
+    `;
+}
+
+function initBudgetManager() {
+    // 예산 추가 버튼
+    document.getElementById('addBudgetBtn')?.addEventListener('click', () => openBudgetModal());
+
+    // 모달 버튼
+    document.getElementById('closeBudgetModalBtn')?.addEventListener('click', closeBudgetModal);
+    document.getElementById('cancelBudgetBtn')?.addEventListener('click', closeBudgetModal);
+    document.getElementById('saveBudgetBtn')?.addEventListener('click', saveBudgetItem);
+
+    // 빠른 금액 선택
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('budgetAmount').value = btn.dataset.amount;
+        });
+    });
+
+    // 예산 항목 이벤트
+    attachBudgetItemEvents();
+}
+
+function attachBudgetItemEvents() {
+    document.querySelectorAll('.edit-budget-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const budget = budgets.find(b => b.id === id);
+            if (budget) openBudgetModal(budget);
+        });
+    });
+
+    document.querySelectorAll('.delete-budget-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            if (confirm('이 예산을 삭제하시겠습니까?')) {
+                const result = await deleteBudget(id);
+                if (result.success) {
+                    await loadToolsData();
+                    renderCurrentTool();
+                } else {
+                    alert('삭제 실패: ' + result.error);
+                }
+            }
+        });
+    });
+}
+
+function openBudgetModal(budget = null) {
+    editingBudget = budget;
+    document.getElementById('budgetModal').style.display = 'flex';
+    document.getElementById('budgetModalTitle').textContent = budget ? '예산 수정' : '예산 추가';
+
+    const categorySelect = document.getElementById('budgetCategory');
+
+    if (budget) {
+        categorySelect.value = budget.category;
+        categorySelect.disabled = true; // 수정 시 카테고리 변경 불가
+        document.getElementById('budgetAmount').value = budget.monthly_amount;
+    } else {
+        // 이미 예산이 설정된 카테고리 제외
+        const existingCategories = budgets.map(b => b.category);
+        categorySelect.innerHTML = EXPENSE_CATEGORIES
+            .filter(c => !existingCategories.includes(c))
+            .map(c => `<option value="${c}">${c}</option>`)
+            .join('');
+        categorySelect.disabled = false;
+        document.getElementById('budgetAmount').value = '';
+    }
+}
+
+function closeBudgetModal() {
+    document.getElementById('budgetModal').style.display = 'none';
+    editingBudget = null;
+}
+
+async function saveBudgetItem() {
+    const category = document.getElementById('budgetCategory').value;
+    const amount = parseInt(document.getElementById('budgetAmount').value) || 0;
+
+    if (!category) {
+        alert('카테고리를 선택해주세요.');
+        return;
+    }
+    if (amount <= 0) {
+        alert('예산 금액을 입력해주세요.');
+        return;
+    }
+
+    const data = {
+        category,
+        monthly_amount: amount
+    };
+
+    let result;
+    if (editingBudget) {
+        result = await updateBudget(editingBudget.id, data);
+    } else {
+        result = await createBudget(data);
+    }
+
+    if (result.success) {
+        closeBudgetModal();
+        await loadToolsData();
+        renderCurrentTool();
+    } else {
+        alert('저장 실패: ' + result.error);
     }
 }
 

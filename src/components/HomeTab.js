@@ -1,5 +1,5 @@
 // V2: 통합 자산 관리 홈 대시보드
-import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview, saveNetWorthSnapshot, getNetWorthHistory } from '../services/database.js';
+import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview, saveNetWorthSnapshot, getNetWorthHistory, getBudgetVsActual } from '../services/database.js';
 import { calculateTotalIncome, calculateTotalExpense } from '../services/analytics.js';
 import { formatAmount, formatAmountShort, exportAssetsToCSV, exportDebtsToCSV, exportTransactionsToCSV, exportNetWorthHistoryToCSV, exportAllDataToJSON } from '../utils/helpers.js';
 import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, GOALS } from '../utils/constants.js';
@@ -10,6 +10,7 @@ let debts = [];
 let stakingList = [];
 let airdropList = [];
 let netWorthChart = null;
+let budgetData = null;
 
 export function createHomeTab() {
     return `
@@ -177,6 +178,19 @@ export function createHomeTab() {
                 </div>
             </div>
 
+            <!-- 예산 현황 (간략) -->
+            <div class="section-card collapsible" id="budgetSection">
+                <h2 class="section-title" data-toggle="budgetStatus">
+                    💰 이번 달 예산 현황
+                    <span class="toggle-icon">▼</span>
+                </h2>
+                <div class="section-content" id="budgetStatusContent">
+                    <div class="budget-home-summary" id="budgetHomeSummary">
+                        <!-- 동적으로 채워짐 -->
+                    </div>
+                </div>
+            </div>
+
             <!-- 데이터 내보내기 -->
             <div class="section-card collapsible">
                 <h2 class="section-title" data-toggle="dataExport">
@@ -235,6 +249,7 @@ export async function initHomeTab(switchTabCallback) {
         'staking',
         'airdrop',
         'debt',
+        'budgetStatus',
         'dataExport'
     ];
 
@@ -338,13 +353,14 @@ async function handleExport(type) {
 async function loadHomeData() {
     try {
         // 병렬로 모든 데이터 로드
-        const [netWorthResult, assetsResult, debtsResult, stakingResult, airdropResult, transactionsResult] = await Promise.all([
+        const [netWorthResult, assetsResult, debtsResult, stakingResult, airdropResult, transactionsResult, budgetResult] = await Promise.all([
             calculateNetWorth(),
             getAssets(),
             getDebts(),
             getStakingOverview(),
             getAirdropOverview(),
-            getTransactions()
+            getTransactions(),
+            getBudgetVsActual()
         ]);
 
         if (netWorthResult.success) {
@@ -379,6 +395,12 @@ async function loadHomeData() {
 
         if (transactionsResult.success) {
             updateCashflowDisplay(transactionsResult.data || []);
+        }
+
+        // 예산 현황 업데이트
+        if (budgetResult.success) {
+            budgetData = budgetResult.data;
+            updateBudgetHomeDisplay();
         }
 
         // 순자산 스냅샷 저장 (하루 1회)
@@ -669,6 +691,83 @@ function updateCashflowDisplay(transactions) {
     const netEl = document.getElementById('monthlyNet');
     netEl.textContent = formatAmount(netCashflow);
     netEl.className = `cashflow-value ${netCashflow >= 0 ? 'positive' : 'negative'}`;
+}
+
+function updateBudgetHomeDisplay() {
+    const container = document.getElementById('budgetHomeSummary');
+    if (!container || !budgetData) return;
+
+    const { budgets, totalBudget, totalSpent, daysRemaining } = budgetData;
+
+    if (budgets.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <p>설정된 예산이 없습니다</p>
+                <p class="hint">도구 탭에서 예산을 설정하세요</p>
+            </div>
+        `;
+        return;
+    }
+
+    const overBudgetItems = budgets.filter(b => b.isOver);
+    const warningItems = budgets.filter(b => !b.isOver && b.percent >= 80);
+    const overallPercent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+
+    let html = `
+        <div class="budget-home-overview">
+            <div class="budget-home-progress">
+                <div class="budget-home-bar">
+                    <div class="budget-home-fill ${overallPercent > 100 ? 'over' : overallPercent > 80 ? 'warning' : ''}"
+                         style="width: ${Math.min(overallPercent, 100)}%"></div>
+                </div>
+                <div class="budget-home-stats">
+                    <span class="budget-home-spent">${formatAmountShort(totalSpent)}</span>
+                    <span class="budget-home-separator">/</span>
+                    <span class="budget-home-total">${formatAmountShort(totalBudget)}</span>
+                    <span class="budget-home-percent">(${overallPercent}%)</span>
+                </div>
+            </div>
+            <div class="budget-home-info">
+                남은 ${daysRemaining}일
+            </div>
+        </div>
+    `;
+
+    // 초과/경고 카테고리 표시
+    if (overBudgetItems.length > 0) {
+        html += `
+            <div class="budget-home-alerts">
+                <div class="budget-alert over">
+                    <span class="alert-icon">⚠️</span>
+                    <span class="alert-text">예산 초과: ${overBudgetItems.map(b => b.category).join(', ')}</span>
+                </div>
+            </div>
+        `;
+    } else if (warningItems.length > 0) {
+        html += `
+            <div class="budget-home-alerts">
+                <div class="budget-alert warning">
+                    <span class="alert-icon">💡</span>
+                    <span class="alert-text">80% 이상 사용: ${warningItems.map(b => b.category).join(', ')}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // 주요 카테고리 간략 표시 (상위 3개)
+    const topBudgets = [...budgets].sort((a, b) => b.percent - a.percent).slice(0, 3);
+    html += `
+        <div class="budget-home-categories">
+            ${topBudgets.map(b => `
+                <div class="budget-home-category ${b.isOver ? 'over' : ''}">
+                    <span class="cat-name">${b.category}</span>
+                    <span class="cat-progress">${b.percent}%</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    container.innerHTML = html;
 }
 
 function updateAlertBanners() {

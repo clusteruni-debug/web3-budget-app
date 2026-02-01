@@ -1042,6 +1042,156 @@
 }
 
 /* ============================================
+   홈 예산 현황 (간략)
+   ============================================ */
+.budget-home-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.budget-home-overview {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.budget-home-progress {
+    flex: 1;
+}
+
+.budget-home-bar {
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: var(--space-2);
+}
+
+.budget-home-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    border-radius: var(--radius-full);
+    transition: width 0.5s ease;
+}
+
+.budget-home-fill.warning {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.budget-home-fill.over {
+    background: linear-gradient(90deg, #f87171, #ef4444);
+}
+
+.budget-home-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+}
+
+.budget-home-spent {
+    font-weight: 700;
+    color: white;
+}
+
+.budget-home-separator {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.budget-home-total {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.budget-home-percent {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: var(--text-xs);
+}
+
+.budget-home-info {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+}
+
+.budget-home-alerts {
+    margin-top: var(--space-2);
+}
+
+.budget-alert {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+}
+
+.budget-alert.over {
+    background: rgba(248, 113, 113, 0.15);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    color: #fca5a5;
+}
+
+.budget-alert.warning {
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fcd34d;
+}
+
+.alert-icon {
+    font-size: 1rem;
+}
+
+.alert-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.budget-home-categories {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.budget-home-category {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    min-width: 100px;
+}
+
+.budget-home-category.over {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.budget-home-category .cat-name {
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+}
+
+.budget-home-category .cat-progress {
+    font-weight: 700;
+    color: white;
+}
+
+.budget-home-category.over .cat-progress {
+    color: #f87171;
+}
+
+/* ============================================
    반응형
    ============================================ */
 @media (max-width: 1024px) {

@@ -850,3 +850,152 @@ export async function getNetWorthHistory(months = 12) {
         return { success: false, error: error.message };
     }
 }
+
+// ============================================
+// BUDGETS (예산 관리)
+// ============================================
+
+export async function getBudgets() {
+    try {
+        const { data, error } = await supabase
+            .from('budgets')
+            .select('*')
+            .eq('is_active', true)
+            .order('category');
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
+    } catch (error) {
+        console.error('Get budgets error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function createBudget(budget) {
+    try {
+        const { data, error } = await supabase
+            .from('budgets')
+            .insert(budget)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Create budget error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateBudget(id, updates) {
+    try {
+        const { data, error } = await supabase
+            .from('budgets')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Update budget error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteBudget(id) {
+    try {
+        const { error } = await supabase
+            .from('budgets')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Delete budget error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 예산 vs 실제 지출 비교 (이번 달)
+export async function getBudgetVsActual() {
+    try {
+        const [budgetsResult, transactionsResult] = await Promise.all([
+            getBudgets(),
+            getTransactions()
+        ]);
+
+        if (!budgetsResult.success) throw new Error('Failed to fetch budgets');
+        if (!transactionsResult.success) throw new Error('Failed to fetch transactions');
+
+        const budgets = budgetsResult.data || [];
+        const transactions = transactionsResult.data || [];
+
+        // 이번 달 시작/끝
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        // 이번 달 지출 필터
+        const thisMonthExpenses = transactions.filter(t => {
+            const txDate = new Date(t.date);
+            return t.type === 'expense' &&
+                   txDate >= monthStart &&
+                   txDate <= monthEnd;
+        });
+
+        // 카테고리별 지출 집계
+        const spentByCategory = {};
+        thisMonthExpenses.forEach(t => {
+            const cat = t.category || '기타';
+            spentByCategory[cat] = (spentByCategory[cat] || 0) + t.amount;
+        });
+
+        // 예산과 실제 지출 비교
+        const budgetComparison = budgets.map(budget => {
+            const spent = spentByCategory[budget.category] || 0;
+            const remaining = budget.monthly_amount - spent;
+            const percent = budget.monthly_amount > 0
+                ? Math.round((spent / budget.monthly_amount) * 100)
+                : 0;
+
+            return {
+                ...budget,
+                spent,
+                remaining,
+                percent,
+                isOver: spent > budget.monthly_amount
+            };
+        });
+
+        // 예산 없는 카테고리 지출도 포함 (옵션)
+        const budgetCategories = budgets.map(b => b.category);
+        const unbdgetedSpending = Object.entries(spentByCategory)
+            .filter(([cat]) => !budgetCategories.includes(cat))
+            .map(([category, spent]) => ({
+                category,
+                monthly_amount: 0,
+                spent,
+                remaining: -spent,
+                percent: 100,
+                isOver: true,
+                isUnbudgeted: true
+            }));
+
+        return {
+            success: true,
+            data: {
+                budgets: budgetComparison,
+                unbudgeted: unbdgetedSpending,
+                totalBudget: budgets.reduce((sum, b) => sum + b.monthly_amount, 0),
+                totalSpent: thisMonthExpenses.reduce((sum, t) => sum + t.amount, 0),
+                daysRemaining: monthEnd.getDate() - now.getDate()
+            }
+        };
+    } catch (error) {
+        console.error('Get budget vs actual error:', error);
+        return { success: false, error: error.message };
+    }
+}
