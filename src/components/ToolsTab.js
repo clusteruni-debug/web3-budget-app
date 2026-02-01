@@ -1,6 +1,8 @@
-// 도구 탭: 캘린더, 소비분석, 대출계산기
+// 도구 탭: 캘린더, 소비분석, 대출계산기, 계정설정
 import { getDebts, getRecurringItems, getStakingOverview, getAirdropOverview, getTransactions } from '../services/database.js';
 import { formatAmount, formatAmountShort } from '../utils/helpers.js';
+import { updatePassword } from '../services/auth.js';
+import { getCurrentUser } from '../services/supabase.js';
 
 let currentTool = 'calendar';
 let debts = [];
@@ -17,6 +19,7 @@ export function createToolsTab() {
                 <button class="tool-tab-btn active" data-tool="calendar">📅 캘린더</button>
                 <button class="tool-tab-btn" data-tool="spending">📊 소비 분석</button>
                 <button class="tool-tab-btn" data-tool="debt-calc">🧮 대출 계산기</button>
+                <button class="tool-tab-btn" data-tool="account">⚙️ 계정</button>
             </div>
 
             <!-- 도구 컨텐츠 영역 -->
@@ -76,6 +79,10 @@ function renderCurrentTool() {
         case 'debt-calc':
             content.innerHTML = renderDebtCalculator();
             initDebtCalculator();
+            break;
+        case 'account':
+            content.innerHTML = renderAccountSettings();
+            initAccountSettings();
             break;
     }
 }
@@ -669,4 +676,106 @@ function simulatePayoff(principal, monthlyRate, monthlyPayment) {
         totalPaid: Math.round(principal + totalInterest),
         endDate: endDateStr
     };
+}
+
+// ============================================
+// 계정 설정
+// ============================================
+
+function renderAccountSettings() {
+    return `
+        <div class="account-settings-container">
+            <h3>⚙️ 계정 설정</h3>
+
+            <div class="account-info-section">
+                <h4>👤 계정 정보</h4>
+                <div class="account-info-card">
+                    <div class="info-row">
+                        <span class="info-label">이메일</span>
+                        <span class="info-value" id="currentEmail">로딩 중...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="password-section">
+                <h4>🔐 비밀번호 변경</h4>
+                <div class="password-form">
+                    <div class="form-group">
+                        <label>새 비밀번호</label>
+                        <input type="password" id="newPassword" placeholder="새 비밀번호 (최소 6자)">
+                    </div>
+                    <div class="form-group">
+                        <label>비밀번호 확인</label>
+                        <input type="password" id="confirmPassword" placeholder="새 비밀번호 다시 입력">
+                    </div>
+                    <button class="btn btn-primary" id="changePasswordBtn">비밀번호 변경</button>
+                    <p class="password-hint">💡 가족과 공유하려면 서로 아는 비밀번호로 변경하세요</p>
+                </div>
+            </div>
+
+            <div class="password-result" id="passwordResult"></div>
+        </div>
+    `;
+}
+
+async function initAccountSettings() {
+    // 현재 사용자 정보 로드
+    const user = await getCurrentUser();
+    if (user) {
+        document.getElementById('currentEmail').textContent = user.email;
+    }
+
+    // 비밀번호 변경 버튼
+    document.getElementById('changePasswordBtn').addEventListener('click', handlePasswordChange);
+
+    // Enter 키로 제출
+    document.getElementById('confirmPassword').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handlePasswordChange();
+        }
+    });
+}
+
+async function handlePasswordChange() {
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const resultDiv = document.getElementById('passwordResult');
+
+    // 유효성 검사
+    if (!newPassword || !confirmPassword) {
+        resultDiv.innerHTML = '<div class="result-error">⚠️ 모든 필드를 입력해주세요.</div>';
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        resultDiv.innerHTML = '<div class="result-error">⚠️ 비밀번호는 최소 6자 이상이어야 합니다.</div>';
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        resultDiv.innerHTML = '<div class="result-error">⚠️ 비밀번호가 일치하지 않습니다.</div>';
+        return;
+    }
+
+    // 버튼 비활성화
+    const btn = document.getElementById('changePasswordBtn');
+    btn.disabled = true;
+    btn.textContent = '변경 중...';
+
+    try {
+        const result = await updatePassword(newPassword);
+
+        if (result.success) {
+            resultDiv.innerHTML = '<div class="result-success">✅ 비밀번호가 성공적으로 변경되었습니다!</div>';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        } else {
+            resultDiv.innerHTML = `<div class="result-error">❌ 오류: ${result.error}</div>`;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="result-error">❌ 오류: ${error.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '비밀번호 변경';
+    }
 }

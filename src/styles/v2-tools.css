@@ -596,3 +596,124 @@
         gap: var(--space-3);
     }
 }
+
+/* ============================================
+   계정 설정
+   ============================================ */
+
+.account-settings-container {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.account-settings-container h3 {
+    text-align: center;
+    margin-bottom: var(--space-6);
+    font-size: var(--text-2xl);
+}
+
+.account-settings-container h4 {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-lg);
+    color: var(--gray-200);
+}
+
+.account-info-section,
+.password-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    margin-bottom: var(--space-5);
+}
+
+.account-info-card {
+    background: var(--bg-card-hover);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.info-label {
+    color: var(--gray-400);
+    font-size: var(--text-sm);
+}
+
+.info-value {
+    color: white;
+    font-weight: var(--font-semibold);
+}
+
+.password-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.password-form .form-group {
+    margin-bottom: 0;
+}
+
+.password-form .form-group label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--gray-300);
+}
+
+.password-form .form-group input {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: var(--text-base);
+    transition: all var(--transition-fast);
+}
+
+.password-form .form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--primary-bg);
+}
+
+.password-form .btn {
+    margin-top: var(--space-2);
+}
+
+.password-hint {
+    font-size: var(--text-sm);
+    color: var(--gray-400);
+    text-align: center;
+    margin-top: var(--space-2);
+}
+
+.password-result {
+    margin-top: var(--space-4);
+}
+
+.result-success {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--positive);
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    font-weight: var(--font-medium);
+}
+
+.result-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--negative);
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    font-weight: var(--font-medium);
+}
