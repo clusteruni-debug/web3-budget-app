@@ -1104,30 +1104,206 @@ function updateSpendingChart(categoryData) {
 
 function updateSpendingInsights(categoryData, totalExpense, totalIncome) {
     const insights = [];
+    const warnings = [];
+    const tips = [];
 
+    // 1. 가장 많이 쓴 카테고리
     if (categoryData.length > 0) {
         const topCategory = categoryData[0];
-        insights.push(`💡 가장 많이 쓴 카테고리: <strong>${topCategory[0]}</strong> (${formatAmountShort(topCategory[1])})`);
+        const topPercent = totalExpense > 0 ? ((topCategory[1] / totalExpense) * 100).toFixed(0) : 0;
+        insights.push({
+            icon: '📊',
+            text: `가장 많이 쓴 카테고리: <strong>${topCategory[0]}</strong> (${formatAmountShort(topCategory[1])}, ${topPercent}%)`
+        });
     }
 
+    // 2. 저축률 분석
     if (totalIncome > 0) {
         const savingRate = ((totalIncome - totalExpense) / totalIncome * 100).toFixed(1);
-        if (savingRate > 0) {
-            insights.push(`💰 저축률: <strong>${savingRate}%</strong>`);
+        if (savingRate >= 20) {
+            insights.push({ icon: '🎉', text: `저축률 <strong>${savingRate}%</strong> - 훌륭합니다!` });
+        } else if (savingRate >= 10) {
+            insights.push({ icon: '💰', text: `저축률 <strong>${savingRate}%</strong> - 양호합니다` });
+        } else if (savingRate > 0) {
+            warnings.push({ icon: '⚠️', text: `저축률 <strong>${savingRate}%</strong>로 낮습니다. 10% 이상을 목표로!` });
         } else {
-            insights.push(`⚠️ 지출이 수입보다 많습니다!`);
+            warnings.push({ icon: '🚨', text: `지출이 수입보다 <strong>${formatAmountShort(totalExpense - totalIncome)}</strong> 많습니다!` });
         }
     }
 
-    const avgDaily = totalExpense / 30;
-    insights.push(`📊 일 평균 지출: <strong>${formatAmountShort(avgDaily)}</strong>`);
+    // 3. 전월 대비 분석
+    const lastMonthData = getLastMonthComparison();
+    if (lastMonthData) {
+        const { lastMonthTotal, changePercent, changedCategories } = lastMonthData;
 
-    document.getElementById('spendingInsights').innerHTML = `
-        <h4>💡 인사이트</h4>
-        <ul class="insights-list">
-            ${insights.map(i => `<li>${i}</li>`).join('')}
-        </ul>
-    `;
+        if (changePercent > 20) {
+            warnings.push({
+                icon: '📈',
+                text: `전월 대비 지출 <strong>${changePercent.toFixed(0)}% 증가</strong> (${formatAmountShort(lastMonthTotal)} → ${formatAmountShort(totalExpense)})`
+            });
+        } else if (changePercent < -10) {
+            insights.push({
+                icon: '📉',
+                text: `전월 대비 지출 <strong>${Math.abs(changePercent).toFixed(0)}% 감소</strong> - 잘하고 있어요!`
+            });
+        }
+
+        // 급증한 카테고리 찾기
+        changedCategories.forEach(cat => {
+            if (cat.changePercent > 50 && cat.amount > 50000) {
+                warnings.push({
+                    icon: '⚡',
+                    text: `<strong>${cat.name}</strong> 지출이 전월 대비 ${cat.changePercent.toFixed(0)}% 증가`
+                });
+            }
+        });
+    }
+
+    // 4. 일 평균 지출
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysPassed = now.getDate();
+    const avgDaily = totalExpense / daysPassed;
+    const projectedMonthly = avgDaily * daysInMonth;
+
+    insights.push({
+        icon: '📅',
+        text: `일 평균 지출: <strong>${formatAmountShort(avgDaily)}</strong> (이 추세면 월 ${formatAmountShort(projectedMonthly)})`
+    });
+
+    // 5. 절약 팁 생성
+    generateSavingTips(categoryData, tips);
+
+    // 6. 고정지출 vs 변동지출 분석
+    const fixedCategories = ['주거', '통신', '보험', '구독'];
+    const fixedExpense = categoryData
+        .filter(([cat]) => fixedCategories.some(fc => cat.includes(fc)))
+        .reduce((sum, [, amount]) => sum + amount, 0);
+    const variableExpense = totalExpense - fixedExpense;
+
+    if (fixedExpense > 0 && variableExpense > 0) {
+        const fixedPercent = ((fixedExpense / totalExpense) * 100).toFixed(0);
+        insights.push({
+            icon: '🔒',
+            text: `고정비 ${fixedPercent}% (${formatAmountShort(fixedExpense)}) / 변동비 ${100 - fixedPercent}% (${formatAmountShort(variableExpense)})`
+        });
+    }
+
+    // HTML 생성
+    let html = '<div class="insights-container">';
+
+    if (warnings.length > 0) {
+        html += `
+            <div class="insights-section warnings">
+                <h4>⚠️ 주의</h4>
+                <ul class="insights-list">
+                    ${warnings.map(w => `<li><span class="insight-icon">${w.icon}</span>${w.text}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    if (insights.length > 0) {
+        html += `
+            <div class="insights-section">
+                <h4>📊 분석</h4>
+                <ul class="insights-list">
+                    ${insights.map(i => `<li><span class="insight-icon">${i.icon}</span>${i.text}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    if (tips.length > 0) {
+        html += `
+            <div class="insights-section tips">
+                <h4>💡 절약 팁</h4>
+                <ul class="insights-list">
+                    ${tips.map(t => `<li><span class="insight-icon">${t.icon}</span>${t.text}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    document.getElementById('spendingInsights').innerHTML = html;
+}
+
+// 전월 대비 분석 데이터 가져오기
+function getLastMonthComparison() {
+    const now = new Date();
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const lastMonthTxs = transactions.filter(t => {
+        const d = new Date(t.date);
+        return t.type === 'expense' && d >= lastMonthStart && d <= lastMonthEnd;
+    });
+
+    const thisMonthTxs = transactions.filter(t => {
+        const d = new Date(t.date);
+        return t.type === 'expense' && d >= thisMonthStart;
+    });
+
+    if (lastMonthTxs.length === 0) return null;
+
+    const lastMonthTotal = lastMonthTxs.reduce((sum, t) => sum + t.amount, 0);
+    const thisMonthTotal = thisMonthTxs.reduce((sum, t) => sum + t.amount, 0);
+
+    // 카테고리별 변화
+    const lastByCategory = {};
+    const thisByCategory = {};
+
+    lastMonthTxs.forEach(t => {
+        const cat = t.category || '기타';
+        lastByCategory[cat] = (lastByCategory[cat] || 0) + t.amount;
+    });
+
+    thisMonthTxs.forEach(t => {
+        const cat = t.category || '기타';
+        thisByCategory[cat] = (thisByCategory[cat] || 0) + t.amount;
+    });
+
+    const changedCategories = Object.keys(thisByCategory).map(cat => {
+        const lastAmount = lastByCategory[cat] || 0;
+        const thisAmount = thisByCategory[cat];
+        const changePercent = lastAmount > 0 ? ((thisAmount - lastAmount) / lastAmount) * 100 : 100;
+        return { name: cat, amount: thisAmount, lastAmount, changePercent };
+    }).filter(c => c.changePercent > 30); // 30% 이상 증가한 것만
+
+    return {
+        lastMonthTotal,
+        thisMonthTotal,
+        changePercent: lastMonthTotal > 0 ? ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0,
+        changedCategories
+    };
+}
+
+// 절약 팁 생성
+function generateSavingTips(categoryData, tips) {
+    const categoryTips = {
+        '외식': { threshold: 200000, tip: '외식비를 줄이고 집밥 비율을 늘려보세요. 주 2회 외식 → 1회로 줄이면 월 10만원 이상 절약!' },
+        '식비': { threshold: 400000, tip: '장보기 전 냉장고 확인하고 식단 계획을 세워보세요. 식재료 낭비를 줄일 수 있어요.' },
+        '쇼핑': { threshold: 150000, tip: '충동구매를 줄이세요. 장바구니에 담고 24시간 후에 결제하는 습관을!' },
+        '유흥': { threshold: 100000, tip: '유흥비가 높습니다. 집에서 즐길 수 있는 대안을 찾아보세요.' },
+        '교통': { threshold: 150000, tip: '대중교통이나 자전거 이용을 늘려보세요. 건강과 지갑 모두 좋아집니다.' },
+        '구독': { threshold: 50000, tip: '사용하지 않는 구독 서비스가 있는지 확인하세요. 연간으로 결제하면 할인받을 수 있어요.' },
+        '커피': { threshold: 50000, tip: '커피 지출이 높습니다. 텀블러를 들고 다니거나 사무실 커피를 활용해보세요.' }
+    };
+
+    categoryData.forEach(([cat, amount]) => {
+        Object.entries(categoryTips).forEach(([keyword, info]) => {
+            if (cat.includes(keyword) && amount > info.threshold) {
+                tips.push({ icon: '💡', text: info.tip });
+            }
+        });
+    });
+
+    // 기본 팁 (팁이 없을 경우)
+    if (tips.length === 0 && categoryData.length > 0) {
+        tips.push({ icon: '💡', text: '지출 내역을 정기적으로 확인하는 것만으로도 소비 습관이 개선됩니다!' });
+    }
 }
 
 function filterTransactionsByPeriod(txs, period) {

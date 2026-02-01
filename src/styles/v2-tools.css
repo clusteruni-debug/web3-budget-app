@@ -897,8 +897,31 @@
     padding: var(--space-5);
 }
 
-.spending-insights h4 {
+.insights-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.insights-section {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+}
+
+.insights-section.warnings {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.insights-section.tips {
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.insights-section h4 {
     margin-bottom: var(--space-3);
+    font-size: var(--text-base);
 }
 
 .insights-list {
@@ -909,13 +932,34 @@
 }
 
 .insights-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
     padding: var(--space-2) 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+}
+
+.insights-list li:last-child {
+    border-bottom: none;
+}
+
+.insight-icon {
+    flex-shrink: 0;
+    font-size: 1rem;
 }
 
 .insights-list li strong {
     color: #a78bfa;
+}
+
+.insights-section.warnings .insights-list li strong {
+    color: #fca5a5;
+}
+
+.insights-section.tips .insights-list li strong {
+    color: #86efac;
 }
 
 /* ============================================
