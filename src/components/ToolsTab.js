@@ -119,19 +119,30 @@ function renderBudgetManager() {
     const now = new Date();
     const monthName = `${now.getFullYear()}년 ${now.getMonth() + 1}월`;
 
-    if (!budgetData) {
+    // budgetData가 없어도 모달은 렌더링 (예산 추가 가능하도록)
+    const budgetItems = budgetData?.budgets || [];
+    const totalBudget = budgetData?.totalBudget || 0;
+    const totalSpent = budgetData?.totalSpent || 0;
+    const daysRemaining = budgetData?.daysRemaining || 0;
+
+    if (!budgetData || budgetItems.length === 0) {
         return `
             <div class="budget-container">
                 <div class="budget-header">
                     <h3>💰 ${monthName} 예산 관리</h3>
                     <button class="btn btn-primary" id="addBudgetBtn">+ 예산 추가</button>
                 </div>
-                <div class="empty-state">예산 데이터를 불러오는 중...</div>
+                <div class="empty-state">
+                    <p>설정된 예산이 없습니다</p>
+                    <p class="hint">위의 '+ 예산 추가' 버튼을 눌러 카테고리별 예산을 설정하세요</p>
+                </div>
             </div>
+
+            <!-- 예산 추가/수정 모달 -->
+            ${renderBudgetModal()}
         `;
     }
 
-    const { budgets: budgetItems, totalBudget, totalSpent, daysRemaining } = budgetData;
     const remainingBudget = totalBudget - totalSpent;
     const overallPercent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
     const dailyAvailable = daysRemaining > 0 ? Math.round(remainingBudget / daysRemaining) : 0;
@@ -182,52 +193,14 @@ function renderBudgetManager() {
             <!-- 카테고리별 예산 -->
             <div class="budget-categories">
                 <h4>카테고리별 예산</h4>
-                ${budgetItems.length === 0 ? `
-                    <div class="empty-state">
-                        <p>설정된 예산이 없습니다</p>
-                        <p class="hint">위의 '+ 예산 추가' 버튼을 눌러 카테고리별 예산을 설정하세요</p>
-                    </div>
-                ` : `
-                    <div class="budget-list">
-                        ${budgetItems.map(b => renderBudgetItem(b)).join('')}
-                    </div>
-                `}
+                <div class="budget-list">
+                    ${budgetItems.map(b => renderBudgetItem(b)).join('')}
+                </div>
             </div>
         </div>
 
         <!-- 예산 추가/수정 모달 -->
-        <div id="budgetModal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="budgetModalTitle">예산 추가</h3>
-                    <button class="close-btn" id="closeBudgetModalBtn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>카테고리</label>
-                        <select id="budgetCategory">
-                            ${EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>월 예산 금액</label>
-                        <input type="number" id="budgetAmount" placeholder="0">
-                    </div>
-                    <div class="budget-preset-amounts">
-                        <span class="preset-label">빠른 선택:</span>
-                        <button class="preset-btn" data-amount="100000">10만</button>
-                        <button class="preset-btn" data-amount="200000">20만</button>
-                        <button class="preset-btn" data-amount="300000">30만</button>
-                        <button class="preset-btn" data-amount="500000">50만</button>
-                        <button class="preset-btn" data-amount="1000000">100만</button>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" id="cancelBudgetBtn">취소</button>
-                    <button class="btn btn-primary" id="saveBudgetBtn">저장</button>
-                </div>
-            </div>
-        </div>
+        ${renderBudgetModal()}
     `;
 }
 
@@ -259,6 +232,43 @@ function renderBudgetItem(budget) {
                 </span>
             </div>
             ${isOver ? `<div class="budget-warning">⚠️ 예산 초과!</div>` : ''}
+        </div>
+    `;
+}
+
+function renderBudgetModal() {
+    return `
+        <div id="budgetModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="budgetModalTitle">예산 추가</h3>
+                    <button class="close-btn" id="closeBudgetModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>카테고리</label>
+                        <select id="budgetCategory">
+                            ${EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>월 예산 금액</label>
+                        <input type="number" id="budgetAmount" placeholder="0">
+                    </div>
+                    <div class="budget-preset-amounts">
+                        <span class="preset-label">빠른 선택:</span>
+                        <button class="preset-btn" data-amount="100000">10만</button>
+                        <button class="preset-btn" data-amount="200000">20만</button>
+                        <button class="preset-btn" data-amount="300000">30만</button>
+                        <button class="preset-btn" data-amount="500000">50만</button>
+                        <button class="preset-btn" data-amount="1000000">100만</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelBudgetBtn">취소</button>
+                    <button class="btn btn-primary" id="saveBudgetBtn">저장</button>
+                </div>
+            </div>
         </div>
     `;
 }

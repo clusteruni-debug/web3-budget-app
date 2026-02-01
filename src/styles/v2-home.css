@@ -1336,3 +1336,145 @@
         font-size: var(--text-sm);
     }
 }
+
+/* ============================================
+   자산 목록 (카테고리별 접기/펼치기)
+   ============================================ */
+.asset-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.asset-category-group {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.asset-category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.asset-category-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.category-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.category-header-left .category-icon {
+    font-size: 1.3rem;
+}
+
+.category-header-left .category-name {
+    font-weight: 600;
+    color: white;
+}
+
+.category-header-left .category-count {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: var(--text-sm);
+}
+
+.category-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.category-header-right .category-total {
+    font-weight: 700;
+    color: #4ade80;
+    font-size: var(--text-lg);
+}
+
+.category-toggle-icon {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: var(--text-sm);
+    transition: transform 0.2s ease;
+}
+
+.asset-category-items {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    max-height: 500px;
+    overflow-y: auto;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+.asset-category-items.collapsed {
+    max-height: 0;
+    opacity: 0;
+    border-top: none;
+    overflow: hidden;
+}
+
+.asset-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.asset-list-item:last-child {
+    border-bottom: none;
+}
+
+.asset-list-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.asset-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.asset-item-name {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.asset-item-platform {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.asset-item-value {
+    font-weight: 600;
+    color: white;
+    text-align: right;
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+    .asset-category-header {
+        padding: var(--space-3);
+    }
+
+    .category-header-right .category-total {
+        font-size: var(--text-base);
+    }
+
+    .asset-list-item {
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .asset-item-name {
+        font-size: var(--text-sm);
+    }
+
+    .asset-item-value {
+        font-size: var(--text-sm);
+    }
+}

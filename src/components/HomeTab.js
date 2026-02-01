@@ -95,6 +95,19 @@ export function createHomeTab() {
                 </div>
             </div>
 
+            <!-- 자산 목록 (카테고리별 접기/펼치기) -->
+            <div class="section-card collapsible" id="assetListSection">
+                <h2 class="section-title" data-toggle="assetList">
+                    📋 자산 목록
+                    <span class="toggle-icon">▼</span>
+                </h2>
+                <div class="section-content" id="assetListContent">
+                    <div class="asset-list-container" id="assetListContainer">
+                        <!-- 동적으로 채워짐 -->
+                    </div>
+                </div>
+            </div>
+
             <!-- 크립토 세부 -->
             <div class="section-card collapsible" id="cryptoDetailSection">
                 <h2 class="section-title" data-toggle="cryptoDetail">
@@ -241,15 +254,8 @@ export function createHomeTab() {
 export async function initHomeTab(switchTabCallback) {
     await loadHomeData();
 
-    // 기본적으로 상세 섹션들 접기 (심플 뷰)
+    // 기본적으로 일부 섹션만 접기 (데이터 내보내기 등)
     const sectionsToCollapse = [
-        'netWorthTrend',
-        'assetComposition',
-        'cryptoDetail',
-        'staking',
-        'airdrop',
-        'debt',
-        'budgetStatus',
         'dataExport'
     ];
 
@@ -371,6 +377,7 @@ async function loadHomeData() {
         if (assetsResult.success) {
             assets = assetsResult.data || [];
             updateAssetCategories();
+            updateAssetList();
             updateCryptoDetails();
         }
 
@@ -539,6 +546,86 @@ function renderAssetPieChart() {
                 }
             }
         }
+    });
+}
+
+// 자산 목록을 카테고리별로 접기/펼치기 가능하게 표시
+function updateAssetList() {
+    const container = document.getElementById('assetListContainer');
+    if (!container) return;
+
+    if (assets.length === 0) {
+        container.innerHTML = '<div class="empty-state">등록된 자산이 없습니다</div>';
+        return;
+    }
+
+    // 카테고리별로 자산 그룹화
+    const assetsByCategory = {};
+    assets.forEach(asset => {
+        const cat = asset.category || 'other';
+        if (!assetsByCategory[cat]) {
+            assetsByCategory[cat] = [];
+        }
+        assetsByCategory[cat].push(asset);
+    });
+
+    // 카테고리 정보 매핑
+    const catInfoMap = {};
+    ASSET_CATEGORY_INFO.forEach(cat => {
+        catInfoMap[cat.id] = cat;
+    });
+
+    // 카테고리별로 HTML 생성 (금액 높은 순 정렬)
+    const sortedCategories = Object.entries(assetsByCategory)
+        .map(([catId, items]) => ({
+            catId,
+            catInfo: catInfoMap[catId] || { name: catId, icon: '📦', color: '#9E9E9E' },
+            items: items.sort((a, b) => (b.current_value || 0) - (a.current_value || 0)),
+            total: items.reduce((sum, a) => sum + (a.current_value || 0), 0)
+        }))
+        .sort((a, b) => b.total - a.total);
+
+    const html = sortedCategories.map(({ catId, catInfo, items, total }) => `
+        <div class="asset-category-group" data-category="${catId}">
+            <div class="asset-category-header" data-toggle-category="${catId}">
+                <div class="category-header-left">
+                    <span class="category-icon" style="color: ${catInfo.color}">${catInfo.icon}</span>
+                    <span class="category-name">${catInfo.name}</span>
+                    <span class="category-count">(${items.length})</span>
+                </div>
+                <div class="category-header-right">
+                    <span class="category-total">${formatAmountShort(total)}</span>
+                    <span class="category-toggle-icon">▼</span>
+                </div>
+            </div>
+            <div class="asset-category-items" id="assetItems-${catId}">
+                ${items.map(asset => `
+                    <div class="asset-list-item">
+                        <div class="asset-item-info">
+                            <span class="asset-item-name">${asset.name}</span>
+                            ${asset.platform ? `<span class="asset-item-platform">${asset.platform}</span>` : ''}
+                        </div>
+                        <div class="asset-item-value">${formatAmount(asset.current_value || 0)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+
+    container.innerHTML = html;
+
+    // 카테고리 접기/펼치기 이벤트 추가
+    container.querySelectorAll('.asset-category-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const catId = header.dataset.toggleCategory;
+            const itemsContainer = document.getElementById(`assetItems-${catId}`);
+            const icon = header.querySelector('.category-toggle-icon');
+
+            if (itemsContainer) {
+                const isCollapsed = itemsContainer.classList.toggle('collapsed');
+                icon.textContent = isCollapsed ? '▶' : '▼';
+            }
+        });
     });
 }
 
