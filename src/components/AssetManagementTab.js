@@ -504,25 +504,61 @@ function renderAssetList(filter = 'all') {
 function createAssetItem(asset) {
     const profit = (asset.current_value || 0) - (asset.purchase_value || 0);
     const profitPercent = asset.purchase_value > 0
-        ? ((profit / asset.purchase_value) * 100).toFixed(2)
+        ? ((profit / asset.purchase_value) * 100).toFixed(1)
         : 0;
-    const profitClass = profit >= 0 ? 'positive' : 'negative';
+    const isPositive = profit >= 0;
+    const profitClass = isPositive ? 'positive' : 'negative';
+
+    // 카테고리 색상 매핑
+    const categoryColors = {
+        cash: '#3b82f6',
+        stock: '#22c55e',
+        crypto: '#f59e0b',
+        real_estate: '#8b5cf6',
+        other: '#6b7280'
+    };
+    const accentColor = categoryColors[asset.category] || '#6b7280';
+
+    // 부동산인 경우 추가 정보
+    const isRealEstate = asset.category === 'real_estate';
+    const realEstateNote = isRealEstate && asset.notes ? `<div class="asset-note">${asset.notes}</div>` : '';
 
     return `
-        <div class="asset-item" data-id="${asset.id}">
-            <div class="asset-main-info">
-                <div class="asset-name">${asset.name}</div>
-                <div class="asset-platform">${asset.platform || ''} ${asset.token_name || ''}</div>
-            </div>
-            <div class="asset-value-info">
-                <div class="asset-current-value">${formatAmount(asset.current_value)}</div>
-                <div class="asset-profit ${profitClass}">
-                    ${profit >= 0 ? '+' : ''}${formatAmount(profit)} (${profitPercent}%)
+        <div class="asset-item enhanced" data-id="${asset.id}" style="--accent-color: ${accentColor}">
+            <div class="asset-card-header">
+                <div class="asset-main-info">
+                    <div class="asset-name">${asset.name}</div>
+                    <div class="asset-platform">${asset.platform || ''} ${asset.token_name || ''}</div>
+                </div>
+                <div class="profit-badge ${profitClass}">
+                    <span class="profit-icon">${isPositive ? '▲' : '▼'}</span>
+                    <span class="profit-percent">${isPositive ? '+' : ''}${profitPercent}%</span>
                 </div>
             </div>
-            <div class="asset-actions">
-                <button class="btn-icon edit-asset-btn" data-id="${asset.id}" title="수정">✏️</button>
-                <button class="btn-icon delete-asset-btn" data-id="${asset.id}" title="삭제">🗑️</button>
+            <div class="asset-card-body">
+                <div class="asset-value-row">
+                    <div class="value-item">
+                        <span class="value-label">현재가치</span>
+                        <span class="value-amount current">${formatAmount(asset.current_value)}</span>
+                    </div>
+                    <div class="value-item">
+                        <span class="value-label">매입가</span>
+                        <span class="value-amount purchase">${formatAmount(asset.purchase_value)}</span>
+                    </div>
+                    <div class="value-item">
+                        <span class="value-label">손익</span>
+                        <span class="value-amount ${profitClass}">${isPositive ? '+' : ''}${formatAmount(profit)}</span>
+                    </div>
+                </div>
+                ${realEstateNote}
+            </div>
+            <div class="asset-card-footer">
+                <button class="btn-action edit-asset-btn" data-id="${asset.id}">
+                    <span>✏️</span> 수정
+                </button>
+                <button class="btn-action delete delete-asset-btn" data-id="${asset.id}">
+                    <span>🗑️</span> 삭제
+                </button>
             </div>
         </div>
     `;

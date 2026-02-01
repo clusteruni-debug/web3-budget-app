@@ -764,3 +764,190 @@
         font-size: var(--text-lg);
     }
 }
+
+/* ============================================
+   Enhanced 자산 카드 (뱅크샐러드 스타일)
+   ============================================ */
+.asset-item.enhanced {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    border-left: 4px solid var(--accent-color, var(--primary));
+    transition: all var(--transition-fast);
+}
+
+.asset-item.enhanced:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    border-color: var(--accent-color, var(--primary));
+}
+
+.asset-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: var(--space-4);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.asset-item.enhanced .asset-main-info {
+    flex: 1;
+}
+
+.asset-item.enhanced .asset-name {
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-1);
+    max-width: none;
+}
+
+.asset-item.enhanced .asset-platform {
+    font-size: var(--text-sm);
+    max-width: none;
+}
+
+/* 수익률 배지 */
+.profit-badge {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+}
+
+.profit-badge.positive {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--positive);
+}
+
+.profit-badge.negative {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--negative);
+}
+
+.profit-icon {
+    font-size: var(--text-xs);
+}
+
+/* 카드 바디 */
+.asset-card-body {
+    padding: var(--space-4);
+}
+
+.asset-value-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+}
+
+.value-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.value-label {
+    font-size: var(--text-xs);
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.value-amount {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: white;
+}
+
+.value-amount.current {
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+}
+
+.value-amount.purchase {
+    color: var(--gray-300);
+}
+
+.value-amount.positive {
+    color: var(--positive);
+}
+
+.value-amount.negative {
+    color: var(--negative);
+}
+
+/* 부동산 노트 */
+.asset-note {
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    background: rgba(139, 92, 246, 0.1);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--gray-300);
+    border-left: 3px solid #8b5cf6;
+}
+
+/* 카드 푸터 */
+.asset-card-footer {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-action {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--gray-300);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-action:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--primary);
+    color: white;
+}
+
+.btn-action.delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--negative);
+    color: var(--negative);
+}
+
+/* 반응형 */
+@media (max-width: 640px) {
+    .asset-value-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .value-item:last-child {
+        grid-column: span 2;
+    }
+
+    .asset-card-header {
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .profit-badge {
+        align-self: flex-start;
+    }
+}
