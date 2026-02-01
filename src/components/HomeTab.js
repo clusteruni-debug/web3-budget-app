@@ -165,25 +165,17 @@ export function createHomeTab() {
                 </div>
             </div>
 
-            <!-- 빠른 액션 -->
+            <!-- 빠른 액션 (심플) -->
             <div class="section-card">
                 <h2 class="section-title">⚡ 빠른 액션</h2>
                 <div class="quick-actions-grid">
-                    <button class="quick-action-btn" data-action="add-asset">
-                        <span class="quick-action-icon">➕</span>
-                        <span class="quick-action-label">자산 추가</span>
-                    </button>
                     <button class="quick-action-btn" data-action="add-transaction">
                         <span class="quick-action-icon">💸</span>
                         <span class="quick-action-label">거래 추가</span>
                     </button>
-                    <button class="quick-action-btn" data-action="add-staking">
-                        <span class="quick-action-icon">🔒</span>
-                        <span class="quick-action-label">스테이킹 추가</span>
-                    </button>
-                    <button class="quick-action-btn" data-action="add-airdrop">
-                        <span class="quick-action-icon">🎯</span>
-                        <span class="quick-action-label">에어드랍 추가</span>
+                    <button class="quick-action-btn" data-action="add-asset">
+                        <span class="quick-action-icon">➕</span>
+                        <span class="quick-action-label">자산 추가</span>
                     </button>
                 </div>
             </div>
@@ -237,6 +229,32 @@ export function createHomeTab() {
 
 export async function initHomeTab(switchTabCallback) {
     await loadHomeData();
+
+    // 기본적으로 상세 섹션들 접기 (심플 뷰)
+    const sectionsToCollapse = [
+        'netWorthTrend',
+        'assetComposition',
+        'cryptoDetail',
+        'staking',
+        'airdrop',
+        'debt',
+        'dataExport'
+    ];
+
+    sectionsToCollapse.forEach(toggleId => {
+        const title = document.querySelector(`[data-toggle="${toggleId}"]`);
+        if (title) {
+            const sectionCard = title.closest('.section-card');
+            const content = sectionCard.querySelector('.section-content');
+            const icon = title.querySelector('.toggle-icon');
+
+            if (content) {
+                content.classList.add('collapsed');
+                icon.textContent = '▶';
+                sectionCard.classList.add('is-collapsed');
+            }
+        }
+    });
 
     // 섹션 접기/펼치기 이벤트
     document.querySelectorAll('.section-title[data-toggle]').forEach(title => {
