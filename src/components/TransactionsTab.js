@@ -45,18 +45,40 @@ export function createTransactionsTab() {
             </div>
 
             <div class="filter-section">
-                <label>필터:</label>
-                <select id="filterType">
-                    <option value="all">전체</option>
-                    <option value="income">수입만</option>
-                    <option value="expense">지출만</option>
-                </select>
-                <select id="filterCategory">
-                    <option value="all">모든 카테고리</option>
-                    ${allCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
-                </select>
-                <input type="text" id="searchInput" placeholder="🔍 제목 또는 설명 검색..."
-                       style="padding:8px;border:2px solid #ddd;border-radius:8px;min-width:200px;">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>유형</label>
+                        <select id="filterType">
+                            <option value="all">전체</option>
+                            <option value="income">수입만</option>
+                            <option value="expense">지출만</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>카테고리</label>
+                        <select id="filterCategory">
+                            <option value="all">모든 카테고리</option>
+                            ${allCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="filter-group search-group">
+                        <label>검색</label>
+                        <input type="text" id="searchInput" placeholder="🔍 제목, 설명 검색...">
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-group amount-range">
+                        <label>금액 범위</label>
+                        <div class="amount-inputs">
+                            <input type="number" id="filterAmountMin" placeholder="최소">
+                            <span class="range-separator">~</span>
+                            <input type="number" id="filterAmountMax" placeholder="최대">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <button class="btn btn-secondary btn-sm" id="resetFiltersBtn">🔄 필터 초기화</button>
+                    </div>
+                </div>
             </div>
 
             <!-- 결과 요약 -->
@@ -91,6 +113,19 @@ export async function initTransactionsTab(switchTabCallback, editTransactionCall
         currentPage = 1;
         filterTransactions();
     });
+
+    // 금액 범위 필터
+    document.getElementById('filterAmountMin').addEventListener('change', () => {
+        currentPage = 1;
+        filterTransactions();
+    });
+    document.getElementById('filterAmountMax').addEventListener('change', () => {
+        currentPage = 1;
+        filterTransactions();
+    });
+
+    // 필터 초기화
+    document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
 
     // 날짜 범위 프리셋 버튼
     document.querySelectorAll('.date-preset-btn').forEach(btn => {
@@ -181,11 +216,33 @@ async function loadTransactionsData() {
     }
 }
 
+function resetFilters() {
+    // 모든 필터 초기화
+    document.getElementById('filterType').value = 'all';
+    document.getElementById('filterCategory').value = 'all';
+    document.getElementById('searchInput').value = '';
+    document.getElementById('filterAmountMin').value = '';
+    document.getElementById('filterAmountMax').value = '';
+
+    // 날짜 프리셋 초기화
+    document.querySelectorAll('.date-preset-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.preset === 'all') btn.classList.add('active');
+    });
+    document.getElementById('customDateRange').style.display = 'none';
+    window._currentDatePreset = 'all';
+
+    currentPage = 1;
+    filterTransactions();
+}
+
 function filterTransactions() {
     const typeFilter = document.getElementById('filterType').value;
     const categoryFilter = document.getElementById('filterCategory').value;
     const searchQuery = document.getElementById('searchInput').value.toLowerCase();
     const datePreset = window._currentDatePreset || 'all';
+    const amountMin = parseInt(document.getElementById('filterAmountMin').value) || 0;
+    const amountMax = parseInt(document.getElementById('filterAmountMax').value) || Infinity;
 
     // 날짜 범위
     let startDate = null;
@@ -207,11 +264,16 @@ function filterTransactions() {
         if (startDate && t.date < startDate) return false;
         if (endDate && t.date > endDate) return false;
 
+        // 금액 범위 필터
+        if (t.amount < amountMin) return false;
+        if (t.amount > amountMax) return false;
+
         // 검색어 필터
         if (searchQuery) {
             const titleMatch = (t.title || '').toLowerCase().includes(searchQuery);
             const descMatch = (t.description || '').toLowerCase().includes(searchQuery);
-            if (!titleMatch && !descMatch) return false;
+            const categoryMatch = (t.category || '').toLowerCase().includes(searchQuery);
+            if (!titleMatch && !descMatch && !categoryMatch) return false;
         }
 
         return true;
