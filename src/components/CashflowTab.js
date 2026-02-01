@@ -49,6 +49,37 @@ export function createCashflowTab() {
                 </div>
             </div>
 
+            <!-- 수입 vs 지출 게이지 바 -->
+            <div class="income-expense-gauge">
+                <div class="gauge-header">
+                    <span class="gauge-title">수입 대비 지출</span>
+                    <span class="gauge-rate" id="savingsRate">저축률 0%</span>
+                </div>
+                <div class="gauge-bar-container">
+                    <div class="gauge-bar">
+                        <div class="gauge-fill expense-fill" id="expenseGaugeFill" style="width: 0%"></div>
+                    </div>
+                    <div class="gauge-labels">
+                        <span>0%</span>
+                        <span class="gauge-warning-mark">80%</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+                <div class="gauge-legend">
+                    <span class="legend-item safe">● 안전</span>
+                    <span class="legend-item warning">● 주의</span>
+                    <span class="legend-item danger">● 위험</span>
+                </div>
+            </div>
+
+            <!-- 카테고리별 지출 분석 -->
+            <div class="category-analysis-section">
+                <h3>📊 카테고리별 지출</h3>
+                <div class="category-bars" id="categoryBars">
+                    <!-- 동적으로 채워짐 -->
+                </div>
+            </div>
+
             <!-- Sankey Diagram -->
             <div class="sankey-section">
                 <h3>🔄 돈의 흐름</h3>
@@ -186,6 +217,123 @@ function updateSummary() {
     const netEl = document.getElementById('netCashflowValue');
     netEl.textContent = (netCashflow >= 0 ? '+' : '') + formatAmount(netCashflow);
     netEl.className = `summary-value ${netCashflow >= 0 ? 'positive' : 'negative'}`;
+
+    // 저축률 게이지 업데이트
+    updateSavingsGauge(totalIncome, totalExpense);
+
+    // 카테고리별 분석 업데이트
+    updateCategoryAnalysis();
+}
+
+// 저축률 게이지 바 업데이트
+function updateSavingsGauge(totalIncome, totalExpense) {
+    const expenseRatio = totalIncome > 0 ? (totalExpense / totalIncome) * 100 : 0;
+    const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome) * 100 : 0;
+
+    const gaugeFill = document.getElementById('expenseGaugeFill');
+    const savingsRateEl = document.getElementById('savingsRate');
+
+    if (gaugeFill) {
+        gaugeFill.style.width = `${Math.min(expenseRatio, 100)}%`;
+
+        // 색상 변경
+        gaugeFill.className = 'gauge-fill expense-fill';
+        if (expenseRatio > 100) {
+            gaugeFill.classList.add('danger');
+        } else if (expenseRatio > 80) {
+            gaugeFill.classList.add('warning');
+        } else {
+            gaugeFill.classList.add('safe');
+        }
+    }
+
+    if (savingsRateEl) {
+        savingsRateEl.textContent = `저축률 ${savingsRate.toFixed(1)}%`;
+        savingsRateEl.className = `gauge-rate ${savingsRate >= 20 ? 'good' : savingsRate >= 0 ? 'normal' : 'bad'}`;
+    }
+}
+
+// 카테고리별 지출 분석
+function updateCategoryAnalysis() {
+    const container = document.getElementById('categoryBars');
+    if (!container) return;
+
+    // 지출 카테고리별 집계
+    const expenseByCategory = {};
+    transactions.filter(t => t.type === 'expense').forEach(t => {
+        expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + t.amount;
+    });
+
+    const totalExpense = Object.values(expenseByCategory).reduce((sum, v) => sum + v, 0);
+
+    if (totalExpense === 0) {
+        container.innerHTML = '<div class="empty-state">지출 데이터가 없습니다</div>';
+        return;
+    }
+
+    // 금액 기준 정렬
+    const sorted = Object.entries(expenseByCategory)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8); // 상위 8개
+
+    const maxAmount = sorted[0]?.[1] || 1;
+
+    // 카테고리 색상 매핑
+    const categoryColors = {
+        food: '#ef4444',
+        transport: '#f97316',
+        housing: '#8b5cf6',
+        telecom: '#06b6d4',
+        health: '#10b981',
+        culture: '#ec4899',
+        shopping: '#f59e0b',
+        education: '#3b82f6',
+        insurance: '#6366f1',
+        investment: '#22c55e',
+        debt_payment: '#dc2626',
+        family: '#a855f7',
+        personal: '#14b8a6',
+        savings: '#84cc16',
+        etc: '#6b7280'
+    };
+
+    const categoryNames = {
+        food: '식비',
+        transport: '교통비',
+        housing: '주거비',
+        telecom: '통신비',
+        health: '의료/건강',
+        culture: '문화/여가',
+        shopping: '쇼핑',
+        education: '교육',
+        insurance: '보험',
+        investment: '투자',
+        debt_payment: '부채상환',
+        family: '가족',
+        personal: '개인',
+        savings: '저축',
+        tax: '세금',
+        etc: '기타'
+    };
+
+    container.innerHTML = sorted.map(([category, amount]) => {
+        const percent = (amount / totalExpense) * 100;
+        const barWidth = (amount / maxAmount) * 100;
+        const color = categoryColors[category] || '#6b7280';
+        const name = categoryNames[category] || category;
+
+        return `
+            <div class="category-bar-item">
+                <div class="category-bar-header">
+                    <span class="category-name">${name}</span>
+                    <span class="category-amount">${formatAmount(amount)} <span class="category-percent">(${percent.toFixed(1)}%)</span></span>
+                </div>
+                <div class="category-bar-track">
+                    <div class="category-bar-fill" style="width: ${barWidth}%; background: ${color}"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function updateSankeyChart() {
