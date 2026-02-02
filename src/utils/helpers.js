@@ -544,31 +544,6 @@ export function createEmptyState({ icon = '📭', title, description = '', actio
 // 토스트 알림
 // ============================================
 
-/**
- * 토스트 메시지 표시
- * @param {string} message - 메시지
- * @param {string} type - 'success' | 'error' | 'warning'
- */
-export function showToast(message, type = 'success') {
-    // 토스트 컨테이너 찾기 또는 생성
-    let container = document.getElementById('toastContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toastContainer';
-        container.className = 'toast-container';
-        document.body.appendChild(container);
-    }
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : '⚠';
-    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
-    container.appendChild(toast);
-
-    // 3초 후 자동 제거
-    setTimeout(() => toast.remove(), 3000);
-}
-
 // 자주 쓰는 빈 상태 프리셋
 export const EMPTY_STATES = {
     assets: {
