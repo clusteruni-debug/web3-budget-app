@@ -281,6 +281,57 @@
             display: block;
         }
 
+        /* ============================================
+           서브탭 네비게이션 (거래 탭 내부)
+           ============================================ */
+        .transactions-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+        }
+
+        .subtab-navigation {
+            display: flex;
+            gap: var(--space-2);
+            padding: var(--space-2);
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            margin-bottom: var(--space-4);
+        }
+
+        .subtab-btn {
+            flex: 1;
+            padding: var(--space-3) var(--space-4);
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            color: var(--gray-300);
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+        }
+
+        .subtab-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .subtab-btn.active {
+            color: white;
+            background: var(--primary);
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .subtab-content {
+            min-height: 200px;
+        }
+
         /* 중복 제거됨 - subtitle은 위에 정의됨 */
 
         .subtitle-old {

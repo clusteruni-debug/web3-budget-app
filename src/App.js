@@ -187,9 +187,9 @@ class App {
                 break;
 
             case 'cashflow':
-                appContent.innerHTML = createCashflowTab();
-                await initCashflowTab();
-                break;
+                // 현금흐름은 이제 거래 탭의 서브탭으로 통합됨
+                this.switchTab('transactions', 'cashflow');
+                return;
 
             case 'assets':
                 appContent.innerHTML = createAssetManagementTab();
@@ -197,9 +197,18 @@ class App {
                 break;
 
             case 'transactions':
-                appContent.innerHTML = createDashboardTab();
+                // subtab: 'input' (기본) | 'cashflow'
+                const transactionSubtab = subtab || 'input';
+                appContent.innerHTML = createDashboardTab(transactionSubtab);
                 await initDashboardTab(() => {
                     // 홈 탭 새로고침이 필요할 수 있음
+                }, transactionSubtab);
+                // 거래 탭 버튼 활성화 (현금흐름에서 리다이렉트된 경우)
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.tab === 'transactions') {
+                        btn.classList.add('active');
+                    }
                 });
                 break;
 

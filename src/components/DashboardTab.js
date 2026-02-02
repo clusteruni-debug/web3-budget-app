@@ -10,14 +10,38 @@ import {
 } from '../services/analytics.js';
 import { formatAmount, formatDate, getToday } from '../utils/helpers.js';
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../utils/constants.js';
+import { createCashflowTab, initCashflowTab } from './CashflowTab.js';
 
 let transactions = [];
 let currentDateFilter = 'all';
 let editingTransactionId = null;
 let incomePieChart = null;
 let expensePieChart = null;
+let currentSubTab = 'input'; // 'input' | 'cashflow'
 
-export function createDashboardTab() {
+export function createDashboardTab(subtab = 'input') {
+    currentSubTab = subtab;
+    return `
+        <div class="transactions-container">
+            <!-- 서브탭 네비게이션 -->
+            <div class="subtab-navigation">
+                <button class="subtab-btn ${subtab === 'input' ? 'active' : ''}" data-subtab="input">
+                    📝 거래 입력
+                </button>
+                <button class="subtab-btn ${subtab === 'cashflow' ? 'active' : ''}" data-subtab="cashflow">
+                    💹 현금흐름
+                </button>
+            </div>
+
+            <!-- 서브탭 컨텐츠 -->
+            <div class="subtab-content" id="transactionsSubtabContent">
+                ${subtab === 'cashflow' ? createCashflowTab() : createInputTab()}
+            </div>
+        </div>
+    `;
+}
+
+function createInputTab() {
     return `
         <div class="date-filter">
             <label>기간:</label>
@@ -148,7 +172,44 @@ export function createDashboardTab() {
     `;
 }
 
-export async function initDashboardTab(refreshCallback) {
+export async function initDashboardTab(refreshCallback, subtab = 'input') {
+    // 서브탭 전환 이벤트
+    document.querySelectorAll('.subtab-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const newSubtab = btn.dataset.subtab;
+            if (newSubtab === currentSubTab) return;
+
+            // 버튼 활성화 상태 변경
+            document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // 서브탭 컨텐츠 교체
+            const contentContainer = document.getElementById('transactionsSubtabContent');
+            if (contentContainer) {
+                currentSubTab = newSubtab;
+                if (newSubtab === 'cashflow') {
+                    contentContainer.innerHTML = createCashflowTab();
+                    await initCashflowTab();
+                } else {
+                    contentContainer.innerHTML = createInputTab();
+                    await initInputTab(refreshCallback);
+                }
+            }
+        });
+    });
+
+    // 현재 서브탭 초기화
+    if (subtab === 'cashflow' || currentSubTab === 'cashflow') {
+        await initCashflowTab();
+    } else {
+        await initInputTab(refreshCallback);
+    }
+
+    // 저장된 refreshCallback
+    window._dashboardRefreshCallback = refreshCallback;
+}
+
+async function initInputTab(refreshCallback) {
     // 데이터 로드
     await loadDashboardData();
 
@@ -163,16 +224,22 @@ export async function initDashboardTab(refreshCallback) {
     });
 
     // 유형 변경 시 카테고리 필터링
-    document.getElementById('type').addEventListener('change', updateCategoryOptions);
+    const typeSelect = document.getElementById('type');
+    if (typeSelect) {
+        typeSelect.addEventListener('change', updateCategoryOptions);
+    }
 
     // 거래 추가/수정 폼 제출
-    document.getElementById('submitBtn').addEventListener('click', handleSubmit);
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', handleSubmit);
+    }
 
     // 수정 취소
-    document.getElementById('cancelEditBtn').addEventListener('click', cancelEdit);
-
-    // 저장된 refreshCallback
-    window._dashboardRefreshCallback = refreshCallback;
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', cancelEdit);
+    }
 }
 
 async function loadDashboardData() {

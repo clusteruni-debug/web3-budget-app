@@ -597,3 +597,363 @@ export const EMPTY_STATES = {
         description: '매월 반복되는 항목을 등록해보세요'
     }
 };
+
+// ============================================
+// 자연어 거래 입력 파싱
+// ============================================
+
+/**
+ * 키워드 → 분류 매핑
+ * 자주 쓰는 키워드를 기반으로 자동 분류
+ */
+const KEYWORD_CATEGORY_MAP = {
+    // 식비
+    '커피': '식비', '카페': '식비', '스타벅스': '식비', '이디야': '식비',
+    '점심': '식비', '저녁': '식비', '아침': '식비', '식사': '식비',
+    '배달': '식비', '배민': '식비', '쿠팡이츠': '식비', '요기요': '식비',
+    '편의점': '식비', 'CU': '식비', 'GS25': '식비', '세븐': '식비',
+    '치킨': '식비', '피자': '식비', '햄버거': '식비', '맥도날드': '식비',
+    '라면': '식비', '김밥': '식비', '떡볶이': '식비', '분식': '식비',
+    '마트': '식비', '장보기': '식비', '식료품': '식비',
+
+    // 교통비
+    '택시': '교통비', '카카오택시': '교통비', '타다': '교통비',
+    '버스': '교통비', '지하철': '교통비', '전철': '교통비',
+    '기차': '교통비', 'KTX': '교통비', 'SRT': '교통비',
+    '주유': '교통비', '기름': '교통비', '주차': '교통비',
+    '톨비': '교통비', '하이패스': '교통비',
+    '따릉이': '교통비', '킥보드': '교통비',
+
+    // 쇼핑
+    '쇼핑': '쇼핑', '옷': '쇼핑', '신발': '쇼핑', '가방': '쇼핑',
+    '쿠팡': '쇼핑', '네이버쇼핑': '쇼핑', '11번가': '쇼핑',
+    '무신사': '쇼핑', '올리브영': '쇼핑', '다이소': '쇼핑',
+
+    // 문화/여가
+    '영화': '문화/여가', 'CGV': '문화/여가', '메가박스': '문화/여가', '롯데시네마': '문화/여가',
+    '넷플릭스': '문화/여가', '유튜브': '문화/여가', '왓챠': '문화/여가', '디즈니': '문화/여가',
+    '게임': '문화/여가', '스팀': '문화/여가', '닌텐도': '문화/여가',
+    '헬스': '문화/여가', '피트니스': '문화/여가', '수영': '문화/여가',
+    '여행': '문화/여가', '호텔': '문화/여가', '숙소': '문화/여가', '에어비앤비': '문화/여가',
+    '콘서트': '문화/여가', '공연': '문화/여가', '전시': '문화/여가',
+    '책': '문화/여가', '교보문고': '문화/여가', '알라딘': '문화/여가',
+
+    // 의료/건강
+    '병원': '의료/건강', '약국': '의료/건강', '약': '의료/건강',
+    '치과': '의료/건강', '안과': '의료/건강', '피부과': '의료/건강',
+    '한의원': '의료/건강', '정형외과': '의료/건강',
+
+    // 통신비
+    '휴대폰': '통신비', '핸드폰': '통신비', '통신': '통신비',
+    'KT': '통신비', 'SKT': '통신비', 'LG': '통신비',
+    '인터넷': '통신비', '와이파이': '통신비',
+
+    // 주거/관리비
+    '월세': '주거비', '관리비': '주거비', '전기': '주거비',
+    '가스': '주거비', '수도': '주거비', '난방': '주거비',
+
+    // 교육
+    '학원': '교육', '강의': '교육', '수업': '교육', '과외': '교육',
+    '인강': '교육', '클래스101': '교육', '유데미': '교육',
+
+    // 보험
+    '보험': '보험', '실비': '보험', '자동차보험': '보험',
+
+    // 경조사
+    '축의금': '경조사', '부조금': '경조사', '선물': '경조사', '생일': '경조사',
+
+    // 반려동물
+    '강아지': '반려동물', '고양이': '반려동물', '사료': '반려동물', '펫': '반려동물',
+
+    // 수입 관련
+    '월급': '급여', '급여': '급여', '보너스': '급여', '상여금': '급여',
+    '용돈': '용돈', '이자': '이자수입', '배당': '배당수입',
+    '환급': '환급', '리워드': '리워드', '캐시백': '리워드',
+    '판매': '판매수입', '중고': '판매수입', '당근': '판매수입'
+};
+
+/**
+ * 자연어 텍스트에서 거래 정보 파싱
+ * @param {string} text - 입력 텍스트 (예: "커피 4500원", "점심 12000")
+ * @returns {Object} { amount, category, title, type }
+ */
+export function parseTransactionText(text) {
+    if (!text || typeof text !== 'string') {
+        return { amount: 0, category: null, title: '', type: 'expense' };
+    }
+
+    const trimmed = text.trim();
+
+    // 금액 추출 (다양한 형식 지원)
+    // "4500원", "4,500원", "4500", "45000"
+    const amountMatch = trimmed.match(/([0-9,]+)\s*원?/);
+    let amount = 0;
+    if (amountMatch) {
+        amount = parseInt(amountMatch[1].replace(/,/g, ''), 10) || 0;
+    }
+
+    // 금액 부분 제거하고 나머지를 제목으로
+    let title = trimmed
+        .replace(/[0-9,]+\s*원?/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    // 분류 추출 (키워드 매칭)
+    let category = null;
+    let type = 'expense'; // 기본값: 지출
+
+    const lowerTitle = title.toLowerCase();
+
+    for (const [keyword, cat] of Object.entries(KEYWORD_CATEGORY_MAP)) {
+        if (lowerTitle.includes(keyword.toLowerCase())) {
+            category = cat;
+
+            // 수입 관련 분류인지 확인
+            if (['급여', '용돈', '이자수입', '배당수입', '환급', '리워드', '판매수입'].includes(cat)) {
+                type = 'income';
+            }
+            break;
+        }
+    }
+
+    return { amount, category, title, type };
+}
+
+/**
+ * 파싱 결과 미리보기 텍스트 생성
+ * @param {Object} parsed - parseTransactionText 결과
+ * @returns {string} 미리보기 텍스트
+ */
+export function formatParsedTransaction(parsed) {
+    const parts = [];
+
+    if (parsed.title) {
+        parts.push(parsed.title);
+    }
+
+    if (parsed.amount > 0) {
+        parts.push(formatAmountShort(parsed.amount));
+    }
+
+    if (parsed.category) {
+        parts.push(`(${parsed.category})`);
+    }
+
+    return parts.join(' ') || '입력해주세요';
+}
+
+// ============================================
+// 브라우저 Push 알림
+// ============================================
+
+/**
+ * 알림 권한 상태 확인
+ * @returns {'granted' | 'denied' | 'default' | 'unsupported'}
+ */
+export function getNotificationPermission() {
+    if (!('Notification' in window)) {
+        return 'unsupported';
+    }
+    return Notification.permission;
+}
+
+/**
+ * 알림 권한 요청
+ * @returns {Promise<boolean>} 권한 허용 여부
+ */
+export async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        console.warn('이 브라우저는 알림을 지원하지 않습니다.');
+        return false;
+    }
+
+    if (Notification.permission === 'granted') {
+        return true;
+    }
+
+    if (Notification.permission === 'denied') {
+        showToast('알림이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.', 'warning');
+        return false;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            showToast('알림이 활성화되었습니다!', 'success');
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('알림 권한 요청 실패:', error);
+        return false;
+    }
+}
+
+/**
+ * 브라우저 Push 알림 표시
+ * @param {string} title - 알림 제목
+ * @param {Object} options - 알림 옵션
+ * @param {string} options.body - 알림 본문
+ * @param {string} options.icon - 아이콘 URL
+ * @param {string} options.tag - 알림 태그 (중복 방지)
+ * @param {Function} options.onClick - 클릭 시 콜백
+ */
+export function showPushNotification(title, options = {}) {
+    if (!('Notification' in window)) {
+        console.warn('이 브라우저는 알림을 지원하지 않습니다.');
+        // 대체: 토스트 메시지
+        showToast(`${title}: ${options.body || ''}`, 'info');
+        return;
+    }
+
+    if (Notification.permission !== 'granted') {
+        // 대체: 토스트 메시지
+        showToast(`${title}: ${options.body || ''}`, 'info');
+        return;
+    }
+
+    const notification = new Notification(title, {
+        body: options.body || '',
+        icon: options.icon || '/favicon.ico',
+        tag: options.tag || 'budget-app',
+        badge: '/favicon.ico',
+        vibrate: [200, 100, 200],
+        requireInteraction: false,
+        ...options
+    });
+
+    // 클릭 시 창 포커스
+    notification.onclick = () => {
+        window.focus();
+        notification.close();
+        if (options.onClick) {
+            options.onClick();
+        }
+    };
+
+    // 5초 후 자동 닫기
+    setTimeout(() => {
+        notification.close();
+    }, 5000);
+
+    return notification;
+}
+
+// ============================================
+// 알림 유형별 함수
+// ============================================
+
+/**
+ * 예산 초과 알림
+ * @param {string} category - 분류명
+ * @param {number} spent - 사용 금액
+ * @param {number} budget - 예산 금액
+ * @param {number} percentage - 사용 비율
+ */
+export function notifyBudgetExceeded(category, spent, budget, percentage) {
+    const isExceeded = percentage >= 100;
+    const title = isExceeded ? '⚠️ 예산 초과!' : '⚠️ 예산 경고';
+    const body = isExceeded
+        ? `${category} 예산을 초과했습니다. (${formatAmountShort(spent)} / ${formatAmountShort(budget)})`
+        : `${category} 예산의 ${percentage}%를 사용했습니다.`;
+
+    showPushNotification(title, {
+        body,
+        tag: `budget-${category}`,
+        icon: '/favicon.ico'
+    });
+}
+
+/**
+ * 결제일 알림
+ * @param {string} name - 항목명
+ * @param {number} amount - 금액
+ * @param {number} daysLeft - 남은 일수
+ */
+export function notifyPaymentDue(name, amount, daysLeft) {
+    const title = daysLeft === 0 ? '💳 오늘 결제일!' : `💳 결제일 D-${daysLeft}`;
+    const body = `${name}: ${formatAmountShort(amount)}`;
+
+    showPushNotification(title, {
+        body,
+        tag: `payment-${name}`,
+        icon: '/favicon.ico'
+    });
+}
+
+/**
+ * 스테이킹 언락 알림
+ * @param {string} tokenName - 토큰명
+ * @param {number} amount - 수량
+ * @param {number} daysLeft - 남은 일수
+ */
+export function notifyStakingUnlock(tokenName, amount, daysLeft) {
+    const title = daysLeft === 0 ? '🔓 스테이킹 언락!' : `🔓 언락 D-${daysLeft}`;
+    const body = `${tokenName}: ${amount}개 언락 예정`;
+
+    showPushNotification(title, {
+        body,
+        tag: `staking-${tokenName}`,
+        icon: '/favicon.ico'
+    });
+}
+
+/**
+ * 에어드랍 클레임 알림
+ * @param {string} projectName - 프로젝트명
+ */
+export function notifyAirdropClaimable(projectName) {
+    showPushNotification('🎁 에어드랍 클레임 가능!', {
+        body: `${projectName} 에어드랍을 클레임할 수 있습니다.`,
+        tag: `airdrop-${projectName}`,
+        icon: '/favicon.ico'
+    });
+}
+
+/**
+ * 목표 달성 알림
+ * @param {string} goalName - 목표명
+ * @param {number} targetAmount - 목표 금액
+ */
+export function notifyGoalAchieved(goalName, targetAmount) {
+    showPushNotification('🎉 목표 달성!', {
+        body: `"${goalName}" 목표(${formatAmountShort(targetAmount)})를 달성했습니다!`,
+        tag: `goal-${goalName}`,
+        icon: '/favicon.ico'
+    });
+}
+
+/**
+ * 알림 설정 저장
+ * @param {Object} settings - 알림 설정
+ */
+export function saveNotificationSettings(settings) {
+    localStorage.setItem('notificationSettings', JSON.stringify(settings));
+}
+
+/**
+ * 알림 설정 불러오기
+ * @returns {Object} 알림 설정
+ */
+export function loadNotificationSettings() {
+    const defaultSettings = {
+        enabled: false,
+        budgetWarning: true,    // 예산 80% 경고
+        budgetExceeded: true,   // 예산 초과 알림
+        paymentDue: true,       // 결제일 D-3 알림
+        stakingUnlock: true,    // 스테이킹 언락 D-7 알림
+        airdropClaimable: true, // 에어드랍 클레임 알림
+        goalAchieved: true      // 목표 달성 알림
+    };
+
+    try {
+        const saved = localStorage.getItem('notificationSettings');
+        if (saved) {
+            return { ...defaultSettings, ...JSON.parse(saved) };
+        }
+    } catch (e) {
+        console.error('알림 설정 로드 실패:', e);
+    }
+
+    return defaultSettings;
+}

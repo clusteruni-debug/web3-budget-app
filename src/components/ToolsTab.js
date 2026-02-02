@@ -1,6 +1,6 @@
 // 도구 탭: 예산, 캘린더, 고정지출, 소비분석, 대출계산기, 투자손익, 설정
 import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions, getBudgets, createBudget, updateBudget, deleteBudget, getBudgetVsActual, getSubscriptions, createSubscription, updateSubscription, deleteSubscription, getGoals, createGoal, updateGoal, deleteGoal, getFiatFlows, createFiatFlow, deleteFiatFlow, calculateFiatProfit } from '../services/database.js';
-import { formatAmount, formatAmountShort, createEmptyState, EMPTY_STATES } from '../utils/helpers.js';
+import { formatAmount, formatAmountShort, createEmptyState, EMPTY_STATES, loadNotificationSettings, saveNotificationSettings, requestNotificationPermission, getNotificationPermission } from '../utils/helpers.js';
 import { updatePassword } from '../services/auth.js';
 import { getCurrentUser } from '../services/supabase.js';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants.js';
@@ -2641,6 +2641,87 @@ function renderAccountSettings() {
             </div>
 
             <div class="password-result" id="passwordResult"></div>
+
+            <div class="notification-section">
+                <h4>🔔 알림 설정</h4>
+                <div class="notification-settings-card">
+                    <div class="setting-row main-toggle">
+                        <div class="setting-info">
+                            <span class="setting-label">브라우저 알림</span>
+                            <span class="setting-description">중요한 알림을 브라우저로 받습니다</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notificationEnabled">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-group" id="notificationOptions">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">예산 경고</span>
+                                <span class="setting-description">예산 80% 이상 사용 시</span>
+                            </div>
+                            <label class="toggle-switch small">
+                                <input type="checkbox" id="budgetWarning" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">예산 초과</span>
+                                <span class="setting-description">예산 100% 초과 시</span>
+                            </div>
+                            <label class="toggle-switch small">
+                                <input type="checkbox" id="budgetExceeded" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">결제일 알림</span>
+                                <span class="setting-description">결제일 D-3 알림</span>
+                            </div>
+                            <label class="toggle-switch small">
+                                <input type="checkbox" id="paymentDue" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">스테이킹 언락</span>
+                                <span class="setting-description">언락 D-7 알림</span>
+                            </div>
+                            <label class="toggle-switch small">
+                                <input type="checkbox" id="stakingUnlock" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">에어드랍 클레임</span>
+                                <span class="setting-description">클레임 가능 시 알림</span>
+                            </div>
+                            <label class="toggle-switch small">
+                                <input type="checkbox" id="airdropClaimable" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">목표 달성</span>
+                                <span class="setting-description">저축 목표 달성 시</span>
+                            </div>
+                            <label class="toggle-switch small">
+                                <input type="checkbox" id="goalAchieved" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="notification-status" id="notificationStatus"></div>
+                </div>
+            </div>
         </div>
     `;
 }
@@ -2660,6 +2741,71 @@ async function initAccountSettings() {
         if (e.key === 'Enter') {
             handlePasswordChange();
         }
+    });
+
+    // 알림 설정 초기화
+    initNotificationSettings();
+}
+
+/**
+ * 알림 설정 초기화
+ */
+function initNotificationSettings() {
+    const settings = loadNotificationSettings();
+    const statusEl = document.getElementById('notificationStatus');
+    const optionsEl = document.getElementById('notificationOptions');
+
+    // 알림 권한 상태 표시
+    const permission = getNotificationPermission();
+    if (permission === 'unsupported') {
+        statusEl.innerHTML = '<span class="status-warning">이 브라우저는 알림을 지원하지 않습니다.</span>';
+    } else if (permission === 'denied') {
+        statusEl.innerHTML = '<span class="status-error">알림이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.</span>';
+    }
+
+    // 체크박스 상태 설정
+    document.getElementById('notificationEnabled').checked = settings.enabled;
+    document.getElementById('budgetWarning').checked = settings.budgetWarning;
+    document.getElementById('budgetExceeded').checked = settings.budgetExceeded;
+    document.getElementById('paymentDue').checked = settings.paymentDue;
+    document.getElementById('stakingUnlock').checked = settings.stakingUnlock;
+    document.getElementById('airdropClaimable').checked = settings.airdropClaimable;
+    document.getElementById('goalAchieved').checked = settings.goalAchieved;
+
+    // 알림 비활성화 시 옵션 숨김
+    optionsEl.style.display = settings.enabled ? 'block' : 'none';
+
+    // 메인 토글 이벤트
+    document.getElementById('notificationEnabled').addEventListener('change', async (e) => {
+        const enabled = e.target.checked;
+
+        if (enabled) {
+            // 알림 권한 요청
+            const granted = await requestNotificationPermission();
+            if (!granted) {
+                e.target.checked = false;
+                return;
+            }
+        }
+
+        settings.enabled = enabled;
+        saveNotificationSettings(settings);
+        optionsEl.style.display = enabled ? 'block' : 'none';
+
+        if (enabled) {
+            statusEl.innerHTML = '<span class="status-success">알림이 활성화되었습니다!</span>';
+        } else {
+            statusEl.innerHTML = '';
+        }
+    });
+
+    // 개별 옵션 이벤트
+    const optionIds = ['budgetWarning', 'budgetExceeded', 'paymentDue', 'stakingUnlock', 'airdropClaimable', 'goalAchieved'];
+    optionIds.forEach(id => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            settings[id] = e.target.checked;
+            saveNotificationSettings(settings);
+        });
     });
 }
 

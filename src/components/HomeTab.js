@@ -1,7 +1,7 @@
 // V2: 통합 자산 관리 홈 대시보드
 import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview, saveNetWorthSnapshot, getNetWorthHistory, getBudgetVsActual, getRecurringItems, createTransaction } from '../services/database.js';
 import { calculateTotalIncome, calculateTotalExpense } from '../services/analytics.js';
-import { formatAmount, formatAmountShort, exportAssetsToCSV, exportDebtsToCSV, exportTransactionsToCSV, exportNetWorthHistoryToCSV, exportAllDataToJSON, showToast } from '../utils/helpers.js';
+import { formatAmount, formatAmountShort, exportAssetsToCSV, exportDebtsToCSV, exportTransactionsToCSV, exportNetWorthHistoryToCSV, exportAllDataToJSON, showToast, parseTransactionText, loadNotificationSettings, notifyBudgetExceeded, notifyPaymentDue, notifyStakingUnlock, notifyAirdropClaimable, getNotificationPermission } from '../utils/helpers.js';
 import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, GOALS, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants.js';
 
 let netWorthData = null;
@@ -129,6 +129,17 @@ export function createHomeTab() {
                         <button class="btn-close-modal" id="quickAddClose">&times;</button>
                     </div>
 
+                    <!-- 스마트 입력 필드 -->
+                    <div class="smart-input-group">
+                        <label>✨ 스마트 입력</label>
+                        <input type="text" id="smartInput" placeholder="예: 커피 4500원, 점심 12000">
+                        <div class="smart-input-hint" id="smartInputHint">금액과 내용을 함께 입력하면 자동으로 분류합니다</div>
+                    </div>
+
+                    <div class="smart-input-divider">
+                        <span>또는 직접 입력</span>
+                    </div>
+
                     <!-- 거래 유형 선택 -->
                     <div class="quick-add-type-tabs">
                         <button class="type-tab active" data-type="expense">💸 지출</button>
@@ -140,7 +151,7 @@ export function createHomeTab() {
                         <label>금액</label>
                         <div class="amount-input-wrapper">
                             <span class="currency-symbol">₩</span>
-                            <input type="number" id="quickAddAmount" placeholder="0" autofocus>
+                            <input type="number" id="quickAddAmount" placeholder="0">
                         </div>
                     </div>
 
@@ -159,7 +170,7 @@ export function createHomeTab() {
                     <!-- 설명 입력 -->
                     <div class="description-input-group">
                         <label>설명 (선택)</label>
-                        <input type="text" id="quickAddDescription" placeholder="예: 점심 식사">
+                        <input type="text" id="quickAddDescription" placeholder="예: 스타벅스 아메리카노">
                     </div>
 
                     <!-- 저장 버튼 -->
@@ -238,6 +249,63 @@ export async function initHomeTab(switchTabCallback) {
         }
     });
 
+    // 스마트 입력 - 자연어 파싱
+    const smartInput = document.getElementById('smartInput');
+    const smartInputHint = document.getElementById('smartInputHint');
+
+    smartInput?.addEventListener('input', (e) => {
+        const text = e.target.value;
+        if (!text.trim()) {
+            smartInputHint.textContent = '금액과 내용을 함께 입력하면 자동으로 분류합니다';
+            smartInputHint.classList.remove('parsed');
+            return;
+        }
+
+        const parsed = parseTransactionText(text);
+
+        // 파싱 결과 미리보기
+        const parts = [];
+        if (parsed.title) parts.push(parsed.title);
+        if (parsed.amount > 0) parts.push(formatAmountShort(parsed.amount));
+        if (parsed.category) parts.push(`→ ${parsed.category}`);
+        if (parsed.type === 'income') parts.push('(수입)');
+
+        if (parts.length > 0) {
+            smartInputHint.textContent = parts.join(' ');
+            smartInputHint.classList.add('parsed');
+        } else {
+            smartInputHint.textContent = '금액과 내용을 함께 입력하면 자동으로 분류합니다';
+            smartInputHint.classList.remove('parsed');
+        }
+
+        // 자동으로 필드 채우기
+        if (parsed.amount > 0) {
+            document.getElementById('quickAddAmount').value = parsed.amount;
+        }
+        if (parsed.title) {
+            document.getElementById('quickAddDescription').value = parsed.title;
+        }
+        if (parsed.type) {
+            document.querySelectorAll('.type-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === parsed.type);
+            });
+            updateQuickAddCategories(parsed.type);
+        }
+        if (parsed.category) {
+            // 분류 자동 선택
+            setTimeout(() => {
+                selectCategoryByName(parsed.category);
+            }, 50);
+        }
+    });
+
+    // Enter 키로 저장
+    smartInput?.addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter') {
+            await handleQuickAddSubmit();
+        }
+    });
+
     // 빠른 거래 추가 - 저장
     document.getElementById('quickAddSubmit')?.addEventListener('click', async () => {
         await handleQuickAddSubmit();
@@ -248,6 +316,9 @@ export async function initHomeTab(switchTabCallback) {
 
     // 고정 수입/지출 요약 표시
     updateFixedSummary();
+
+    // 알림 체크 (비동기)
+    checkAndSendNotifications();
 }
 
 // ============================================
@@ -260,7 +331,9 @@ function openQuickAddModal() {
     const modal = document.getElementById('quickAddModal');
     if (modal) {
         modal.style.display = 'flex';
-        document.getElementById('quickAddAmount')?.focus();
+        // 스마트 입력 필드에 포커스
+        const smartInput = document.getElementById('smartInput');
+        smartInput?.focus();
         updateQuickAddCategories('expense');
     }
 }
@@ -270,8 +343,15 @@ function closeQuickAddModal() {
     if (modal) {
         modal.style.display = 'none';
         // 폼 초기화
+        const smartInput = document.getElementById('smartInput');
+        const smartInputHint = document.getElementById('smartInputHint');
         const amountInput = document.getElementById('quickAddAmount');
         const descInput = document.getElementById('quickAddDescription');
+        if (smartInput) smartInput.value = '';
+        if (smartInputHint) {
+            smartInputHint.textContent = '금액과 내용을 함께 입력하면 자동으로 분류합니다';
+            smartInputHint.classList.remove('parsed');
+        }
         if (amountInput) amountInput.value = '';
         if (descInput) descInput.value = '';
         selectedCategory = null;
@@ -310,6 +390,42 @@ function updateQuickAddCategories(type) {
     });
 
     selectedCategory = null;
+}
+
+/**
+ * 분류명으로 카테고리 칩 선택
+ * @param {string} categoryName - 분류명
+ */
+function selectCategoryByName(categoryName) {
+    const chips = document.querySelectorAll('.category-chip');
+    let found = false;
+
+    chips.forEach(chip => {
+        const chipCategory = chip.dataset.category;
+        // 부분 매칭 지원 (예: "식비" → "식비" 선택)
+        if (chipCategory === categoryName || chipCategory.includes(categoryName) || categoryName.includes(chipCategory)) {
+            chip.classList.add('selected');
+            selectedCategory = chipCategory;
+            found = true;
+        } else {
+            chip.classList.remove('selected');
+        }
+    });
+
+    // 전체 분류에서 찾기 (더보기 영역)
+    if (!found) {
+        const allCats = document.getElementById('allCategories');
+        if (allCats && !allCats.classList.contains('show')) {
+            allCats.classList.add('show');
+            // 다시 검색
+            chips.forEach(chip => {
+                if (chip.dataset.category === categoryName) {
+                    chip.classList.add('selected');
+                    selectedCategory = chip.dataset.category;
+                }
+            });
+        }
+    }
 }
 
 async function handleQuickAddSubmit() {
@@ -1555,5 +1671,136 @@ async function loadNetWorthTrendChart(months = 3) {
 
     } catch (error) {
         console.error('순자산 추이 차트 로드 에러:', error);
+    }
+}
+
+// ============================================
+// 알림 체크 및 발송
+// ============================================
+
+/**
+ * 앱 시작 시 알림 조건 체크 및 발송
+ */
+async function checkAndSendNotifications() {
+    const settings = loadNotificationSettings();
+
+    // 알림이 비활성화되어 있으면 중단
+    if (!settings.enabled) return;
+
+    // 알림 권한 확인
+    const permission = getNotificationPermission();
+    if (permission !== 'granted') return;
+
+    // 오늘 이미 알림을 보냈는지 확인 (하루 1회 제한)
+    const today = new Date().toDateString();
+    const lastNotificationDate = localStorage.getItem('lastNotificationDate');
+    if (lastNotificationDate === today) return;
+
+    try {
+        // 1. 예산 체크
+        if (settings.budgetWarning || settings.budgetExceeded) {
+            await checkBudgetNotifications(settings);
+        }
+
+        // 2. 결제일 체크
+        if (settings.paymentDue && recurringItems.length > 0) {
+            checkPaymentNotifications();
+        }
+
+        // 3. 스테이킹 언락 체크
+        if (settings.stakingUnlock && stakingList.length > 0) {
+            checkStakingNotifications();
+        }
+
+        // 4. 에어드랍 클레임 체크
+        if (settings.airdropClaimable && airdropList.length > 0) {
+            checkAirdropNotifications();
+        }
+
+        // 알림 발송 날짜 저장
+        localStorage.setItem('lastNotificationDate', today);
+
+    } catch (error) {
+        console.error('알림 체크 에러:', error);
+    }
+}
+
+/**
+ * 예산 알림 체크
+ */
+async function checkBudgetNotifications(settings) {
+    if (!budgetData || !budgetData.byCategory) return;
+
+    for (const item of budgetData.byCategory) {
+        if (item.budget <= 0) continue;
+
+        const percentage = Math.round((item.spent / item.budget) * 100);
+
+        if (percentage >= 100 && settings.budgetExceeded) {
+            notifyBudgetExceeded(item.category, item.spent, item.budget, percentage);
+        } else if (percentage >= 80 && percentage < 100 && settings.budgetWarning) {
+            notifyBudgetExceeded(item.category, item.spent, item.budget, percentage);
+        }
+    }
+}
+
+/**
+ * 결제일 알림 체크
+ */
+function checkPaymentNotifications() {
+    const today = new Date();
+
+    for (const item of recurringItems) {
+        if (item.type !== 'expense') continue;
+
+        // 결제일 계산 (이번 달 기준)
+        const paymentDay = item.day_of_month || 1;
+        const paymentDate = new Date(today.getFullYear(), today.getMonth(), paymentDay);
+
+        // 결제일이 지났으면 다음 달로
+        if (paymentDate < today) {
+            paymentDate.setMonth(paymentDate.getMonth() + 1);
+        }
+
+        // 남은 일수 계산
+        const diffTime = paymentDate - today;
+        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // D-3 이내면 알림
+        if (daysLeft <= 3 && daysLeft >= 0) {
+            notifyPaymentDue(item.name, item.amount, daysLeft);
+        }
+    }
+}
+
+/**
+ * 스테이킹 언락 알림 체크
+ */
+function checkStakingNotifications() {
+    const today = new Date();
+
+    for (const staking of stakingList) {
+        if (!staking.unlock_date) continue;
+
+        const unlockDate = new Date(staking.unlock_date);
+        const diffTime = unlockDate - today;
+        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // D-7 이내면 알림
+        if (daysLeft <= 7 && daysLeft >= 0) {
+            notifyStakingUnlock(staking.token_name, staking.amount, daysLeft);
+        }
+    }
+}
+
+/**
+ * 에어드랍 클레임 알림 체크
+ */
+function checkAirdropNotifications() {
+    for (const airdrop of airdropList) {
+        // 클레임 가능 상태인 에어드랍만
+        if (airdrop.status === 'claimable') {
+            notifyAirdropClaimable(airdrop.project_name);
+        }
     }
 }

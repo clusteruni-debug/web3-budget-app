@@ -2158,6 +2158,76 @@
     color: white;
 }
 
+/* 스마트 입력 필드 */
+.smart-input-group {
+    margin-bottom: var(--space-4);
+}
+
+.smart-input-group label {
+    display: block;
+    font-size: var(--text-sm);
+    color: var(--primary-light);
+    margin-bottom: var(--space-2);
+    font-weight: 600;
+}
+
+.smart-input-group input {
+    width: 100%;
+    padding: var(--space-4);
+    background: rgba(139, 92, 246, 0.1);
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-lg);
+    color: white;
+    font-size: var(--text-lg);
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.smart-input-group input:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    background: rgba(139, 92, 246, 0.15);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+}
+
+.smart-input-group input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.smart-input-hint {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+}
+
+.smart-input-hint.parsed {
+    color: var(--positive);
+    background: rgba(16, 185, 129, 0.1);
+    font-weight: 500;
+}
+
+/* 구분선 */
+.smart-input-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: var(--space-4) 0;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: var(--text-xs);
+}
+
+.smart-input-divider::before,
+.smart-input-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
 /* 거래 유형 선택 탭 */
 .quick-add-type-tabs {
     display: flex;
