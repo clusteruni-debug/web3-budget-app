@@ -25,23 +25,37 @@ async function ensureDefaultDataExists(userId) {
 // ============================================
 // 자동 로그인 (Auto Login)
 // ============================================
+// ⚠️ 보안 주의: 비밀번호는 절대 localStorage에 저장하지 않습니다.
+// Supabase 세션 관리를 통해 자동 로그인을 처리합니다.
 
 const AUTO_LOGIN_KEY = 'web3_budget_auto_login';
 
-// 자동 로그인 정보 저장
-function saveAutoLoginInfo(email, password) {
+// 🔐 자동 로그인 정보 저장 (이메일만, 비밀번호 제외)
+function saveAutoLoginInfo(email, _password) {
+    // ⚠️ 보안: 비밀번호는 절대 저장하지 않음
     const autoLoginData = {
         email,
-        password,
+        // password는 저장하지 않음 - Supabase 세션 사용
         createdAt: new Date().toISOString()
     };
     localStorage.setItem(AUTO_LOGIN_KEY, JSON.stringify(autoLoginData));
 }
 
-// 자동 로그인 정보 가져오기
+// 자동 로그인 정보 가져오기 (이메일만)
 export function getAutoLoginInfo() {
     const data = localStorage.getItem(AUTO_LOGIN_KEY);
-    return data ? JSON.parse(data) : null;
+    if (!data) return null;
+    try {
+        const parsed = JSON.parse(data);
+        // 기존에 저장된 비밀번호가 있으면 제거
+        if (parsed.password) {
+            delete parsed.password;
+            localStorage.setItem(AUTO_LOGIN_KEY, JSON.stringify(parsed));
+        }
+        return parsed;
+    } catch {
+        return null;
+    }
 }
 
 // 자동 로그인 정보 삭제
@@ -50,35 +64,23 @@ export function clearAutoLoginInfo() {
 }
 
 // 임시 계정 자동 생성 및 로그인
+// 🔐 보안 개선: Supabase 세션 기반 인증 사용
 export async function autoSignUpAndLogin() {
     try {
-        // 이미 자동 로그인 정보가 있는지 확인
-        const existingInfo = getAutoLoginInfo();
-
-        if (existingInfo) {
-            // 기존 계정으로 로그인 시도
-            const result = await signIn(existingInfo.email, existingInfo.password);
-            if (result.success) {
-                console.log('✅ 자동 로그인 성공:', existingInfo.email);
-
-                // 기존 계정이라도 기본 데이터가 없을 수 있으므로 확인 후 생성
-                const userId = result.data?.user?.id;
-                if (userId) {
-                    await ensureDefaultDataExists(userId);
-                }
-
-                return result;
-            } else {
-                console.log('⚠️ 기존 계정 로그인 실패, 새 계정 생성');
-                clearAutoLoginInfo();
-            }
+        // 1. 먼저 기존 Supabase 세션 확인 (가장 안전한 방법)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            console.log('✅ 기존 세션으로 자동 로그인');
+            await ensureDefaultDataExists(session.user.id);
+            return { success: true, data: { user: session.user, session } };
         }
 
-        // 임시 계정 생성
+        // 2. 세션이 없으면 새 임시 계정 생성
         const timestamp = Date.now();
         const randomId = Math.random().toString(36).substring(7);
         const tempEmail = `user_${timestamp}_${randomId}@web3budget.local`;
-        const tempPassword = `temp_${timestamp}_${randomId}`;
+        // 보안: 비밀번호는 충분히 길고 랜덤하게 생성
+        const tempPassword = `Temp_${timestamp}_${randomId}_${Math.random().toString(36)}`;
 
         console.log('🔄 임시 계정 생성 중...');
 
@@ -92,23 +94,23 @@ export async function autoSignUpAndLogin() {
             throw new Error(signUpResult.error);
         }
 
-        console.log('✅ 임시 계정 생성 완료:', tempEmail);
+        console.log('✅ 임시 계정 생성 완료');
 
-        // 자동 로그인 정보 저장
+        // 자동 로그인 정보 저장 (이메일만 - 비밀번호는 저장 안 함)
         saveAutoLoginInfo(tempEmail, tempPassword);
 
-        // 자동 로그인
+        // 자동 로그인 (세션이 자동으로 저장됨)
         const signInResult = await signIn(tempEmail, tempPassword);
 
         if (signInResult.success) {
-            console.log('✅ 자동 로그인 완료');
+            console.log('✅ 자동 로그인 완료 (세션 저장됨)');
         }
 
         return signInResult;
 
     } catch (error) {
-        console.error('자동 로그인 실패:', error);
-        return { success: false, error: error.message };
+        console.error('자동 로그인 실패');
+        return { success: false, error: '자동 로그인에 실패했습니다.' };
     }
 }
 
@@ -138,8 +140,9 @@ export async function signUp(email, password, userData = {}) {
 
         return { success: true, data };
     } catch (error) {
-        console.error('Sign up error:', error);
-        return { success: false, error: error.message };
+        // 🔐 보안: 상세 에러 정보 숨기기
+        console.error('회원가입 실패');
+        return { success: false, error: '회원가입에 실패했습니다.' };
     }
 }
 
@@ -155,8 +158,9 @@ export async function signIn(email, password) {
 
         return { success: true, data };
     } catch (error) {
-        console.error('Sign in error:', error);
-        return { success: false, error: error.message };
+        // 🔐 보안: 상세 에러 정보 숨기기
+        console.error('로그인 실패');
+        return { success: false, error: '로그인에 실패했습니다.' };
     }
 }
 
