@@ -1,6 +1,6 @@
 // V2: 통합 자산 관리 탭
-import { getAssets, createAsset, updateAsset, deleteAsset, getDebts, createDebt, updateDebt, deleteDebt } from '../services/database.js';
-import { formatAmount, getToday } from '../utils/helpers.js';
+import { getAssets, createAsset, updateAsset, deleteAsset, getDebts, createDebt, updateDebt, deleteDebt, getAssetDisposals, disposeAsset, deleteAssetDisposal } from '../services/database.js';
+import { formatAmount, getToday, createEmptyState, EMPTY_STATES, showToast } from '../utils/helpers.js';
 import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, CASH_TYPE_INFO, STAKING_STATUS_INFO, AIRDROP_STATUS_INFO, DEBT_TYPE_INFO } from '../utils/constants.js';
 
 // 상수 별칭
@@ -8,11 +8,27 @@ const STAKING_STATUS = STAKING_STATUS_INFO;
 const AIRDROP_STATUS = AIRDROP_STATUS_INFO;
 const DEBT_TYPES = DEBT_TYPE_INFO;
 
+// 정리 유형 정보
+const DISPOSAL_TYPES = [
+    { id: 'cash_out', icon: '💵', name: '현금화', description: '은행/거래소 출금' },
+    { id: 'convert', icon: '🔄', name: '자산 전환', description: '다른 자산으로 전환' },
+    { id: 'loss', icon: '📉', name: '손실 처리', description: '손절/폐기' },
+    { id: 'other', icon: '📦', name: '기타', description: '기타 사유' }
+];
+
+const DESTINATION_TYPES = [
+    { id: 'bank', icon: '🏦', name: '은행' },
+    { id: 'exchange', icon: '💱', name: '거래소 원화' },
+    { id: 'asset', icon: '💎', name: '다른 자산' }
+];
+
 let assets = [];
 let debts = [];
+let disposals = [];
 let currentView = 'assets'; // 'assets' | 'staking' | 'airdrop' | 'debts'
 let editingAsset = null;
 let editingDebt = null;
+let disposingAsset = null;
 
 export function createAssetManagementTab() {
     return `
@@ -43,6 +59,17 @@ export function createAssetManagementTab() {
                 <!-- 자산 목록 -->
                 <div class="asset-list" id="assetList">
                     <div class="loading">로딩 중...</div>
+                </div>
+
+                <!-- 정리 이력 섹션 -->
+                <div class="disposal-history-section">
+                    <div class="section-header-collapsible" data-toggle="disposalHistory">
+                        <h3>📜 정리 이력</h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="disposal-list" id="disposalList">
+                        <div class="empty-state">정리 이력이 없습니다</div>
+                    </div>
                 </div>
             </div>
 
@@ -160,7 +187,7 @@ export function createAssetManagementTab() {
                 <div class="modal-body">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>카테고리 *</label>
+                            <label>분류 *</label>
                             <select id="assetCategory" required>
                                 ${ASSET_CATEGORY_INFO.map(cat =>
                                     `<option value="${cat.id}">${cat.icon} ${cat.name}</option>`
@@ -274,6 +301,71 @@ export function createAssetManagementTab() {
             </div>
         </div>
 
+        <!-- 자산 정리 모달 -->
+        <div id="disposeModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>자산 정리</h3>
+                    <button class="close-btn" id="closeDisposeModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <!-- 자산 정보 표시 -->
+                    <div class="dispose-asset-info" id="disposeAssetInfo">
+                        <div class="dispose-asset-name"></div>
+                        <div class="dispose-asset-value"></div>
+                    </div>
+
+                    <!-- 정리 유형 선택 -->
+                    <div class="form-group">
+                        <label>정리 유형 *</label>
+                        <select id="disposeType">
+                            ${DISPOSAL_TYPES.map(t =>
+                                `<option value="${t.id}">${t.icon} ${t.name} - ${t.description}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+
+                    <!-- 목적지 (조건부) -->
+                    <div id="destinationFields">
+                        <div class="form-group">
+                            <label>목적지 유형</label>
+                            <select id="destinationType">
+                                ${DESTINATION_TYPES.map(t =>
+                                    `<option value="${t.id}">${t.icon} ${t.name}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>목적지 이름</label>
+                            <input type="text" id="destinationName" placeholder="예: 신한은행, 업비트, 이더리움">
+                        </div>
+                    </div>
+
+                    <!-- 금액 -->
+                    <div class="form-group">
+                        <label>정리 금액 (원) *</label>
+                        <input type="number" id="disposeAmount" placeholder="0">
+                    </div>
+
+                    <!-- 날짜 -->
+                    <div class="form-group">
+                        <label>정리 날짜</label>
+                        <input type="date" id="disposeDate">
+                    </div>
+
+                    <!-- 메모 -->
+                    <div class="form-group">
+                        <label>메모</label>
+                        <textarea id="disposeNotes" rows="2" placeholder="정리 사유나 메모"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelDisposeBtn">취소</button>
+                    <button class="btn btn-primary" id="saveDisposeBtn">정리 완료</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 부채 추가/수정 모달 -->
         <div id="debtModal" class="modal" style="display: none;">
             <div class="modal-content">
@@ -341,9 +433,10 @@ export async function initAssetManagementTab() {
 
 async function loadData() {
     try {
-        const [assetsResult, debtsResult] = await Promise.all([
+        const [assetsResult, debtsResult, disposalsResult] = await Promise.all([
             getAssets(),
-            getDebts()
+            getDebts(),
+            getAssetDisposals()
         ]);
 
         if (assetsResult.success) {
@@ -351,6 +444,9 @@ async function loadData() {
         }
         if (debtsResult.success) {
             debts = debtsResult.data || [];
+        }
+        if (disposalsResult.success) {
+            disposals = disposalsResult.data || [];
         }
 
         updateCurrentView();
@@ -412,6 +508,27 @@ function initEventListeners() {
     document.getElementById('cancelDebtBtn').addEventListener('click', closeDebtModal);
     document.getElementById('saveDebtBtn').addEventListener('click', saveDebt);
 
+    // 정리 모달
+    document.getElementById('closeDisposeModalBtn').addEventListener('click', closeDisposeModal);
+    document.getElementById('cancelDisposeBtn').addEventListener('click', closeDisposeModal);
+    document.getElementById('saveDisposeBtn').addEventListener('click', saveDisposal);
+    document.getElementById('disposeType').addEventListener('change', handleDisposeTypeChange);
+
+    // 정리 이력 섹션 토글
+    const disposalToggle = document.querySelector('[data-toggle="disposalHistory"]');
+    if (disposalToggle) {
+        disposalToggle.addEventListener('click', () => {
+            const list = document.getElementById('disposalList');
+            const arrow = disposalToggle.querySelector('.toggle-arrow');
+            if (list) {
+                list.classList.toggle('collapsed');
+                if (arrow) {
+                    arrow.textContent = list.classList.contains('collapsed') ? '▶' : '▼';
+                }
+            }
+        });
+    }
+
     // 카테고리 변경 시 필드 표시/숨김
     document.getElementById('assetCategory').addEventListener('change', handleCategoryChange);
     document.getElementById('assetSubType').addEventListener('change', handleSubTypeChange);
@@ -429,6 +546,7 @@ function updateCurrentView() {
         case 'assets':
             document.getElementById('assetsView').style.display = '';
             renderAssetList('all');
+            renderDisposalList();
             break;
         case 'staking':
             document.getElementById('stakingView').style.display = '';
@@ -447,14 +565,21 @@ function updateCurrentView() {
 
 function renderAssetList(filter = 'all') {
     const list = document.getElementById('assetList');
-    let filteredAssets = assets.filter(a => a.sub_type !== 'staking' && a.sub_type !== 'airdrop');
+    // 에어드랍만 제외 (투자 자산 + 스테이킹만 표시)
+    let filteredAssets = assets.filter(a => a.sub_type !== 'airdrop');
 
     if (filter !== 'all') {
         filteredAssets = filteredAssets.filter(a => a.category === filter);
     }
 
     if (filteredAssets.length === 0) {
-        list.innerHTML = '<div class="empty-state">등록된 자산이 없습니다</div>';
+        list.innerHTML = createEmptyState({
+            ...EMPTY_STATES.assets,
+            actionId: 'emptyAddAsset'
+        });
+        document.getElementById('emptyAddAsset')?.addEventListener('click', () => {
+            document.getElementById('addAssetBtn')?.click();
+        });
         return;
     }
 
@@ -557,9 +682,9 @@ function createAssetItem(asset) {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     수정
                 </button>
-                <button class="btn-action delete delete-asset-btn" data-id="${asset.id}">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    삭제
+                <button class="btn-action dispose dispose-asset-btn" data-id="${asset.id}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    정리
                 </button>
             </div>
         </div>
@@ -588,7 +713,7 @@ function renderStakingList() {
     document.getElementById('avgApy').textContent = `${avgApy}%`;
 
     if (stakingAssets.length === 0) {
-        list.innerHTML = '<div class="empty-state">스테이킹 자산이 없습니다</div>';
+        list.innerHTML = createEmptyState(EMPTY_STATES.staking);
         return;
     }
 
@@ -625,7 +750,7 @@ function renderStakingList() {
                 </div>
                 <div class="asset-actions">
                     <button class="btn-icon edit-asset-btn" data-id="${asset.id}" title="수정"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                    <button class="btn-icon delete-asset-btn" data-id="${asset.id}" title="삭제"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                    <button class="btn-icon dispose-asset-btn" data-id="${asset.id}" title="정리"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
                 </div>
             </div>
         `;
@@ -680,7 +805,7 @@ function renderAirdropList(filter = 'all', sort = 'date-desc') {
     document.getElementById('claimableCount').textContent = `${claimable}개`;
 
     if (airdropAssets.length === 0) {
-        list.innerHTML = '<div class="empty-state">등록된 에어드랍이 없습니다</div>';
+        list.innerHTML = createEmptyState(EMPTY_STATES.airdrops);
         return;
     }
 
@@ -704,7 +829,7 @@ function renderAirdropList(filter = 'all', sort = 'date-desc') {
                 </div>
                 <div class="asset-actions">
                     <button class="btn-icon edit-asset-btn" data-id="${asset.id}" title="수정"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                    <button class="btn-icon delete-asset-btn" data-id="${asset.id}" title="삭제"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                    <button class="btn-icon dispose-asset-btn" data-id="${asset.id}" title="정리"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
                 </div>
             </div>
         `;
@@ -726,7 +851,7 @@ function renderDebtList() {
     document.getElementById('paidTotal').textContent = formatAmount(paidTotal);
 
     if (debts.length === 0) {
-        list.innerHTML = '<div class="empty-state">등록된 부채가 없습니다</div>';
+        list.innerHTML = createEmptyState(EMPTY_STATES.debts);
         return;
     }
 
@@ -768,22 +893,32 @@ function attachAssetItemEvents() {
     document.querySelectorAll('.edit-asset-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const assetId = e.target.dataset.id;
+            const assetId = btn.closest('[data-id]')?.dataset.id || btn.dataset.id;
             const asset = assets.find(a => a.id === assetId);
             if (asset) openAssetModal(null, asset);
         });
     });
 
+    document.querySelectorAll('.dispose-asset-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const assetId = btn.closest('[data-id]')?.dataset.id || btn.dataset.id;
+            const asset = assets.find(a => a.id === assetId);
+            if (asset) openDisposeModal(asset);
+        });
+    });
+
+    // 스테이킹/에어드랍 뷰에서 사용하는 기존 삭제 버튼
     document.querySelectorAll('.delete-asset-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const assetId = e.target.dataset.id;
+            const assetId = btn.closest('[data-id]')?.dataset.id || btn.dataset.id;
             if (confirm('정말 삭제하시겠습니까?')) {
                 const result = await deleteAsset(assetId);
                 if (result.success) {
                     await loadData();
                 } else {
-                    alert('삭제 실패: ' + result.error);
+                    showToast('삭제에 실패했습니다', 'error');
                 }
             }
         });
@@ -859,7 +994,7 @@ function attachDebtItemEvents() {
                 if (result.success) {
                     await loadData();
                 } else {
-                    alert('삭제 실패: ' + result.error);
+                    showToast('삭제에 실패했습니다', 'error');
                 }
             }
         });
@@ -1082,4 +1217,150 @@ async function saveDebt() {
     } else {
         alert('저장 실패: ' + result.error);
     }
+}
+
+// ============================================
+// 자산 정리 기능
+// ============================================
+
+function openDisposeModal(asset) {
+    disposingAsset = asset;
+    document.getElementById('disposeModal').style.display = 'flex';
+
+    // 자산 정보 표시
+    const infoEl = document.getElementById('disposeAssetInfo');
+    infoEl.innerHTML = `
+        <div class="dispose-asset-name">${asset.name}</div>
+        <div class="dispose-asset-details">${asset.platform || ''} ${asset.token_name ? '| ' + asset.token_name : ''}</div>
+        <div class="dispose-asset-value">${formatAmount(asset.current_value)}</div>
+    `;
+
+    // 폼 초기화
+    document.getElementById('disposeType').value = 'cash_out';
+    handleDisposeTypeChange();
+    document.getElementById('destinationType').value = 'bank';
+    document.getElementById('destinationName').value = '';
+    document.getElementById('disposeAmount').value = asset.current_value || 0;
+    document.getElementById('disposeDate').value = getToday();
+    document.getElementById('disposeNotes').value = '';
+}
+
+function closeDisposeModal() {
+    document.getElementById('disposeModal').style.display = 'none';
+    disposingAsset = null;
+}
+
+function handleDisposeTypeChange() {
+    const type = document.getElementById('disposeType').value;
+    const destFields = document.getElementById('destinationFields');
+
+    // 손실 처리나 기타는 목적지 숨김
+    if (type === 'loss' || type === 'other') {
+        destFields.style.display = 'none';
+    } else {
+        destFields.style.display = '';
+        // 자산 전환이면 목적지 유형을 'asset'으로
+        if (type === 'convert') {
+            document.getElementById('destinationType').value = 'asset';
+        } else {
+            document.getElementById('destinationType').value = 'bank';
+        }
+    }
+}
+
+async function saveDisposal() {
+    if (!disposingAsset) return;
+
+    const type = document.getElementById('disposeType').value;
+    const amount = parseInt(document.getElementById('disposeAmount').value) || 0;
+
+    if (amount <= 0) {
+        alert('정리 금액을 입력해주세요.');
+        return;
+    }
+
+    const disposalData = {
+        asset_name: disposingAsset.name,
+        asset_category: disposingAsset.category,
+        asset_platform: disposingAsset.platform,
+        disposal_type: type,
+        amount: amount,
+        disposal_date: document.getElementById('disposeDate').value || getToday(),
+        notes: document.getElementById('disposeNotes').value.trim() || null
+    };
+
+    // 목적지 정보 (현금화/전환 시)
+    if (type === 'cash_out' || type === 'convert') {
+        disposalData.destination_type = document.getElementById('destinationType').value;
+        disposalData.destination = document.getElementById('destinationName').value.trim() || null;
+    }
+
+    const result = await disposeAsset(disposingAsset.id, disposalData);
+
+    if (result.success) {
+        closeDisposeModal();
+        await loadData();
+    } else {
+        alert('정리 실패: ' + result.error);
+    }
+}
+
+function renderDisposalList() {
+    const list = document.getElementById('disposalList');
+    if (!list) return;
+
+    if (disposals.length === 0) {
+        list.innerHTML = '<div class="empty-state">정리 이력이 없습니다</div>';
+        return;
+    }
+
+    list.innerHTML = disposals.map(d => {
+        const typeInfo = DISPOSAL_TYPES.find(t => t.id === d.disposal_type) || { icon: '📦', name: '기타' };
+        const destInfo = d.destination_type ? DESTINATION_TYPES.find(t => t.id === d.destination_type) : null;
+
+        let destText = '';
+        if (d.destination) {
+            destText = d.destination;
+            if (destInfo) {
+                destText = `${destInfo.icon} ${destText}`;
+            }
+        }
+
+        return `
+            <div class="disposal-item" data-id="${d.id}">
+                <div class="disposal-icon">${typeInfo.icon}</div>
+                <div class="disposal-main">
+                    <div class="disposal-header">
+                        <span class="disposal-asset-name">${d.asset_name}</span>
+                        ${destText ? `<span class="disposal-arrow">→</span><span class="disposal-dest">${destText}</span>` : ''}
+                    </div>
+                    <div class="disposal-meta">
+                        <span class="disposal-type">${typeInfo.name}</span>
+                        <span class="disposal-date">${d.disposal_date}</span>
+                    </div>
+                    ${d.notes ? `<div class="disposal-notes">${d.notes}</div>` : ''}
+                </div>
+                <div class="disposal-amount">${formatAmount(d.amount)}</div>
+                <button class="btn-icon delete-disposal-btn" data-id="${d.id}" title="삭제">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    // 삭제 버튼 이벤트
+    list.querySelectorAll('.delete-disposal-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            if (confirm('정리 이력을 삭제하시겠습니까?\n(자산은 복원되지 않습니다)')) {
+                const result = await deleteAssetDisposal(id);
+                if (result.success) {
+                    await loadData();
+                } else {
+                    showToast('삭제에 실패했습니다', 'error');
+                }
+            }
+        });
+    });
 }

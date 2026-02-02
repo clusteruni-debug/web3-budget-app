@@ -1,8 +1,8 @@
 // V2: 통합 자산 관리 홈 대시보드
-import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview, saveNetWorthSnapshot, getNetWorthHistory, getBudgetVsActual, getRecurringItems } from '../services/database.js';
+import { getTransactions, calculateNetWorth, getAssets, getDebts, getStakingOverview, getAirdropOverview, saveNetWorthSnapshot, getNetWorthHistory, getBudgetVsActual, getRecurringItems, createTransaction } from '../services/database.js';
 import { calculateTotalIncome, calculateTotalExpense } from '../services/analytics.js';
-import { formatAmount, formatAmountShort, exportAssetsToCSV, exportDebtsToCSV, exportTransactionsToCSV, exportNetWorthHistoryToCSV, exportAllDataToJSON } from '../utils/helpers.js';
-import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, GOALS } from '../utils/constants.js';
+import { formatAmount, formatAmountShort, exportAssetsToCSV, exportDebtsToCSV, exportTransactionsToCSV, exportNetWorthHistoryToCSV, exportAllDataToJSON, showToast } from '../utils/helpers.js';
+import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, GOALS, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants.js';
 
 let netWorthData = null;
 let assets = [];
@@ -84,237 +84,91 @@ export function createHomeTab() {
                 <div class="goal-remaining" id="goalRemaining">목표까지 0원 남음</div>
             </div>
 
-            <!-- 빠른 액션 (상단 배치) -->
-            <div class="quick-actions-bar">
-                <button class="quick-action-btn" data-action="add-transaction">
-                    <span class="quick-action-icon">💸</span>
-                    <span class="quick-action-label">거래 추가</span>
-                </button>
-                <button class="quick-action-btn" data-action="add-asset">
-                    <span class="quick-action-icon">➕</span>
-                    <span class="quick-action-label">자산 추가</span>
-                </button>
-                <button class="quick-action-btn" data-action="view-budget">
-                    <span class="quick-action-icon">💰</span>
-                    <span class="quick-action-label">예산 확인</span>
-                </button>
-                <button class="quick-action-btn" data-action="manage-fixed">
-                    <span class="quick-action-icon">💳</span>
-                    <span class="quick-action-label">고정 지출</span>
-                </button>
-            </div>
+            <!-- 핵심 액션: 거래 추가 -->
+            <button class="cta-add-transaction" id="ctaAddTransaction">
+                <span class="cta-icon">💸</span>
+                <span class="cta-text">거래 추가하기</span>
+            </button>
 
-            <!-- 순자산 추이 차트 -->
-            <div class="section-card collapsible">
-                <h2 class="section-title" data-toggle="netWorthTrend">
-                    📈 순자산 추이
-                    <span class="toggle-icon">▼</span>
-                </h2>
-                <div class="section-content" id="netWorthTrendContent">
-                    <div class="trend-period-selector">
-                        <button class="trend-period-btn active" data-months="3">3개월</button>
-                        <button class="trend-period-btn" data-months="6">6개월</button>
-                        <button class="trend-period-btn" data-months="12">1년</button>
-                    </div>
-                    <div class="trend-chart-container">
-                        <canvas id="netWorthTrendChart"></canvas>
-                    </div>
-                    <div class="trend-summary" id="trendSummary">
-                        <!-- 동적으로 채워짐 -->
-                    </div>
+            <!-- 바로가기 (네비게이션) -->
+            <div class="shortcut-cards">
+                <div class="shortcut-card" data-action="view-assets">
+                    <span class="shortcut-icon">💰</span>
+                    <span class="shortcut-label">자산 관리</span>
+                </div>
+                <div class="shortcut-card" data-action="view-transactions">
+                    <span class="shortcut-icon">📋</span>
+                    <span class="shortcut-label">거래 내역</span>
+                </div>
+                <div class="shortcut-card" data-action="view-budget">
+                    <span class="shortcut-icon">📊</span>
+                    <span class="shortcut-label">예산</span>
+                </div>
+                <div class="shortcut-card" data-action="view-cashflow">
+                    <span class="shortcut-icon">📈</span>
+                    <span class="shortcut-label">현금 흐름</span>
                 </div>
             </div>
 
-            <!-- 자산 구성 차트 -->
-            <div class="section-card collapsible" id="assetCompositionSection">
-                <h2 class="section-title" data-toggle="assetComposition">
-                    📊 자산 구성
-                    <span class="toggle-icon">▼</span>
-                </h2>
-                <div class="section-content" id="assetCompositionContent">
-                    <div class="chart-and-legend">
-                        <div class="chart-wrapper">
-                            <canvas id="assetPieChart" width="200" height="200"></canvas>
-                        </div>
-                        <div class="asset-category-grid" id="assetCategoryGrid">
-                            <!-- 동적으로 채워짐 -->
-                        </div>
-                    </div>
-                </div>
+            <!-- 고정 수입/지출 요약 (간단히) -->
+            <div class="fixed-summary-card" id="fixedSummaryCard">
+                <!-- 동적으로 채워짐 -->
             </div>
 
-            <!-- 자산 목록 (카테고리별 접기/펼치기) -->
-            <div class="section-card collapsible" id="assetListSection">
-                <h2 class="section-title" data-toggle="assetList">
-                    📋 자산 목록
-                    <span class="toggle-icon">▼</span>
-                </h2>
-                <div class="section-content" id="assetListContent">
-                    <div class="asset-list-actions">
-                        <button class="btn-expand-all" id="expandAllAssets">📂 모두 펼치기</button>
-                        <button class="btn-collapse-all" id="collapseAllAssets">📁 모두 접기</button>
-                    </div>
-                    <div class="asset-list-container" id="assetListContainer">
-                        <!-- 동적으로 채워짐 -->
-                    </div>
-                </div>
-            </div>
+            <!-- 플로팅 액션 버튼 (FAB) -->
+            <button class="fab" id="fabAddTransaction" title="거래 추가">
+                <span class="fab-icon">+</span>
+            </button>
 
-            <!-- 크립토 세부 -->
-            <div class="section-card collapsible" id="cryptoDetailSection">
-                <h2 class="section-title" data-toggle="cryptoDetail">
-                    🪙 크립토 자산 상세
-                    <span class="toggle-icon">▼</span>
-                </h2>
-                <div class="section-content" id="cryptoDetailContent">
-                    <div class="crypto-detail-grid" id="cryptoDetailGrid">
-                        <!-- 동적으로 채워짐 -->
+            <!-- 빠른 거래 추가 모달 (바텀 시트) -->
+            <div class="quick-add-modal" id="quickAddModal" style="display: none;">
+                <div class="quick-add-overlay"></div>
+                <div class="quick-add-content">
+                    <div class="quick-add-header">
+                        <h3>빠른 거래 추가</h3>
+                        <button class="btn-close-modal" id="quickAddClose">&times;</button>
                     </div>
-                </div>
-            </div>
 
-            <!-- 스테이킹 & 에어드랍 -->
-            <div class="two-column-grid">
-                <!-- 스테이킹 현황 -->
-                <div class="section-card collapsible">
-                    <h2 class="section-title" data-toggle="staking">
-                        🔒 스테이킹 현황
-                        <span class="toggle-icon">▼</span>
-                    </h2>
-                    <div class="section-content" id="stakingContent">
-                        <div class="staking-list" id="stakingList">
-                            <div class="empty-state">스테이킹 자산이 없습니다</div>
-                        </div>
-                        <button class="btn-section-link" data-link-action="assets">
-                            ➕ 자산 관리 →
-                        </button>
+                    <!-- 거래 유형 선택 -->
+                    <div class="quick-add-type-tabs">
+                        <button class="type-tab active" data-type="expense">💸 지출</button>
+                        <button class="type-tab" data-type="income">💰 수입</button>
                     </div>
-                </div>
 
-                <!-- 에어드랍 현황 -->
-                <div class="section-card collapsible">
-                    <h2 class="section-title" data-toggle="airdrop">
-                        🎯 에어드랍 현황
-                        <span class="toggle-icon">▼</span>
-                    </h2>
-                    <div class="section-content" id="airdropContent">
-                        <div class="airdrop-stats" id="airdropStats">
-                            <!-- 에어드랍 통계 -->
-                        </div>
-                        <div class="airdrop-list" id="airdropList">
-                            <div class="empty-state">등록된 에어드랍이 없습니다</div>
-                        </div>
-                        <button class="btn-section-link" data-link-action="assets">
-                            ➕ 자산 관리 →
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 부채 현황 -->
-            <div class="section-card debt-section collapsible">
-                <h2 class="section-title" data-toggle="debt">
-                    💳 부채 현황
-                    <span class="toggle-icon">▼</span>
-                </h2>
-                <div class="section-content" id="debtContent">
-                    <div class="debt-summary">
-                        <div class="debt-total">
-                            <span class="debt-label">총 부채</span>
-                            <span class="debt-value" id="totalDebtDisplay">0원</span>
+                    <!-- 금액 입력 -->
+                    <div class="amount-input-group">
+                        <label>금액</label>
+                        <div class="amount-input-wrapper">
+                            <span class="currency-symbol">₩</span>
+                            <input type="number" id="quickAddAmount" placeholder="0" autofocus>
                         </div>
                     </div>
-                    <div class="debt-list" id="debtList">
-                        <div class="empty-state">등록된 부채가 없습니다</div>
+
+                    <!-- 분류 선택 -->
+                    <div class="category-select-group">
+                        <label>분류</label>
+                        <div class="recent-categories" id="recentCategories">
+                            <!-- 최근 사용 분류 동적 생성 -->
+                        </div>
+                        <button class="btn-more-categories" id="btnMoreCategories">더보기 +</button>
+                        <div class="all-categories" id="allCategories">
+                            <!-- 전체 분류 동적 생성 -->
+                        </div>
                     </div>
-                    <button class="btn-section-link" data-link-action="debt-calc">
-                        🧮 대출 상환 계산기 →
-                    </button>
+
+                    <!-- 설명 입력 -->
+                    <div class="description-input-group">
+                        <label>설명 (선택)</label>
+                        <input type="text" id="quickAddDescription" placeholder="예: 점심 식사">
+                    </div>
+
+                    <!-- 저장 버튼 -->
+                    <button class="btn-quick-save" id="quickAddSubmit">저장하기</button>
                 </div>
             </div>
 
-            <!-- 이번 달 현금 흐름 -->
-            <div class="section-card">
-                <h2 class="section-title">💸 이번 달 현금 흐름</h2>
-                <div class="cashflow-summary-grid">
-                    <div class="cashflow-item income">
-                        <div class="cashflow-label">수입</div>
-                        <div class="cashflow-value" id="monthlyIncome">0원</div>
-                    </div>
-                    <div class="cashflow-item expense">
-                        <div class="cashflow-label">지출</div>
-                        <div class="cashflow-value" id="monthlyExpense">0원</div>
-                    </div>
-                    <div class="cashflow-item net">
-                        <div class="cashflow-label">순수익</div>
-                        <div class="cashflow-value" id="monthlyNet">0원</div>
-                    </div>
-                </div>
-                <!-- 고정 수입/지출 요약 -->
-                <div class="cashflow-fixed-summary" id="cashflowFixedSummary">
-                    <!-- 동적으로 채워짐 -->
-                </div>
-            </div>
-
-            <!-- 예산 현황 (간략) -->
-            <div class="section-card collapsible" id="budgetSection">
-                <h2 class="section-title" data-toggle="budgetStatus">
-                    💰 이번 달 예산 현황
-                    <span class="toggle-icon">▼</span>
-                </h2>
-                <div class="section-content" id="budgetStatusContent">
-                    <div class="budget-home-summary" id="budgetHomeSummary">
-                        <!-- 동적으로 채워짐 -->
-                    </div>
-                    <button class="btn-section-link" data-link-action="budget">
-                        📊 예산 상세 관리 →
-                    </button>
-                </div>
-            </div>
-
-            <!-- 데이터 내보내기 -->
-            <div class="section-card collapsible">
-                <h2 class="section-title" data-toggle="dataExport">
-                    💾 데이터 내보내기
-                    <span class="toggle-icon">▼</span>
-                </h2>
-                <div class="section-content" id="dataExportContent">
-                    <div class="export-grid">
-                        <button class="export-btn" data-export="assets">
-                            <span class="export-icon">📊</span>
-                            <span class="export-label">자산 (CSV)</span>
-                        </button>
-                        <button class="export-btn" data-export="debts">
-                            <span class="export-icon">💳</span>
-                            <span class="export-label">부채 (CSV)</span>
-                        </button>
-                        <button class="export-btn" data-export="transactions">
-                            <span class="export-icon">💸</span>
-                            <span class="export-label">거래내역 (CSV)</span>
-                        </button>
-                        <button class="export-btn" data-export="networth">
-                            <span class="export-icon">📈</span>
-                            <span class="export-label">순자산추이 (CSV)</span>
-                        </button>
-                        <button class="export-btn primary" data-export="backup">
-                            <span class="export-icon">🔐</span>
-                            <span class="export-label">전체 백업 (JSON)</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RPG 위젯 (간소화) -->
-            <div class="rpg-widget">
-                <div class="rpg-level">
-                    <span class="rpg-icon">🎮</span>
-                    <span class="rpg-text">Lv. <span id="rpgLevel">1</span></span>
-                </div>
-                <div class="rpg-streak">
-                    <span class="rpg-icon">🔥</span>
-                    <span class="rpg-text"><span id="rpgStreak">0</span>일 연속</span>
-                </div>
-            </div>
+            <!-- 토스트 컨테이너 -->
+            <div class="toast-container" id="toastContainer"></div>
         </div>
     `;
 }
@@ -323,118 +177,231 @@ export async function initHomeTab(switchTabCallback) {
     switchTabCallbackRef = switchTabCallback; // 콜백 저장
     await loadHomeData();
 
-    // 기본적으로 모든 상세 섹션 접기
-    const sectionsToCollapse = [
-        'netWorthTrend',
-        'assetComposition',
-        'assetList',
-        'cryptoDetail',
-        'staking',
-        'airdrop',
-        'debt',
-        'budgetStatus',
-        'dataExport'
-    ];
+    // CTA 거래 추가 버튼
+    document.getElementById('ctaAddTransaction')?.addEventListener('click', () => {
+        openQuickAddModal();
+    });
 
-    sectionsToCollapse.forEach(toggleId => {
-        const title = document.querySelector(`[data-toggle="${toggleId}"]`);
-        if (title) {
-            const sectionCard = title.closest('.section-card');
-            const content = sectionCard.querySelector('.section-content');
-            const icon = title.querySelector('.toggle-icon');
-
-            if (content) {
-                content.classList.add('collapsed');
-                icon.textContent = '▶';
-                sectionCard.classList.add('is-collapsed');
+    // 바로가기 카드 이벤트 (네비게이션)
+    document.querySelectorAll('.shortcut-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const action = card.dataset.action;
+            switch (action) {
+                case 'view-assets':
+                    switchTabCallbackRef?.('assets');
+                    break;
+                case 'view-budget':
+                    switchTabCallbackRef?.('tools', 'budget');
+                    break;
+                case 'view-transactions':
+                    switchTabCallbackRef?.('transactions');
+                    break;
+                case 'view-cashflow':
+                    switchTabCallbackRef?.('cashflow');
+                    break;
             }
+        });
+    });
+
+    // FAB (플로팅 액션 버튼) 이벤트
+    const fab = document.getElementById('fabAddTransaction');
+    const quickAddModal = document.getElementById('quickAddModal');
+    const quickAddClose = document.getElementById('quickAddClose');
+    const quickAddOverlay = quickAddModal?.querySelector('.quick-add-overlay');
+
+    fab?.addEventListener('click', () => {
+        openQuickAddModal();
+    });
+
+    quickAddClose?.addEventListener('click', () => {
+        closeQuickAddModal();
+    });
+
+    quickAddOverlay?.addEventListener('click', () => {
+        closeQuickAddModal();
+    });
+
+    // 빠른 거래 추가 - 유형 토글
+    document.querySelectorAll('.type-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateQuickAddCategories(btn.dataset.type);
+        });
+    });
+
+    // 더보기 버튼
+    document.getElementById('btnMoreCategories')?.addEventListener('click', () => {
+        const allCats = document.getElementById('allCategories');
+        if (allCats) {
+            allCats.classList.toggle('show');
         }
     });
 
-    // 섹션 접기/펼치기 이벤트
-    document.querySelectorAll('.section-title[data-toggle]').forEach(title => {
-        title.addEventListener('click', () => {
-            const sectionCard = title.closest('.section-card');
-            const content = sectionCard.querySelector('.section-content');
-            const icon = title.querySelector('.toggle-icon');
-
-            if (content) {
-                const isCollapsed = content.classList.toggle('collapsed');
-                icon.textContent = isCollapsed ? '▶' : '▼';
-                sectionCard.classList.toggle('is-collapsed', isCollapsed);
-            }
-        });
+    // 빠른 거래 추가 - 저장
+    document.getElementById('quickAddSubmit')?.addEventListener('click', async () => {
+        await handleQuickAddSubmit();
     });
 
-    // 빠른 액션 버튼 이벤트
-    document.querySelectorAll('.quick-action-btn').forEach(btn => {
+    // 인사이트 카드 제한 (최대 2개만 표시)
+    limitInsightCards(2);
+
+    // 고정 수입/지출 요약 표시
+    updateFixedSummary();
+}
+
+// ============================================
+// 빠른 거래 추가 (FAB) 관련 함수
+// ============================================
+
+let selectedCategory = null;
+
+function openQuickAddModal() {
+    const modal = document.getElementById('quickAddModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.getElementById('quickAddAmount')?.focus();
+        updateQuickAddCategories('expense');
+    }
+}
+
+function closeQuickAddModal() {
+    const modal = document.getElementById('quickAddModal');
+    if (modal) {
+        modal.style.display = 'none';
+        // 폼 초기화
+        const amountInput = document.getElementById('quickAddAmount');
+        const descInput = document.getElementById('quickAddDescription');
+        if (amountInput) amountInput.value = '';
+        if (descInput) descInput.value = '';
+        selectedCategory = null;
+        // 분류 선택 초기화
+        document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('selected'));
+        document.getElementById('allCategories')?.classList.remove('show');
+    }
+}
+
+function updateQuickAddCategories(type) {
+    const recentContainer = document.getElementById('recentCategories');
+    const allContainer = document.getElementById('allCategories');
+    if (!recentContainer || !allContainer) return;
+
+    const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+    // 상위 4개만 최근 분류로 표시
+    const recentCategories = categories.slice(0, 4);
+
+    // 최근 사용 분류 (상위 4개)
+    recentContainer.innerHTML = recentCategories.map(cat => `
+        <button class="category-chip" data-category="${cat}">${cat}</button>
+    `).join('');
+
+    // 전체 분류 (더보기 클릭 시 표시)
+    allContainer.innerHTML = categories.map(cat => `
+        <button class="category-chip" data-category="${cat}">${cat}</button>
+    `).join('');
+
+    // 분류 버튼 이벤트 (최근 + 전체 모두)
+    document.querySelectorAll('.category-chip').forEach(btn => {
         btn.addEventListener('click', () => {
-            const action = btn.dataset.action;
-            handleQuickAction(action, switchTabCallback);
+            document.querySelectorAll('.category-chip').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedCategory = btn.dataset.category;
         });
     });
 
-    // 순자산 추이 기간 선택 버튼
-    document.querySelectorAll('.trend-period-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            document.querySelectorAll('.trend-period-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const months = parseInt(btn.dataset.months);
-            await loadNetWorthTrendChart(months);
-        });
-    });
+    selectedCategory = null;
+}
 
-    // 데이터 내보내기 버튼
-    document.querySelectorAll('.export-btn').forEach(btn => {
-        btn.addEventListener('click', () => handleExport(btn.dataset.export));
-    });
+async function handleQuickAddSubmit() {
+    const amount = parseInt(document.getElementById('quickAddAmount')?.value) || 0;
+    const description = document.getElementById('quickAddDescription')?.value || '';
+    const type = document.querySelector('.type-tab.active')?.dataset.type || 'expense';
 
-    // 자산 목록 모두 펼치기/접기 버튼
-    document.getElementById('expandAllAssets')?.addEventListener('click', () => {
-        document.querySelectorAll('.asset-category-items').forEach(el => {
-            el.classList.remove('collapsed');
-        });
-        document.querySelectorAll('.category-toggle-icon').forEach(icon => {
-            icon.textContent = '▼';
-        });
-    });
+    if (amount <= 0) {
+        showToast('금액을 입력해주세요', 'error');
+        return;
+    }
 
-    document.getElementById('collapseAllAssets')?.addEventListener('click', () => {
-        document.querySelectorAll('.asset-category-items').forEach(el => {
-            el.classList.add('collapsed');
-        });
-        document.querySelectorAll('.category-toggle-icon').forEach(icon => {
-            icon.textContent = '▶';
-        });
-    });
+    if (!selectedCategory) {
+        showToast('분류를 선택해주세요', 'error');
+        return;
+    }
 
-    // 섹션 링크 버튼 이벤트
-    document.querySelectorAll('.btn-section-link').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const action = btn.dataset.linkAction;
-            if (switchTabCallbackRef) {
-                switch (action) {
-                    case 'budget':
-                        switchTabCallbackRef('tools', 'budget');
-                        break;
-                    case 'debt-calc':
-                        switchTabCallbackRef('tools', 'debt-calc');
-                        break;
-                    case 'spending':
-                        switchTabCallbackRef('tools', 'spending');
-                        break;
-                    case 'calendar':
-                        switchTabCallbackRef('tools', 'calendar');
-                        break;
-                    case 'assets':
-                        switchTabCallbackRef('assets');
-                        break;
-                    default:
-                        break;
-                }
-            }
+    try {
+        const result = await createTransaction({
+            type,
+            category: selectedCategory,
+            amount,
+            title: selectedCategory,
+            description: description,
+            date: new Date().toISOString().split('T')[0]
         });
+
+        if (result.success) {
+            showToast('거래가 저장되었습니다', 'success');
+            closeQuickAddModal();
+            // 데이터 새로고침
+            await loadHomeData();
+        } else {
+            showToast('저장에 실패했습니다', 'error');
+        }
+    } catch (error) {
+        console.error('거래 저장 오류:', error);
+        showToast('저장 중 오류가 발생했습니다', 'error');
+    }
+}
+
+// showToast는 helpers.js에서 import
+
+// 인사이트 카드 개수 제한
+function limitInsightCards(maxCount) {
+    const container = document.getElementById('insightCards');
+    if (!container) return;
+
+    const cards = container.querySelectorAll('.insight-card');
+    cards.forEach((card, index) => {
+        if (index >= maxCount) {
+            card.style.display = 'none';
+        }
     });
+}
+
+// 고정 수입/지출 요약 표시
+function updateFixedSummary() {
+    const container = document.getElementById('fixedSummaryCard');
+    if (!container || !recurringItems.length) {
+        if (container) container.style.display = 'none';
+        return;
+    }
+
+    const incomeItems = recurringItems.filter(item => item.type === 'income');
+    const expenseItems = recurringItems.filter(item => item.type === 'expense');
+
+    const totalIncome = incomeItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const totalExpense = expenseItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const netFixed = totalIncome - totalExpense;
+
+    container.style.display = 'block';
+    container.innerHTML = `
+        <div class="fixed-summary-header">
+            <span class="fixed-icon">📅</span>
+            <span class="fixed-title">월 고정 수입/지출</span>
+        </div>
+        <div class="fixed-summary-content">
+            <div class="fixed-item income">
+                <span class="fixed-label">고정 수입</span>
+                <span class="fixed-value">+${formatAmountShort(totalIncome)}</span>
+            </div>
+            <div class="fixed-item expense">
+                <span class="fixed-label">고정 지출</span>
+                <span class="fixed-value">-${formatAmountShort(totalExpense)}</span>
+            </div>
+            <div class="fixed-item net ${netFixed >= 0 ? 'positive' : 'negative'}">
+                <span class="fixed-label">순 고정</span>
+                <span class="fixed-value">${netFixed >= 0 ? '+' : ''}${formatAmountShort(netFixed)}</span>
+            </div>
+        </div>
+    `;
 }
 
 async function handleExport(type) {
@@ -1271,7 +1238,54 @@ function updateAlertBanners() {
 
     const alerts = [];
 
-    // 스테이킹 D-7 이내 알림
+    // 1. 예산 초과 알림
+    if (budgetData && budgetData.budgets) {
+        budgetData.budgets.forEach(budget => {
+            const spent = budget.spent || 0;
+            const limit = budget.amount || 0;
+            const percent = limit > 0 ? (spent / limit * 100) : 0;
+
+            if (percent >= 100) {
+                alerts.push({
+                    type: 'budget-over',
+                    icon: '🚨',
+                    title: `${budget.category} 예산 초과!`,
+                    message: `${formatAmountShort(spent)} / ${formatAmountShort(limit)} (${percent.toFixed(0)}%)`,
+                    urgent: true
+                });
+            } else if (percent >= 80) {
+                alerts.push({
+                    type: 'budget-warning',
+                    icon: '⚠️',
+                    title: `${budget.category} 예산 80% 도달`,
+                    message: `남은 예산: ${formatAmountShort(limit - spent)}`,
+                    urgent: false
+                });
+            }
+        });
+    }
+
+    // 2. 결제일 알림 (D-3 이내)
+    const today = new Date();
+    const currentDay = today.getDate();
+    recurringItems.filter(item => item.type === 'expense').forEach(item => {
+        if (item.payment_day) {
+            let daysUntil = item.payment_day - currentDay;
+            if (daysUntil < 0) daysUntil += 30; // 다음 달 결제일
+
+            if (daysUntil <= 3 && daysUntil >= 0) {
+                alerts.push({
+                    type: 'payment',
+                    icon: '💳',
+                    title: `${item.name} 결제 예정`,
+                    message: daysUntil === 0 ? '오늘 결제일!' : `D-${daysUntil} (매월 ${item.payment_day}일)`,
+                    urgent: daysUntil === 0
+                });
+            }
+        }
+    });
+
+    // 3. 스테이킹 D-7 이내 알림
     stakingList.forEach(item => {
         if (item.days_until_unlock !== null && item.days_until_unlock <= 7 && item.days_until_unlock >= 0) {
             alerts.push({
@@ -1284,7 +1298,7 @@ function updateAlertBanners() {
         }
     });
 
-    // 클레임 가능한 에어드랍 알림
+    // 4. 클레임 가능한 에어드랍 알림
     airdropList.forEach(item => {
         if (item.airdrop_status === 'claimable') {
             alerts.push({

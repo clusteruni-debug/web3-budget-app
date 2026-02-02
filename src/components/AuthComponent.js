@@ -81,7 +81,7 @@ export function createAuthComponent() {
                     <button type="submit" class="btn-primary">회원가입</button>
                     
                     <div class="auth-note">
-                        회원가입 시 4개의 기본 계정(Web3 지갑, 투자 계정, 은행 계정, 가족 대출)이 자동으로 생성됩니다.
+                        회원가입 시 4개의 기본 보관처(Web3 지갑, 투자, 은행, 가족 대출)가 자동으로 생성됩니다.
                     </div>
                 </form>
 

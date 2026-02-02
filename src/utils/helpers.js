@@ -153,7 +153,7 @@ function escapeCsvValue(value) {
 
 // 자산 데이터 CSV 내보내기
 export function exportAssetsToCSV(assets) {
-    const headers = ['이름', '카테고리', '세부유형', '현재가치', '매입가/청산가', '수량', '토큰명', '플랫폼', '상태', '예상일', '메모', '생성일'];
+    const headers = ['이름', '분류', '세부유형', '현재가치', '매입가/청산가', '수량', '토큰명', '플랫폼', '상태', '예상일', '메모', '생성일'];
     const rows = assets.map(a => {
         // 에어드랍은 purchase_value가 청산 금액
         const valueOrClaimed = a.sub_type === 'airdrop' && a.airdrop_status === 'claimed'
@@ -205,7 +205,7 @@ export function exportDebtsToCSV(debts) {
 
 // 거래 데이터 CSV 내보내기
 export function exportTransactionsToCSV(transactions) {
-    const headers = ['날짜', '유형', '카테고리', '금액', '설명', '계정'];
+    const headers = ['날짜', '유형', '분류', '금액', '설명', '보관처'];
     const rows = transactions.map(t => [
         t.date,
         t.type === 'income' ? '수입' : t.type === 'expense' ? '지출' : '이체',
@@ -496,3 +496,129 @@ export function throttle(func, limit) {
         }
     };
 }
+
+// ============================================
+// 로딩 스피너
+// ============================================
+
+/**
+ * 로딩 스피너 HTML 생성
+ * @param {string} text - 로딩 텍스트 (선택)
+ * @returns {string} HTML 문자열
+ */
+export function createLoadingSpinner(text = '로딩 중...') {
+    return `
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <div class="loading-text">${text}</div>
+        </div>
+    `;
+}
+
+// ============================================
+// 빈 상태 (Empty State) 컴포넌트
+// ============================================
+
+/**
+ * 빈 상태 HTML 생성
+ * @param {Object} options
+ * @param {string} options.icon - 이모지 아이콘
+ * @param {string} options.title - 제목
+ * @param {string} options.description - 설명 (선택)
+ * @param {string} options.actionText - 버튼 텍스트 (선택)
+ * @param {string} options.actionId - 버튼 ID (선택)
+ * @returns {string} HTML 문자열
+ */
+export function createEmptyState({ icon = '📭', title, description = '', actionText = '', actionId = '' }) {
+    return `
+        <div class="empty-state-v2">
+            <div class="empty-icon">${icon}</div>
+            <div class="empty-title">${title}</div>
+            ${description ? `<div class="empty-description">${description}</div>` : ''}
+            ${actionText ? `<button class="empty-action" ${actionId ? `id="${actionId}"` : ''}>${actionText}</button>` : ''}
+        </div>
+    `;
+}
+
+// ============================================
+// 토스트 알림
+// ============================================
+
+/**
+ * 토스트 메시지 표시
+ * @param {string} message - 메시지
+ * @param {string} type - 'success' | 'error' | 'warning'
+ */
+export function showToast(message, type = 'success') {
+    // 토스트 컨테이너 찾기 또는 생성
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : '⚠';
+    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    container.appendChild(toast);
+
+    // 3초 후 자동 제거
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// 자주 쓰는 빈 상태 프리셋
+export const EMPTY_STATES = {
+    assets: {
+        icon: '💰',
+        title: '등록된 자산이 없습니다',
+        description: '자산을 추가해서 순자산을 관리해보세요',
+        actionText: '+ 자산 추가'
+    },
+    transactions: {
+        icon: '💸',
+        title: '거래 내역이 없습니다',
+        description: '수입이나 지출을 기록해보세요',
+        actionText: '+ 거래 추가'
+    },
+    budget: {
+        icon: '📊',
+        title: '설정된 예산이 없습니다',
+        description: '월 예산을 설정해서 지출을 관리해보세요',
+        actionText: '+ 예산 설정'
+    },
+    goals: {
+        icon: '🎯',
+        title: '저축 목표가 없습니다',
+        description: '목표를 설정하고 달성률을 확인해보세요',
+        actionText: '+ 목표 추가'
+    },
+    subscriptions: {
+        icon: '📺',
+        title: '구독 서비스가 없습니다',
+        description: '정기 구독을 등록해서 관리해보세요',
+        actionText: '+ 구독 추가'
+    },
+    staking: {
+        icon: '🔒',
+        title: '스테이킹 자산이 없습니다',
+        description: '스테이킹 중인 자산을 등록해보세요'
+    },
+    airdrops: {
+        icon: '🎁',
+        title: '등록된 에어드랍이 없습니다',
+        description: '참여 중인 에어드랍을 추가해보세요'
+    },
+    debts: {
+        icon: '💳',
+        title: '등록된 부채가 없습니다',
+        description: '부채가 없다니 대단해요!'
+    },
+    recurring: {
+        icon: '📅',
+        title: '고정 수입/지출이 없습니다',
+        description: '매월 반복되는 항목을 등록해보세요'
+    }
+};

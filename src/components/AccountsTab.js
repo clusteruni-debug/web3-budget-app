@@ -11,7 +11,7 @@ export function createAccountsTab() {
         <div class="accounts-container">
             <!-- 탭 전환 -->
             <div class="sub-tabs">
-                <button class="sub-tab active" data-view="accounts">💼 계정 관리</button>
+                <button class="sub-tab active" data-view="accounts">💼 거래소/은행 관리</button>
                 <button class="sub-tab" data-view="arbitrage">📊 차익거래</button>
             </div>
 
@@ -19,7 +19,7 @@ export function createAccountsTab() {
             <div id="accountsView" class="view-content">
                 <div class="section-header">
                     <h2>거래소 & 지갑 관리</h2>
-                    <button class="btn" id="addAccountBtn">+ 계정 추가</button>
+                    <button class="btn" id="addAccountBtn">+ 추가</button>
                 </div>
 
                 <!-- 거래소 섹션 -->
@@ -34,9 +34,9 @@ export function createAccountsTab() {
                     <div class="accounts-grid" id="walletsList"></div>
                 </div>
 
-                <!-- 기타 계정 섹션 -->
+                <!-- 기타 섹션 -->
                 <div class="account-section">
-                    <h3>📁 기타 계정</h3>
+                    <h3>📁 기타</h3>
                     <div class="accounts-grid" id="otherAccountsList"></div>
                 </div>
             </div>
@@ -137,12 +137,12 @@ export function createAccountsTab() {
         <div id="accountModal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>계정 추가</h3>
+                    <h3>거래소/지갑 추가</h3>
                     <button class="close-btn" id="closeModalBtn">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>계정 유형</label>
+                        <label>유형</label>
                         <select id="modalAccountType">
                             <option value="exchange">거래소</option>
                             <option value="wallet">지갑</option>
@@ -260,7 +260,7 @@ function renderAccounts() {
     const others = accounts.filter(a => !['exchange', 'wallet'].includes(a.type));
     document.getElementById('otherAccountsList').innerHTML = others.length > 0
         ? others.map(a => createAccountCard(a)).join('')
-        : '<div class="empty-state">기타 계정이 없습니다</div>';
+        : '<div class="empty-state">기타 항목이 없습니다</div>';
 
     // 잔액 수정 이벤트
     document.querySelectorAll('.edit-balance-btn').forEach(btn => {
@@ -385,7 +385,7 @@ async function submitArbitrage() {
     const description = document.getElementById('arbDescription').value;
 
     if (!fromAccountId || !toAccountId) {
-        alert('출발/도착 계정을 선택해주세요.');
+        alert('출발/도착 보관처를 선택해주세요.');
         return;
     }
 
@@ -469,7 +469,7 @@ async function saveAccount() {
     });
 
     if (result.success) {
-        alert('계정이 추가되었습니다.');
+        alert('보관처가 추가되었습니다.');
         closeModal();
         await loadAccountsData();
     } else {

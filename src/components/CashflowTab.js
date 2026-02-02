@@ -72,9 +72,9 @@ export function createCashflowTab() {
                 </div>
             </div>
 
-            <!-- 카테고리별 지출 분석 -->
+            <!-- 분류별 지출 분석 -->
             <div class="category-analysis-section">
-                <h3>📊 카테고리별 지출</h3>
+                <h3>📊 분류별 지출</h3>
                 <div class="category-bars" id="categoryBars">
                     <!-- 동적으로 채워짐 -->
                 </div>

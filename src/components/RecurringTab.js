@@ -123,7 +123,7 @@ export function createRecurringTab() {
                     <input type="hidden" id="recurringType">
 
                     <div class="form-group-modal">
-                        <label for="recurringCategory">카테고리 *</label>
+                        <label for="recurringCategory">항목명 *</label>
                         <input type="text" id="recurringCategory" required placeholder="예: 본업 급여, 대출 상환">
                     </div>
 
@@ -344,7 +344,7 @@ async function handleFormSubmit(e) {
     const description = document.getElementById('recurringDescription').value;
 
     if (!category || amount <= 0) {
-        alert('카테고리와 금액을 입력해주세요.');
+        alert('항목명과 금액을 입력해주세요.');
         return;
     }
 

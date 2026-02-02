@@ -52,7 +52,7 @@ export function createDashboardTab() {
                 <div class="stat-value" id="avgIncome">0원</div>
             </div>
             <div class="stat-card">
-                <h4>🎯 최고 수익 카테고리</h4>
+                <h4>🎯 최고 수익 분류</h4>
                 <div class="stat-value" id="topCategory" style="font-size:1.1em;">-</div>
             </div>
             <div class="stat-card">
@@ -77,7 +77,7 @@ export function createDashboardTab() {
                     </select>
                 </div>
                 <div>
-                    <label>카테고리</label>
+                    <label>분류</label>
                     <select id="category">
                         <optgroup label="수입" id="incomeCategoryGroup">
                             ${INCOME_CATEGORIES.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
@@ -99,11 +99,11 @@ export function createDashboardTab() {
                     <input type="number" id="amount" placeholder="0" step="1000">
                 </div>
                 <div>
-                    <label>계정</label>
+                    <label>보관처</label>
                     <select id="account">
                         <option value="web3">Web3 지갑</option>
-                        <option value="investment">투자 계정</option>
-                        <option value="bank">은행 계정</option>
+                        <option value="investment">투자</option>
+                        <option value="bank">은행</option>
                         <option value="family">가족 대출</option>
                     </select>
                 </div>
@@ -125,21 +125,21 @@ export function createDashboardTab() {
         </div>
 
         <div class="category-breakdown">
-            <h2>📊 카테고리별 수입 분석</h2>
+            <h2>📊 분류별 수입 분석</h2>
             <div class="category-grid" id="categoryBreakdown"></div>
         </div>
 
         <!-- 차트 섹션 -->
         <div class="charts-grid">
             <div class="chart-card">
-                <h2 class="card-title">📊 수입 카테고리 분포</h2>
+                <h2 class="card-title">📊 수입 분류 분포</h2>
                 <div class="chart-container small">
                     <canvas id="incomePieChart"></canvas>
                 </div>
             </div>
 
             <div class="chart-card">
-                <h2 class="card-title">💸 지출 카테고리 분포</h2>
+                <h2 class="card-title">💸 지출 분류 분포</h2>
                 <div class="chart-container small">
                     <canvas id="expensePieChart"></canvas>
                 </div>

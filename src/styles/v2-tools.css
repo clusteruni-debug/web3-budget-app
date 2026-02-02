@@ -5,29 +5,42 @@
 .tools-container {
     max-width: 1000px;
     margin: 0 auto;
-    padding: var(--space-6);
+    padding: var(--space-4);
+}
+
+@media (min-width: 768px) {
+    .tools-container {
+        padding: var(--space-6);
+    }
 }
 
 .tool-tabs {
     display: flex;
-    gap: var(--space-2);
+    gap: var(--space-1);
     margin-bottom: var(--space-6);
     padding: var(--space-2);
     background: rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-xl);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.tool-tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .tool-tab-btn {
-    flex: 1;
-    padding: var(--space-3) var(--space-4);
+    flex: 0 0 auto;
+    padding: var(--space-2) var(--space-3);
     background: transparent;
     border: none;
     border-radius: var(--radius-lg);
     color: rgba(255, 255, 255, 0.6);
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
 .tool-tab-btn:hover {
@@ -50,7 +63,7 @@
    ============================================ */
 
 .budget-container {
-    max-width: 700px;
+    max-width: 100%;
     margin: 0 auto;
 }
 
@@ -59,12 +72,24 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-5);
+    gap: var(--space-3);
+    flex-wrap: wrap;
 }
 
 .budget-header h3 {
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl);
     font-weight: 700;
     margin: 0;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.budget-header .btn {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    white-space: nowrap;
 }
 
 /* 전체 예산 요약 */
@@ -72,15 +97,22 @@
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.1) 100%);
     border: 1px solid rgba(102, 126, 234, 0.3);
     border-radius: var(--radius-xl);
-    padding: var(--space-5);
-    margin-bottom: var(--space-5);
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+@media (min-width: 768px) {
+    .budget-overview {
+        padding: var(--space-6);
+    }
 }
 
 .budget-overview-main {
     display: flex;
     align-items: center;
-    gap: var(--space-6);
+    gap: var(--space-5);
     margin-bottom: var(--space-4);
+    flex-wrap: wrap;
 }
 
 /* 원형 진행률 */
@@ -146,8 +178,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-2) 0;
+    padding: var(--space-3) 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    gap: var(--space-4);
 }
 
 .overview-item:last-child {
@@ -157,12 +190,14 @@
 .overview-label {
     color: rgba(255, 255, 255, 0.6);
     font-size: var(--text-sm);
+    white-space: nowrap;
 }
 
 .overview-value {
     font-size: var(--text-lg);
     font-weight: 700;
     color: white;
+    white-space: nowrap;
 }
 
 .overview-value.spent {
@@ -220,7 +255,7 @@
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    padding: var(--space-5);
     transition: all 0.2s;
 }
 
@@ -355,15 +390,25 @@
 /* 빠른 금액 선택 버튼 */
 .budget-preset-amounts {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: var(--space-2);
     align-items: center;
     margin-top: var(--space-3);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: var(--space-1);
+}
+
+.budget-preset-amounts::-webkit-scrollbar {
+    display: none;
 }
 
 .preset-label {
     font-size: var(--text-sm);
     color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .preset-btn {
@@ -375,6 +420,8 @@
     font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .preset-btn:hover {
@@ -533,7 +580,7 @@
    구독 관리
    ============================================ */
 .subscriptions-container {
-    max-width: 800px;
+    max-width: 100%;
     margin: 0 auto;
 }
 
@@ -542,17 +589,29 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-5);
+    gap: var(--space-3);
+    flex-wrap: wrap;
 }
 
 .subscriptions-header h3 {
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl);
     font-weight: 700;
     margin: 0;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.subscriptions-header .btn {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    white-space: nowrap;
 }
 
 .subscription-summary {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: var(--space-4);
     margin-bottom: var(--space-5);
 }
@@ -561,10 +620,10 @@
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.1) 100%);
     border: 1px solid rgba(102, 126, 234, 0.2);
     border-radius: var(--radius-xl);
-    padding: var(--space-4);
+    padding: var(--space-5);
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--space-4);
 }
 
 .summary-icon {
@@ -580,18 +639,20 @@
     font-size: var(--text-xl);
     font-weight: 700;
     color: white;
+    white-space: nowrap;
 }
 
 .subscription-summary .summary-label {
     font-size: var(--text-sm);
     color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
 }
 
 .upcoming-payments {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-xl);
-    padding: var(--space-4);
+    padding: var(--space-5);
     margin-bottom: var(--space-5);
 }
 
@@ -610,9 +671,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
     background: rgba(255, 255, 255, 0.03);
     border-radius: var(--radius-md);
+    gap: var(--space-3);
+    flex-wrap: wrap;
 }
 
 .upcoming-item.urgent {
@@ -648,7 +711,7 @@
 
 .subscriptions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: var(--space-4);
 }
 
@@ -660,7 +723,7 @@
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    padding: var(--space-5);
     transition: all 0.2s ease;
 }
 
@@ -753,7 +816,7 @@
    ============================================ */
 
 .goals-container {
-    max-width: 800px;
+    max-width: 100%;
     margin: 0 auto;
 }
 
@@ -762,20 +825,38 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-5);
+    gap: var(--space-3);
+    flex-wrap: wrap;
 }
 
 .goals-header h3 {
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl);
     font-weight: 700;
     margin: 0;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.goals-header .btn {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    white-space: nowrap;
 }
 
 .goals-overview {
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.1) 100%);
     border: 1px solid rgba(102, 126, 234, 0.3);
     border-radius: var(--radius-xl);
-    padding: var(--space-5);
-    margin-bottom: var(--space-5);
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+@media (min-width: 768px) {
+    .goals-overview {
+        padding: var(--space-6);
+    }
 }
 
 .goals-progress-main {
@@ -820,9 +901,10 @@
 .goals-stats .stat-item {
     flex: 1;
     text-align: center;
-    padding: var(--space-3);
+    padding: var(--space-4);
     background: rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-lg);
+    min-width: 80px;
 }
 
 .goals-stats .stat-value {
@@ -867,7 +949,7 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-left: 4px solid var(--goal-color, #667eea);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    padding: var(--space-6);
     transition: all 0.2s;
 }
 
@@ -886,6 +968,7 @@
     align-items: center;
     gap: var(--space-3);
     margin-bottom: var(--space-3);
+    flex-wrap: wrap;
 }
 
 .goal-icon-wrap {
@@ -931,6 +1014,7 @@
     font-weight: 600;
     color: #a5b4fc;
     flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .goal-deadline.overdue {
@@ -1147,7 +1231,7 @@
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.08) 100%);
     border: 1px solid rgba(102, 126, 234, 0.2);
     border-radius: var(--radius-xl);
-    padding: var(--space-4);
+    padding: var(--space-5);
     overflow: hidden;
 }
 
@@ -1203,10 +1287,11 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
     background: rgba(255, 255, 255, 0.03);
     border-radius: var(--radius-md);
     transition: all 0.2s;
+    flex-wrap: wrap;
 }
 
 .weekly-item:hover {
@@ -1309,7 +1394,7 @@
 
 .cal-day {
     aspect-ratio: 1;
-    padding: var(--space-1);
+    padding: var(--space-3);
     background: rgba(255, 255, 255, 0.02);
     border-radius: var(--radius-md);
     display: flex;
@@ -1318,6 +1403,8 @@
     justify-content: flex-start;
     cursor: pointer;
     transition: all 0.2s;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .cal-day:hover:not(.empty) {
@@ -1436,7 +1523,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 150px;
+    max-width: 280px;
 }
 
 .event-date {
@@ -1495,12 +1582,12 @@
 
 .spending-summary {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: var(--space-4);
 }
 
 .spending-summary .summary-card {
-    padding: var(--space-4);
+    padding: var(--space-6);
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-xl);
@@ -1516,6 +1603,7 @@
 .spending-summary .summary-value {
     font-size: var(--text-2xl);
     font-weight: 800;
+    white-space: nowrap;
 }
 
 .spending-summary .summary-value.positive { color: #4ade80; }
@@ -1525,7 +1613,7 @@
     height: 300px;
     background: rgba(255, 255, 255, 0.03);
     border-radius: var(--radius-xl);
-    padding: var(--space-4);
+    padding: var(--space-5);
 }
 
 .category-breakdown {
@@ -1542,8 +1630,11 @@
 .category-breakdown .category-item {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-md);
 }
 
 .category-info {
@@ -1557,6 +1648,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 220px;
 }
 
 .category-percent {
@@ -1683,7 +1775,7 @@
    ============================================ */
 
 .debt-calc-container {
-    max-width: 600px;
+    max-width: 100%;
     margin: 0 auto;
 }
 
@@ -1714,9 +1806,15 @@
     font-size: var(--text-base);
 }
 
+.debt-select select option {
+    background: #1a1a2e;
+    color: white;
+    padding: var(--space-2);
+}
+
 .calc-inputs {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: var(--space-4);
     margin-bottom: var(--space-5);
 }
@@ -1841,7 +1939,7 @@
    ============================================ */
 
 .futures-loss-container {
-    max-width: 600px;
+    max-width: 100%;
     margin: 0 auto;
 }
 
@@ -1976,13 +2074,14 @@
         padding: var(--space-4);
     }
 
-    /* 도구 탭 - 가로 스크롤 */
+    /* 도구 탭 - 가로 스크롤 + 터치 타겟 보장 */
     .tool-tabs {
         flex-wrap: nowrap;
         overflow-x: auto;
         scrollbar-width: none;
         -ms-overflow-style: none;
         gap: var(--space-1);
+        padding: var(--space-2);
     }
 
     .tool-tabs::-webkit-scrollbar {
@@ -1991,9 +2090,21 @@
 
     .tool-tab-btn {
         flex: 0 0 auto;
-        padding: var(--space-2) var(--space-3);
-        font-size: var(--text-xs);
+        padding: var(--space-3) var(--space-4);
+        font-size: var(--text-sm);
         white-space: nowrap;
+        min-height: 44px;
+    }
+
+    /* 모달 버튼 터치 타겟 */
+    .tools-container .btn {
+        min-height: 44px;
+        padding: var(--space-3) var(--space-5);
+    }
+
+    .tools-container .btn-icon {
+        min-width: 44px;
+        min-height: 44px;
     }
 
     .calendar-grid {
@@ -2035,7 +2146,7 @@
    ============================================ */
 
 .account-settings-container {
-    max-width: 500px;
+    max-width: 100%;
     margin: 0 auto;
 }
 
@@ -2070,6 +2181,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
 }
 
 .info-label {
@@ -2080,6 +2193,7 @@
 .info-value {
     color: white;
     font-weight: var(--font-semibold);
+    word-break: break-all;
 }
 
 .password-form {
@@ -2156,7 +2270,7 @@
    ============================================ */
 
 .recurring-container {
-    max-width: 700px;
+    max-width: 100%;
     margin: 0 auto;
 }
 
@@ -2165,17 +2279,29 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-5);
+    gap: var(--space-3);
+    flex-wrap: wrap;
 }
 
 .recurring-header h3 {
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl);
     font-weight: 700;
     margin: 0;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.recurring-header .btn {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    white-space: nowrap;
 }
 
 .recurring-summary {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: var(--space-4);
     margin-bottom: var(--space-5);
 }
@@ -2184,7 +2310,7 @@
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-xl);
-    padding: var(--space-4);
+    padding: var(--space-6);
     text-align: center;
 }
 
@@ -2209,6 +2335,7 @@
 .recurring-summary-card .summary-value {
     font-size: var(--text-xl);
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .recurring-summary-card .summary-value.positive {
@@ -2264,11 +2391,12 @@
     display: flex;
     align-items: center;
     gap: var(--space-4);
-    padding: var(--space-4);
+    padding: var(--space-6);
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-lg);
     transition: all 0.2s;
+    flex-wrap: wrap;
 }
 
 .recurring-item:hover {
@@ -2454,6 +2582,48 @@
 
 .tools-container .modal-body {
     padding: var(--space-6);
+}
+
+/* 모달 내 빠른 선택 버튼 - 한 줄 표시 */
+.tools-container .modal .budget-preset-amounts {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+    align-items: center;
+    margin-top: var(--space-3);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: var(--space-2);
+}
+
+.tools-container .modal .budget-preset-amounts::-webkit-scrollbar {
+    display: none;
+}
+
+.tools-container .modal .preset-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.tools-container .modal .preset-btn {
+    padding: var(--space-2) var(--space-3);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.tools-container .modal .preset-btn:hover {
+    background: rgba(102, 126, 234, 0.3);
+    border-color: rgba(102, 126, 234, 0.5);
 }
 
 .tools-container .modal-footer {
@@ -2721,4 +2891,596 @@
     background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
     color: white;
     box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+}
+
+/* ============================================
+   투자 손익 (원화 입출금 기준)
+   ============================================ */
+
+.fiat-profit-container {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.fiat-profit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-5);
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.fiat-profit-header h3 {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.fiat-profit-header .btn {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+}
+
+/* 손익 요약 */
+.fiat-profit-summary {
+    margin-bottom: var(--space-5);
+}
+
+.fiat-summary-main {
+    margin-bottom: var(--space-4);
+}
+
+.fiat-profit-card {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    text-align: center;
+}
+
+.fiat-profit-card.positive {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(74, 222, 128, 0.1) 100%);
+    border-color: rgba(34, 197, 94, 0.4);
+}
+
+.fiat-profit-card.negative {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(248, 113, 113, 0.1) 100%);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.fiat-profit-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.fiat-profit-value {
+    font-size: var(--text-4xl);
+    font-weight: 800;
+    margin-bottom: var(--space-1);
+}
+
+.fiat-profit-value.positive {
+    color: #4ade80;
+    text-shadow: 0 0 30px rgba(74, 222, 128, 0.3);
+}
+
+.fiat-profit-value.negative {
+    color: #f87171;
+    text-shadow: 0 0 30px rgba(248, 113, 113, 0.3);
+}
+
+.fiat-profit-percent {
+    font-size: var(--text-xl);
+    font-weight: 600;
+}
+
+.fiat-profit-percent.positive {
+    color: #4ade80;
+}
+
+.fiat-profit-percent.negative {
+    color: #f87171;
+}
+
+/* 요약 그리드 */
+.fiat-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4);
+}
+
+.fiat-summary-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    transition: all 0.2s;
+}
+
+.fiat-summary-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.fiat-summary-item.deposit {
+    border-left: 3px solid #4ade80;
+}
+
+.fiat-summary-item.withdraw {
+    border-left: 3px solid #f87171;
+}
+
+.fiat-summary-item.net {
+    border-left: 3px solid #fbbf24;
+}
+
+.fiat-summary-item.balance {
+    border-left: 3px solid #a78bfa;
+}
+
+.fiat-item-icon {
+    font-size: 1.5rem;
+}
+
+.fiat-item-info {
+    flex: 1;
+}
+
+.fiat-item-label {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 2px;
+}
+
+.fiat-item-value {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+}
+
+/* 계산 공식 박스 */
+.fiat-formula-box {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.formula-title {
+    font-weight: 600;
+    color: #a5b4fc;
+    margin-bottom: var(--space-2);
+}
+
+.formula-content code {
+    display: block;
+    background: rgba(0, 0, 0, 0.3);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #fbbf24;
+    margin-bottom: var(--space-2);
+}
+
+.formula-desc {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+}
+
+/* 잔고 내역 */
+.fiat-balance-breakdown {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    margin-bottom: var(--space-5);
+}
+
+.fiat-balance-breakdown h4 {
+    margin: 0 0 var(--space-3) 0;
+    font-size: var(--text-base);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.balance-items {
+    display: flex;
+    gap: var(--space-4);
+}
+
+.balance-item {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.balance-label {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.balance-value {
+    font-weight: 600;
+    color: white;
+}
+
+/* 입출금 내역 */
+.fiat-flows-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-4);
+}
+
+.fiat-flows-section h4 {
+    margin: 0 0 var(--space-4) 0;
+    font-size: var(--text-base);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.fiat-flows-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.fiat-flow-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-lg);
+    transition: all 0.2s;
+}
+
+.fiat-flow-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.fiat-flow-item.deposit {
+    border-left: 3px solid #4ade80;
+}
+
+.fiat-flow-item.withdraw {
+    border-left: 3px solid #f87171;
+}
+
+.flow-icon {
+    font-size: 1.3rem;
+}
+
+.flow-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.flow-platform {
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.flow-meta {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.flow-notes {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+    margin-top: 2px;
+}
+
+.flow-amount {
+    font-weight: 700;
+    font-size: var(--text-base);
+    white-space: nowrap;
+}
+
+.flow-amount.deposit {
+    color: #4ade80;
+}
+
+.flow-amount.withdraw {
+    color: #f87171;
+}
+
+/* 빠른 금액 선택 */
+.fiat-preset-amounts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+    margin-top: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+
+/* 반응형 - 투자 손익 */
+@media (max-width: 768px) {
+    .fiat-profit-header {
+        flex-wrap: wrap;
+        gap: var(--space-3);
+    }
+
+    .fiat-profit-value {
+        font-size: var(--text-3xl);
+    }
+
+    .fiat-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .balance-items {
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    .fiat-flow-item {
+        flex-wrap: wrap;
+    }
+
+    .flow-info {
+        width: calc(100% - 80px);
+    }
+
+    .flow-amount {
+        margin-left: auto;
+    }
+}
+
+/* ============================================
+   월간 리포트
+   ============================================ */
+.report-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.report-header {
+    text-align: center;
+    margin-bottom: var(--space-6);
+}
+
+.report-header h2 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: white;
+    margin-bottom: var(--space-2);
+}
+
+.report-period {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* 요약 카드 */
+.report-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.report-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    text-align: center;
+}
+
+.report-card.income {
+    border-left: 3px solid var(--positive);
+}
+
+.report-card.expense {
+    border-left: 3px solid var(--negative);
+}
+
+.report-card.savings {
+    border-left: 3px solid var(--primary);
+}
+
+.report-card-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--space-2);
+}
+
+.report-card-value {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: white;
+    margin-bottom: var(--space-2);
+}
+
+.report-card-value.positive {
+    color: var(--positive);
+}
+
+.report-card-value.negative {
+    color: var(--negative);
+}
+
+.report-card-change {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.report-card-change.positive {
+    color: var(--positive);
+}
+
+.report-card-change.negative {
+    color: var(--negative);
+}
+
+/* 리포트 섹션 */
+.report-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    margin-bottom: var(--space-4);
+}
+
+.report-section h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: white;
+    margin-bottom: var(--space-4);
+}
+
+/* 카테고리 랭킹 */
+.category-ranking {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-lg);
+}
+
+.ranking-number {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-bg);
+    border-radius: 50%;
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+    color: var(--primary);
+}
+
+.ranking-item:first-child .ranking-number {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: #1a1a2e;
+}
+
+.ranking-category {
+    flex: 1;
+    font-weight: var(--font-medium);
+    color: white;
+}
+
+.ranking-amount {
+    font-weight: var(--font-semibold);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.ranking-percent {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.5);
+    min-width: 40px;
+    text-align: right;
+}
+
+/* 인사이트 */
+.report-insights {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.insight-item.positive {
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 3px solid var(--positive);
+}
+
+.insight-item.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid var(--warning);
+}
+
+.insight-icon {
+    font-size: 1.2rem;
+}
+
+.insight-text {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+/* 비교 그리드 */
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+}
+
+.comparison-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-lg);
+}
+
+.comp-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.comp-value {
+    font-weight: var(--font-semibold);
+    color: white;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .report-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .comparison-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .report-card-value {
+        font-size: var(--text-xl);
+    }
 }

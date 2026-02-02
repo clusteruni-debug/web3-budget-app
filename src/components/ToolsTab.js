@@ -1,6 +1,6 @@
-// 도구 탭: 예산, 캘린더, 고정지출, 소비분석, 대출계산기, 계정설정
-import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions, getBudgets, createBudget, updateBudget, deleteBudget, getBudgetVsActual, getSubscriptions, createSubscription, updateSubscription, deleteSubscription, getGoals, createGoal, updateGoal, deleteGoal } from '../services/database.js';
-import { formatAmount, formatAmountShort } from '../utils/helpers.js';
+// 도구 탭: 예산, 캘린더, 고정지출, 소비분석, 대출계산기, 투자손익, 설정
+import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions, getBudgets, createBudget, updateBudget, deleteBudget, getBudgetVsActual, getSubscriptions, createSubscription, updateSubscription, deleteSubscription, getGoals, createGoal, updateGoal, deleteGoal, getFiatFlows, createFiatFlow, deleteFiatFlow, calculateFiatProfit } from '../services/database.js';
+import { formatAmount, formatAmountShort, createEmptyState, EMPTY_STATES } from '../utils/helpers.js';
 import { updatePassword } from '../services/auth.js';
 import { getCurrentUser } from '../services/supabase.js';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants.js';
@@ -15,6 +15,8 @@ let budgets = [];
 let budgetData = null;
 let subscriptions = [];
 let goals = [];
+let fiatFlows = [];
+let fiatProfitData = null;
 
 export function createToolsTab() {
     return `
@@ -27,6 +29,8 @@ export function createToolsTab() {
                 <button class="tool-tab-btn" data-tool="calendar">📅 결제 일정</button>
                 <button class="tool-tab-btn" data-tool="recurring">💳 고정 지출</button>
                 <button class="tool-tab-btn" data-tool="spending">📊 소비 분석</button>
+                <button class="tool-tab-btn" data-tool="report">📋 월간 리포트</button>
+                <button class="tool-tab-btn" data-tool="fiat-profit">💹 투자 손익</button>
                 <button class="tool-tab-btn" data-tool="debt-calc">🧮 대출 계산</button>
                 <button class="tool-tab-btn" data-tool="account">⚙️ 설정</button>
             </div>
@@ -90,6 +94,14 @@ async function loadToolsData() {
     budgetData = budgetVsActualRes.success ? budgetVsActualRes.data : null;
     subscriptions = subscriptionsRes.data || [];
     goals = goalsRes.data || [];
+
+    // 투자 손익 데이터 로드
+    const [fiatFlowsRes, fiatProfitRes] = await Promise.all([
+        getFiatFlows(),
+        calculateFiatProfit()
+    ]);
+    fiatFlows = fiatFlowsRes.data || [];
+    fiatProfitData = fiatProfitRes.success ? fiatProfitRes.data : null;
 }
 
 function renderCurrentTool() {
@@ -119,6 +131,14 @@ function renderCurrentTool() {
         case 'spending':
             content.innerHTML = renderSpendingAnalysis();
             initSpendingAnalysis();
+            break;
+        case 'report':
+            content.innerHTML = renderMonthlyReport();
+            initMonthlyReport();
+            break;
+        case 'fiat-profit':
+            content.innerHTML = renderFiatProfit();
+            initFiatProfit();
             break;
         case 'futures':
             content.innerHTML = renderFuturesLoss();
@@ -160,7 +180,7 @@ function renderBudgetManager() {
                 </div>
                 <div class="empty-state">
                     <p>설정된 예산이 없습니다</p>
-                    <p class="hint">위의 '+ 예산 추가' 버튼을 눌러 카테고리별 예산을 설정하세요</p>
+                    <p class="hint">위의 '+ 예산 추가' 버튼을 눌러 분류별 예산을 설정하세요</p>
                 </div>
             </div>
 
@@ -216,9 +236,9 @@ function renderBudgetManager() {
                 </div>
             </div>
 
-            <!-- 카테고리별 예산 -->
+            <!-- 분류별 예산 -->
             <div class="budget-categories">
-                <h4>카테고리별 예산</h4>
+                <h4>분류별 예산</h4>
                 <div class="budget-list">
                     ${budgetItems.map(b => renderBudgetItem(b)).join('')}
                 </div>
@@ -231,7 +251,8 @@ function renderBudgetManager() {
 }
 
 function renderBudgetItem(budget) {
-    const { category, monthly_amount, spent, remaining, percent, isOver, sub_items } = budget;
+    const { category, name, monthly_amount, spent, remaining, percent, isOver, sub_items } = budget;
+    const displayName = name || category; // 예산명이 있으면 사용, 없으면 카테고리
     const progressClass = isOver ? 'over' : percent > 80 ? 'warning' : 'normal';
     const subItems = sub_items || [];
     const hasSubItems = subItems.length > 0;
@@ -241,7 +262,8 @@ function renderBudgetItem(budget) {
             <div class="budget-item-header">
                 <div class="budget-category-wrap">
                     ${hasSubItems ? `<button class="btn-icon toggle-subitems-btn" data-id="${budget.id}">▶</button>` : ''}
-                    <span class="budget-category">${category}</span>
+                    <span class="budget-category">${displayName}</span>
+                    ${name ? `<span class="subitem-count">[${category}]</span>` : ''}
                     ${hasSubItems ? `<span class="subitem-count">(${subItems.length})</span>` : ''}
                 </div>
                 <div class="budget-item-actions">
@@ -288,10 +310,15 @@ function renderBudgetModal() {
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>카테고리</label>
-                        <select id="budgetCategory">
-                            ${EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
-                        </select>
+                        <label>분류 (직접 입력 가능)</label>
+                        <input type="text" id="budgetCategory" list="categoryList" placeholder="분류를 선택하거나 직접 입력">
+                        <datalist id="categoryList">
+                            ${EXPENSE_CATEGORIES.map(c => `<option value="${c}">`).join('')}
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>표시 이름 (선택, 비워두면 분류명 사용)</label>
+                        <input type="text" id="budgetName" placeholder="예: 2월 생활비, 여행 예산 등">
                     </div>
                     <div class="form-group">
                         <label>월 예산 금액 (총액)</label>
@@ -306,10 +333,10 @@ function renderBudgetModal() {
                         <button class="preset-btn" data-amount="1000000">100만</button>
                     </div>
 
-                    <!-- 세부항목 섹션 -->
+                    <!-- 세부 내역 섹션 -->
                     <div class="budget-subitems-section">
                         <div class="subitems-header">
-                            <label>세부항목 (선택)</label>
+                            <label>세부 내역 (선택)</label>
                             <button type="button" class="btn btn-sm" id="addSubItemBtn">+ 추가</button>
                         </div>
                         <div class="subitems-list" id="subItemsList">
@@ -327,7 +354,7 @@ function renderBudgetModal() {
     `;
 }
 
-// 세부항목 입력 필드 렌더링
+// 세부 내역 입력 필드 렌더링
 function renderSubItemInput(name = '', amount = '', index) {
     return `
         <div class="subitem-input-row" data-index="${index}">
@@ -338,7 +365,7 @@ function renderSubItemInput(name = '', amount = '', index) {
     `;
 }
 
-let tempSubItems = []; // 모달에서 임시로 관리하는 세부항목
+let tempSubItems = []; // 모달에서 임시로 관리하는 세부 내역
 
 function initBudgetManager() {
     // 예산 추가 버튼
@@ -356,7 +383,7 @@ function initBudgetManager() {
         });
     });
 
-    // 세부항목 추가 버튼
+    // 세부 내역 추가 버튼
     document.getElementById('addSubItemBtn')?.addEventListener('click', addSubItemInput);
 
     // 예산 항목 이벤트
@@ -393,7 +420,7 @@ function getSubItemsFromForm() {
 }
 
 function attachBudgetItemEvents() {
-    // 세부항목 토글
+    // 세부 내역 토글
     document.querySelectorAll('.toggle-subitems-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -438,30 +465,28 @@ function openBudgetModal(budget = null) {
     document.getElementById('budgetModalTitle').textContent = budget ? '예산 수정' : '예산 추가';
 
     const categorySelect = document.getElementById('budgetCategory');
+    const budgetNameInput = document.getElementById('budgetName');
     const subItemsList = document.getElementById('subItemsList');
 
-    // 세부항목 초기화
+    // 세부 내역 초기화
     subItemsList.innerHTML = '';
 
     if (budget) {
         categorySelect.value = budget.category;
-        categorySelect.disabled = true; // 수정 시 카테고리 변경 불가
+        // 수정 시에도 카테고리 변경 가능
+        budgetNameInput.value = budget.name || '';
         document.getElementById('budgetAmount').value = budget.monthly_amount;
 
-        // 기존 세부항목 로드
+        // 기존 세부 내역 로드
         const subItems = budget.sub_items || [];
         subItems.forEach((item, idx) => {
             subItemsList.insertAdjacentHTML('beforeend', renderSubItemInput(item.name, item.amount, idx));
         });
         attachSubItemEvents();
     } else {
-        // 이미 예산이 설정된 카테고리 제외
-        const existingCategories = budgets.map(b => b.category);
-        categorySelect.innerHTML = EXPENSE_CATEGORIES
-            .filter(c => !existingCategories.includes(c))
-            .map(c => `<option value="${c}">${c}</option>`)
-            .join('');
-        categorySelect.disabled = false;
+        // 새 예산 추가 - 입력 필드 초기화
+        categorySelect.value = '';
+        budgetNameInput.value = '';
         document.getElementById('budgetAmount').value = '';
     }
 }
@@ -473,11 +498,12 @@ function closeBudgetModal() {
 
 async function saveBudgetItem() {
     const category = document.getElementById('budgetCategory').value;
+    const budgetName = document.getElementById('budgetName').value.trim();
     const amount = parseInt(document.getElementById('budgetAmount').value) || 0;
     const subItems = getSubItemsFromForm();
 
     if (!category) {
-        alert('카테고리를 선택해주세요.');
+        alert('분류를 입력해주세요.');
         return;
     }
     if (amount <= 0) {
@@ -485,15 +511,16 @@ async function saveBudgetItem() {
         return;
     }
 
-    // 세부항목 합계가 총액을 초과하는지 확인
+    // 세부 내역 합계가 총액을 초과하는지 확인
     const subItemsTotal = subItems.reduce((sum, item) => sum + item.amount, 0);
     if (subItemsTotal > amount) {
-        alert(`세부항목 합계(${formatAmountShort(subItemsTotal)})가 총 예산(${formatAmountShort(amount)})을 초과합니다.`);
+        alert(`세부 내역 합계(${formatAmountShort(subItemsTotal)})가 총 예산(${formatAmountShort(amount)})을 초과합니다.`);
         return;
     }
 
     const data = {
         category,
+        name: budgetName || null, // 비어있으면 null
         monthly_amount: amount,
         sub_items: subItems
     };
@@ -659,7 +686,7 @@ function renderSubscriptionModal() {
                         <input type="text" id="subName" placeholder="예: Netflix, YouTube Premium">
                     </div>
                     <div class="form-group">
-                        <label>카테고리</label>
+                        <label>분류</label>
                         <select id="subCategory">
                             ${SUBSCRIPTION_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
                         </select>
@@ -692,7 +719,7 @@ function renderSubscriptionModal() {
                     </div>
                     <div class="form-group">
                         <label>메모</label>
-                        <input type="text" id="subNotes" placeholder="계정 정보, 공유 여부 등">
+                        <input type="text" id="subNotes" placeholder="메모, 공유 여부 등">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -987,7 +1014,7 @@ function renderGoalModal() {
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>카테고리</label>
+                            <label>분류</label>
                             <select id="goalCategory">
                                 ${GOAL_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
                             </select>
@@ -1639,7 +1666,7 @@ function renderRecurringExpenses() {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>카테고리</label>
+                        <label>분류</label>
                         <select id="recurringCategory">
                             ${EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
                         </select>
@@ -1912,9 +1939,9 @@ function updateSpendingAnalysis(period) {
     // 차트 업데이트
     updateSpendingChart(sortedCategories);
 
-    // 카테고리 목록
+    // 분류 목록
     document.getElementById('categoryBreakdown').innerHTML = `
-        <h4>카테고리별 지출</h4>
+        <h4>분류별 지출</h4>
         ${sortedCategories.map(([cat, amount]) => {
             const percent = totalExpense > 0 ? ((amount / totalExpense) * 100).toFixed(1) : 0;
             return `
@@ -1994,7 +2021,7 @@ function updateSpendingInsights(categoryData, totalExpense, totalIncome) {
         const topPercent = totalExpense > 0 ? ((topCategory[1] / totalExpense) * 100).toFixed(0) : 0;
         insights.push({
             icon: '📊',
-            text: `가장 많이 쓴 카테고리: <strong>${topCategory[0]}</strong> (${formatAmountShort(topCategory[1])}, ${topPercent}%)`
+            text: `가장 많이 쓴 분류: <strong>${topCategory[0]}</strong> (${formatAmountShort(topCategory[1])}, ${topPercent}%)`
         });
     }
 
@@ -2264,11 +2291,11 @@ function generatePersonalizedInsights(categoryData, totalExpense, totalIncome, i
         });
     }
 
-    // 3. 카테고리 다양성 분석
+    // 3. 분류 다양성 분석
     if (categoryData.length <= 3 && totalExpense > 500000) {
         insights.push({
             icon: '🎯',
-            text: `소비가 <strong>${categoryData.length}개 카테고리</strong>에 집중되어 있어요. 특정 분야 지출을 점검해보세요.`
+            text: `소비가 <strong>${categoryData.length}개 분류</strong>에 집중되어 있어요. 특정 분야 지출을 점검해보세요.`
         });
     }
 
@@ -2568,7 +2595,7 @@ function renderFuturesLoss() {
 
             <div class="futures-record">
                 <h4>손실 기록하기</h4>
-                <p class="hint">선물 손실을 기록하려면 거래 탭에서 "지출 > 선물거래" 카테고리로 추가하세요.</p>
+                <p class="hint">선물 손실을 기록하려면 거래 탭에서 "지출 > 선물거래" 분류로 추가하세요.</p>
             </div>
         </div>
     `;
@@ -2579,7 +2606,7 @@ function initFuturesLoss() {
 }
 
 // ============================================
-// 계정 설정
+// 설정
 // ============================================
 
 function renderAccountSettings() {
@@ -2588,7 +2615,7 @@ function renderAccountSettings() {
             <h3>⚙️ 설정</h3>
 
             <div class="account-info-section">
-                <h4>👤 계정 정보</h4>
+                <h4>👤 내 정보</h4>
                 <div class="account-info-card">
                     <div class="info-row">
                         <span class="info-label">이메일</span>
@@ -2678,4 +2705,486 @@ async function handlePasswordChange() {
         btn.disabled = false;
         btn.textContent = '비밀번호 변경';
     }
+}
+
+// ============================================
+// 투자 손익 (원화 입출금 기준)
+// ============================================
+
+const PLATFORM_PRESETS = {
+    crypto: ['업비트', 'OKX', '빗썸', '바이낸스', '코인원', 'MEXC', '기타 거래소'],
+    stock: ['한국투자증권', '삼성증권', '키움증권', 'NH투자증권', '미래에셋증권', '기타 증권사'],
+    other: ['기타']
+};
+
+function renderFiatProfit() {
+    const data = fiatProfitData || {
+        totalDeposit: 0,
+        totalWithdraw: 0,
+        netInvestment: 0,
+        currentBalance: 0,
+        cryptoBalance: 0,
+        stockBalance: 0,
+        totalProfit: 0,
+        profitPercent: 0,
+        flowsCount: 0
+    };
+
+    const profitClass = data.totalProfit >= 0 ? 'positive' : 'negative';
+    const profitSign = data.totalProfit >= 0 ? '+' : '';
+
+    return `
+        <div class="fiat-profit-container">
+            <div class="fiat-profit-header">
+                <h3>💹 투자 손익</h3>
+                <button class="btn btn-primary" id="addFiatFlowBtn">+ 입출금 기록</button>
+            </div>
+
+            <!-- 손익 요약 카드 -->
+            <div class="fiat-profit-summary">
+                <div class="fiat-summary-main">
+                    <div class="fiat-profit-card ${profitClass}">
+                        <div class="fiat-profit-label">진짜 손익</div>
+                        <div class="fiat-profit-value ${profitClass}">${profitSign}${formatAmountShort(data.totalProfit)}</div>
+                        <div class="fiat-profit-percent">${profitSign}${data.profitPercent}%</div>
+                    </div>
+                </div>
+
+                <div class="fiat-summary-grid">
+                    <div class="fiat-summary-item deposit">
+                        <div class="fiat-item-icon">📥</div>
+                        <div class="fiat-item-info">
+                            <div class="fiat-item-label">총 입금</div>
+                            <div class="fiat-item-value">${formatAmountShort(data.totalDeposit)}</div>
+                        </div>
+                    </div>
+                    <div class="fiat-summary-item withdraw">
+                        <div class="fiat-item-icon">📤</div>
+                        <div class="fiat-item-info">
+                            <div class="fiat-item-label">총 출금</div>
+                            <div class="fiat-item-value">${formatAmountShort(data.totalWithdraw)}</div>
+                        </div>
+                    </div>
+                    <div class="fiat-summary-item net">
+                        <div class="fiat-item-icon">💵</div>
+                        <div class="fiat-item-info">
+                            <div class="fiat-item-label">순 투입금</div>
+                            <div class="fiat-item-value">${formatAmountShort(data.netInvestment)}</div>
+                        </div>
+                    </div>
+                    <div class="fiat-summary-item balance">
+                        <div class="fiat-item-icon">💰</div>
+                        <div class="fiat-item-info">
+                            <div class="fiat-item-label">현재 잔고</div>
+                            <div class="fiat-item-value">${formatAmountShort(data.currentBalance)}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 계산 설명 -->
+            <div class="fiat-formula-box">
+                <div class="formula-title">📐 손익 계산 공식</div>
+                <div class="formula-content">
+                    <code>진짜 손익 = 현재 잔고 - (입금 - 출금)</code>
+                    <p class="formula-desc">은행에서 투자처로 넣은 돈 vs 지금 가진 돈의 차이</p>
+                </div>
+            </div>
+
+            <!-- 잔고 내역 -->
+            <div class="fiat-balance-breakdown">
+                <h4>💼 현재 투자 잔고</h4>
+                <div class="balance-items">
+                    <div class="balance-item">
+                        <span class="balance-label">🪙 크립토</span>
+                        <span class="balance-value">${formatAmountShort(data.cryptoBalance)}</span>
+                    </div>
+                    <div class="balance-item">
+                        <span class="balance-label">📈 주식</span>
+                        <span class="balance-value">${formatAmountShort(data.stockBalance)}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 입출금 내역 -->
+            <div class="fiat-flows-section">
+                <h4>📜 입출금 내역 (${fiatFlows.length}건)</h4>
+                <div class="fiat-flows-list" id="fiatFlowsList">
+                    ${renderFiatFlowsList()}
+                </div>
+            </div>
+        </div>
+
+        <!-- 입출금 추가 모달 -->
+        ${renderFiatFlowModal()}
+    `;
+}
+
+function renderFiatFlowsList() {
+    if (fiatFlows.length === 0) {
+        return `
+            <div class="empty-state">
+                <p>입출금 기록이 없습니다</p>
+                <p class="hint">위의 '+ 입출금 기록' 버튼으로 추가하세요</p>
+            </div>
+        `;
+    }
+
+    return fiatFlows.map(flow => {
+        const isDeposit = flow.type === 'deposit';
+        const typeIcon = isDeposit ? '📥' : '📤';
+        const typeLabel = isDeposit ? '입금' : '출금';
+        const typeClass = isDeposit ? 'deposit' : 'withdraw';
+
+        return `
+            <div class="fiat-flow-item ${typeClass}" data-id="${flow.id}">
+                <div class="flow-icon">${typeIcon}</div>
+                <div class="flow-info">
+                    <div class="flow-platform">${flow.platform || '미지정'}</div>
+                    <div class="flow-meta">${flow.date} · ${typeLabel}</div>
+                    ${flow.notes ? `<div class="flow-notes">${flow.notes}</div>` : ''}
+                </div>
+                <div class="flow-amount ${typeClass}">${isDeposit ? '+' : '-'}${formatAmountShort(flow.amount)}</div>
+                <button class="btn-icon delete-flow-btn" data-id="${flow.id}" title="삭제">🗑️</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderFiatFlowModal() {
+    return `
+        <div id="fiatFlowModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>입출금 기록</h3>
+                    <button class="close-btn" id="closeFiatFlowModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>유형</label>
+                            <select id="fiatFlowType">
+                                <option value="deposit">📥 입금 (은행→투자처)</option>
+                                <option value="withdraw">📤 출금 (투자처→은행)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>투자처 종류</label>
+                            <select id="fiatPlatformType">
+                                <option value="crypto">🪙 크립토 거래소</option>
+                                <option value="stock">📈 증권사</option>
+                                <option value="other">📦 기타</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>거래소/증권사</label>
+                        <select id="fiatPlatform">
+                            ${PLATFORM_PRESETS.crypto.map(p => `<option value="${p}">${p}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>금액 (원)</label>
+                        <input type="number" id="fiatAmount" placeholder="0">
+                    </div>
+                    <div class="fiat-preset-amounts">
+                        <span class="preset-label">빠른 선택:</span>
+                        <button class="preset-btn" data-amount="100000">10만</button>
+                        <button class="preset-btn" data-amount="500000">50만</button>
+                        <button class="preset-btn" data-amount="1000000">100만</button>
+                        <button class="preset-btn" data-amount="5000000">500만</button>
+                    </div>
+                    <div class="form-group">
+                        <label>날짜</label>
+                        <input type="date" id="fiatDate" value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                    <div class="form-group">
+                        <label>메모 (선택)</label>
+                        <input type="text" id="fiatNotes" placeholder="예: 비트코인 구매용">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelFiatFlowBtn">취소</button>
+                    <button class="btn btn-primary" id="saveFiatFlowBtn">저장</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function initFiatProfit() {
+    // 입출금 추가 버튼
+    document.getElementById('addFiatFlowBtn')?.addEventListener('click', () => openFiatFlowModal());
+
+    // 모달 버튼
+    document.getElementById('closeFiatFlowModalBtn')?.addEventListener('click', closeFiatFlowModal);
+    document.getElementById('cancelFiatFlowBtn')?.addEventListener('click', closeFiatFlowModal);
+    document.getElementById('saveFiatFlowBtn')?.addEventListener('click', saveFiatFlowItem);
+
+    // 투자처 종류 변경 시 플랫폼 목록 업데이트
+    document.getElementById('fiatPlatformType')?.addEventListener('change', updatePlatformOptions);
+
+    // 빠른 금액 선택
+    document.querySelectorAll('.fiat-preset-amounts .preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('fiatAmount').value = btn.dataset.amount;
+        });
+    });
+
+    // 삭제 버튼 이벤트
+    attachFiatFlowEvents();
+}
+
+function updatePlatformOptions() {
+    const type = document.getElementById('fiatPlatformType').value;
+    const platformSelect = document.getElementById('fiatPlatform');
+    const presets = PLATFORM_PRESETS[type] || PLATFORM_PRESETS.other;
+    platformSelect.innerHTML = presets.map(p => `<option value="${p}">${p}</option>`).join('');
+}
+
+function attachFiatFlowEvents() {
+    document.querySelectorAll('.delete-flow-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            if (confirm('이 기록을 삭제하시겠습니까?')) {
+                const result = await deleteFiatFlow(id);
+                if (result.success) {
+                    await loadToolsData();
+                    renderCurrentTool();
+                } else {
+                    alert('삭제 실패: ' + result.error);
+                }
+            }
+        });
+    });
+}
+
+function openFiatFlowModal() {
+    document.getElementById('fiatFlowModal').style.display = 'flex';
+    document.getElementById('fiatFlowType').value = 'deposit';
+    document.getElementById('fiatPlatformType').value = 'crypto';
+    updatePlatformOptions();
+    document.getElementById('fiatAmount').value = '';
+    document.getElementById('fiatDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('fiatNotes').value = '';
+}
+
+function closeFiatFlowModal() {
+    document.getElementById('fiatFlowModal').style.display = 'none';
+}
+
+async function saveFiatFlowItem() {
+    const type = document.getElementById('fiatFlowType').value;
+    const platformType = document.getElementById('fiatPlatformType').value;
+    const platform = document.getElementById('fiatPlatform').value;
+    const amount = parseInt(document.getElementById('fiatAmount').value) || 0;
+    const date = document.getElementById('fiatDate').value;
+    const notes = document.getElementById('fiatNotes').value.trim();
+
+    if (amount <= 0) {
+        alert('금액을 입력해주세요.');
+        return;
+    }
+
+    if (!date) {
+        alert('날짜를 선택해주세요.');
+        return;
+    }
+
+    const data = {
+        type,
+        platform_type: platformType,
+        platform,
+        amount,
+        date,
+        notes: notes || null
+    };
+
+    const result = await createFiatFlow(data);
+
+    if (result.success) {
+        closeFiatFlowModal();
+        await loadToolsData();
+        renderCurrentTool();
+    } else {
+        alert('저장 실패: ' + result.error);
+    }
+}
+
+// ============================================
+// 월간 리포트
+// ============================================
+
+function renderMonthlyReport() {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // 이번 달 거래 필터링
+    const thisMonthTx = transactions.filter(t => {
+        const txDate = new Date(t.date);
+        return txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
+    });
+
+    // 지난 달 거래 필터링
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const lastMonthTx = transactions.filter(t => {
+        const txDate = new Date(t.date);
+        return txDate.getMonth() === lastMonth && txDate.getFullYear() === lastMonthYear;
+    });
+
+    // 수입/지출 계산
+    const thisIncome = thisMonthTx.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const thisExpense = thisMonthTx.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const lastIncome = lastMonthTx.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const lastExpense = lastMonthTx.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+
+    // 증감률 계산
+    const incomeChange = lastIncome > 0 ? ((thisIncome - lastIncome) / lastIncome * 100).toFixed(1) : 0;
+    const expenseChange = lastExpense > 0 ? ((thisExpense - lastExpense) / lastExpense * 100).toFixed(1) : 0;
+
+    // 카테고리별 지출 분석
+    const categoryExpenses = {};
+    thisMonthTx.filter(t => t.type === 'expense').forEach(t => {
+        const cat = t.category || '기타';
+        categoryExpenses[cat] = (categoryExpenses[cat] || 0) + t.amount;
+    });
+
+    // 정렬 (지출 많은 순)
+    const sortedCategories = Object.entries(categoryExpenses)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
+    return `
+        <div class="report-container">
+            <div class="report-header">
+                <h2>📋 ${currentYear}년 ${monthNames[currentMonth]} 리포트</h2>
+                <p class="report-period">${currentYear}.${String(currentMonth + 1).padStart(2, '0')}.01 ~ ${currentYear}.${String(currentMonth + 1).padStart(2, '0')}.${new Date(currentYear, currentMonth + 1, 0).getDate()}</p>
+            </div>
+
+            <!-- 요약 카드 -->
+            <div class="report-summary">
+                <div class="report-card income">
+                    <div class="report-card-label">총 수입</div>
+                    <div class="report-card-value">${formatAmountShort(thisIncome)}</div>
+                    <div class="report-card-change ${incomeChange >= 0 ? 'positive' : 'negative'}">
+                        ${incomeChange >= 0 ? '▲' : '▼'} ${Math.abs(incomeChange)}% vs 지난달
+                    </div>
+                </div>
+                <div class="report-card expense">
+                    <div class="report-card-label">총 지출</div>
+                    <div class="report-card-value">${formatAmountShort(thisExpense)}</div>
+                    <div class="report-card-change ${expenseChange <= 0 ? 'positive' : 'negative'}">
+                        ${expenseChange >= 0 ? '▲' : '▼'} ${Math.abs(expenseChange)}% vs 지난달
+                    </div>
+                </div>
+                <div class="report-card savings">
+                    <div class="report-card-label">순 저축</div>
+                    <div class="report-card-value ${thisIncome - thisExpense >= 0 ? 'positive' : 'negative'}">${formatAmountShort(thisIncome - thisExpense)}</div>
+                    <div class="report-card-change">저축률 ${thisIncome > 0 ? ((thisIncome - thisExpense) / thisIncome * 100).toFixed(0) : 0}%</div>
+                </div>
+            </div>
+
+            <!-- 카테고리별 지출 -->
+            <div class="report-section">
+                <h3>💸 지출 TOP 5</h3>
+                ${sortedCategories.length > 0 ? `
+                    <div class="category-ranking">
+                        ${sortedCategories.map(([cat, amount], idx) => `
+                            <div class="ranking-item">
+                                <span class="ranking-number">${idx + 1}</span>
+                                <span class="ranking-category">${cat}</span>
+                                <span class="ranking-amount">${formatAmountShort(amount)}</span>
+                                <span class="ranking-percent">${(amount / thisExpense * 100).toFixed(0)}%</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '<div class="empty-state-v2 compact"><div class="empty-icon">📊</div><div class="empty-title">이번 달 지출 내역이 없습니다</div></div>'}
+            </div>
+
+            <!-- 인사이트 -->
+            <div class="report-section">
+                <h3>💡 인사이트</h3>
+                <div class="report-insights">
+                    ${generateReportInsights(thisIncome, thisExpense, lastIncome, lastExpense, sortedCategories)}
+                </div>
+            </div>
+
+            <!-- 지난달 비교 -->
+            <div class="report-section">
+                <h3>📊 지난달 비교</h3>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <span class="comp-label">지난달 수입</span>
+                        <span class="comp-value">${formatAmountShort(lastIncome)}</span>
+                    </div>
+                    <div class="comparison-item">
+                        <span class="comp-label">이번달 수입</span>
+                        <span class="comp-value">${formatAmountShort(thisIncome)}</span>
+                    </div>
+                    <div class="comparison-item">
+                        <span class="comp-label">지난달 지출</span>
+                        <span class="comp-value">${formatAmountShort(lastExpense)}</span>
+                    </div>
+                    <div class="comparison-item">
+                        <span class="comp-label">이번달 지출</span>
+                        <span class="comp-value">${formatAmountShort(thisExpense)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function generateReportInsights(thisIncome, thisExpense, lastIncome, lastExpense, topCategories) {
+    const insights = [];
+    const savings = thisIncome - thisExpense;
+    const savingsRate = thisIncome > 0 ? (savings / thisIncome * 100) : 0;
+
+    // 저축률 인사이트
+    if (savingsRate >= 30) {
+        insights.push({ icon: '🎉', text: `저축률 ${savingsRate.toFixed(0)}%! 훌륭한 자금 관리입니다.`, type: 'positive' });
+    } else if (savingsRate >= 10) {
+        insights.push({ icon: '👍', text: `저축률 ${savingsRate.toFixed(0)}%. 꾸준히 저축하고 있어요.`, type: 'normal' });
+    } else if (savingsRate < 0) {
+        insights.push({ icon: '⚠️', text: '이번 달 지출이 수입을 초과했어요. 지출 점검이 필요합니다.', type: 'warning' });
+    }
+
+    // 지출 변화 인사이트
+    if (lastExpense > 0) {
+        const expenseChange = ((thisExpense - lastExpense) / lastExpense * 100);
+        if (expenseChange > 20) {
+            insights.push({ icon: '📈', text: `지출이 지난달 대비 ${expenseChange.toFixed(0)}% 증가했어요.`, type: 'warning' });
+        } else if (expenseChange < -20) {
+            insights.push({ icon: '📉', text: `지출이 지난달 대비 ${Math.abs(expenseChange).toFixed(0)}% 감소했어요!`, type: 'positive' });
+        }
+    }
+
+    // 최대 지출 카테고리
+    if (topCategories.length > 0) {
+        const [topCat, topAmount] = topCategories[0];
+        const topPercent = thisExpense > 0 ? (topAmount / thisExpense * 100) : 0;
+        if (topPercent > 40) {
+            insights.push({ icon: '🔍', text: `'${topCat}' 지출이 전체의 ${topPercent.toFixed(0)}%를 차지해요.`, type: 'normal' });
+        }
+    }
+
+    if (insights.length === 0) {
+        insights.push({ icon: '📊', text: '데이터가 더 쌓이면 자세한 분석을 볼 수 있어요.', type: 'normal' });
+    }
+
+    return insights.map(i => `
+        <div class="insight-item ${i.type}">
+            <span class="insight-icon">${i.icon}</span>
+            <span class="insight-text">${i.text}</span>
+        </div>
+    `).join('');
+}
+
+function initMonthlyReport() {
+    // 특별한 초기화 필요 없음
 }

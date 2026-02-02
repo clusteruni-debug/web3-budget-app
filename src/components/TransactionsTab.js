@@ -1,5 +1,5 @@
 import { getTransactions, deleteTransaction } from '../services/database.js';
-import { formatAmount, formatDate } from '../utils/helpers.js';
+import { formatAmount, formatDate, createEmptyState, EMPTY_STATES, showToast } from '../utils/helpers.js';
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../utils/constants.js';
 
 let transactions = [];
@@ -55,9 +55,9 @@ export function createTransactionsTab() {
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label>카테고리</label>
+                        <label>분류</label>
                         <select id="filterCategory">
-                            <option value="all">모든 카테고리</option>
+                            <option value="all">모든 분류</option>
                             ${allCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
                         </select>
                     </div>
@@ -309,8 +309,15 @@ function renderTransactionList() {
     const paginationEl = document.getElementById('pagination');
 
     if (filteredTransactions.length === 0) {
-        listEl.innerHTML = '<div class="empty-state">표시할 거래 내역이 없습니다.</div>';
+        listEl.innerHTML = createEmptyState({
+            ...EMPTY_STATES.transactions,
+            actionId: 'emptyAddTransaction'
+        });
         paginationEl.innerHTML = '';
+        // 빈 상태 버튼 이벤트
+        document.getElementById('emptyAddTransaction')?.addEventListener('click', () => {
+            document.getElementById('addTransactionBtn')?.click();
+        });
         return;
     }
 
@@ -471,9 +478,10 @@ function addTransactionEventListeners() {
             if (confirm('정말 삭제하시겠습니까?')) {
                 const result = await deleteTransaction(id);
                 if (result.success) {
+                    showToast('거래가 삭제되었습니다', 'success');
                     await loadTransactionsData();
                 } else {
-                    alert('삭제에 실패했습니다.');
+                    showToast('삭제에 실패했습니다', 'error');
                 }
             }
         });
@@ -486,7 +494,7 @@ async function exportToCSV() {
         return;
     }
 
-    const headers = ['날짜', '유형', '카테고리', '금액', '제목', '설명'];
+    const headers = ['날짜', '유형', '분류', '금액', '제목', '설명'];
     const rows = transactions.map(t => [
         t.date,
         t.type === 'income' ? '수입' : '지출',

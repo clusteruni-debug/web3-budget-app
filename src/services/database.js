@@ -11,8 +11,8 @@ export async function createDefaultAccounts(userId) {
             .from('accounts')
             .insert([
                 { user_id: userId, name: 'Web3 지갑', type: 'web3', balance: 0 },
-                { user_id: userId, name: '투자 계정', type: 'investment', balance: 0 },
-                { user_id: userId, name: '은행 계정', type: 'bank', balance: 0 },
+                { user_id: userId, name: '투자', type: 'investment', balance: 0 },
+                { user_id: userId, name: '은행', type: 'bank', balance: 0 },
                 { user_id: userId, name: '가족 대출', type: 'family', balance: 0 }
             ]);
 
@@ -1131,6 +1131,256 @@ export async function deleteGoal(id) {
         return { success: true };
     } catch (error) {
         console.error('Delete goal error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================
+// FIAT FLOWS (원화 입출금 - 투자 손익 계산용)
+// ============================================
+
+export async function getFiatFlows(filters = {}) {
+    try {
+        let query = supabase
+            .from('fiat_flows')
+            .select('*')
+            .order('date', { ascending: false });
+
+        if (filters.type) {
+            query = query.eq('type', filters.type);
+        }
+        if (filters.platform_type) {
+            query = query.eq('platform_type', filters.platform_type);
+        }
+        if (filters.dateFrom) {
+            query = query.gte('date', filters.dateFrom);
+        }
+        if (filters.dateTo) {
+            query = query.lte('date', filters.dateTo);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return { success: true, data: data || [] };
+    } catch (error) {
+        console.error('Get fiat flows error:', error);
+        return { success: false, error: error.message, data: [] };
+    }
+}
+
+export async function createFiatFlow(flow) {
+    try {
+        const { data, error } = await supabase
+            .from('fiat_flows')
+            .insert(flow)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Create fiat flow error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateFiatFlow(id, updates) {
+    try {
+        const { data, error } = await supabase
+            .from('fiat_flows')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Update fiat flow error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteFiatFlow(id) {
+    try {
+        const { error } = await supabase
+            .from('fiat_flows')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Delete fiat flow error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================
+// ASSET DISPOSALS (자산 정리 이력)
+// ============================================
+
+export async function getAssetDisposals() {
+    try {
+        const { data, error } = await supabase
+            .from('asset_disposals')
+            .select('*')
+            .order('disposal_date', { ascending: false });
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
+    } catch (error) {
+        console.error('Get asset disposals error:', error);
+        return { success: false, error: error.message, data: [] };
+    }
+}
+
+export async function createAssetDisposal(disposal) {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        const disposalData = {
+            ...disposal,
+            user_id: user.id
+        };
+
+        const { data, error } = await supabase
+            .from('asset_disposals')
+            .insert(disposalData)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Create asset disposal error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteAssetDisposal(id) {
+    try {
+        const { error } = await supabase
+            .from('asset_disposals')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Delete asset disposal error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 자산 정리 + 비활성화 (트랜잭션)
+export async function disposeAsset(assetId, disposalData) {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        // 1. 정리 기록 생성
+        const { data: disposal, error: disposalError } = await supabase
+            .from('asset_disposals')
+            .insert({
+                ...disposalData,
+                user_id: user.id,
+                asset_id: assetId
+            })
+            .select()
+            .single();
+
+        if (disposalError) throw disposalError;
+
+        // 2. 자산 비활성화
+        const { error: assetError } = await supabase
+            .from('assets')
+            .update({ is_active: false })
+            .eq('id', assetId);
+
+        if (assetError) throw assetError;
+
+        return { success: true, data: disposal };
+    } catch (error) {
+        console.error('Dispose asset error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 투자 손익 계산
+// 진짜 손익 = 현재 투자 잔고 - (총 입금 - 총 출금)
+// 즉, 현재 잔고 - 순 투입금
+export async function calculateFiatProfit() {
+    try {
+        const [flowsResult, assetsResult] = await Promise.all([
+            getFiatFlows(),
+            getAssets()
+        ]);
+
+        if (!flowsResult.success) throw new Error('Failed to fetch fiat flows');
+        if (!assetsResult.success) throw new Error('Failed to fetch assets');
+
+        const flows = flowsResult.data || [];
+        const assets = assetsResult.data || [];
+
+        // 입출금 집계
+        let totalDeposit = 0;
+        let totalWithdraw = 0;
+        const depositsByType = { crypto: 0, stock: 0, other: 0 };
+        const withdrawsByType = { crypto: 0, stock: 0, other: 0 };
+
+        flows.forEach(flow => {
+            const platformType = flow.platform_type || 'other';
+            if (flow.type === 'deposit') {
+                totalDeposit += flow.amount;
+                depositsByType[platformType] = (depositsByType[platformType] || 0) + flow.amount;
+            } else if (flow.type === 'withdraw') {
+                totalWithdraw += flow.amount;
+                withdrawsByType[platformType] = (withdrawsByType[platformType] || 0) + flow.amount;
+            }
+        });
+
+        // 현재 투자 잔고 (크립토 + 주식)
+        const cryptoBalance = assets
+            .filter(a => a.category === 'crypto')
+            .reduce((sum, a) => sum + (a.current_value || 0), 0);
+
+        const stockBalance = assets
+            .filter(a => a.category === 'stock')
+            .reduce((sum, a) => sum + (a.current_value || 0), 0);
+
+        const currentBalance = cryptoBalance + stockBalance;
+
+        // 순 투입금 = 입금 - 출금
+        const netInvestment = totalDeposit - totalWithdraw;
+
+        // 진짜 손익 = 현재 잔고 - 순 투입금
+        const totalProfit = currentBalance - netInvestment;
+
+        // 수익률 계산
+        const profitPercent = netInvestment > 0
+            ? ((totalProfit / netInvestment) * 100).toFixed(2)
+            : 0;
+
+        return {
+            success: true,
+            data: {
+                totalDeposit,
+                totalWithdraw,
+                netInvestment,
+                currentBalance,
+                cryptoBalance,
+                stockBalance,
+                totalProfit,
+                profitPercent,
+                depositsByType,
+                withdrawsByType,
+                flowsCount: flows.length
+            }
+        };
+    } catch (error) {
+        console.error('Calculate fiat profit error:', error);
         return { success: false, error: error.message };
     }
 }
