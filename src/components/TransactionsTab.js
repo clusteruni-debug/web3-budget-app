@@ -1,4 +1,4 @@
-import { getTransactions, deleteTransaction } from '../services/database.js';
+import { getTransactions, deleteTransaction, createTransaction } from '../services/database.js';
 import { formatAmount, formatDate, createEmptyState, EMPTY_STATES, showToast } from '../utils/helpers.js';
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../utils/constants.js';
 
@@ -22,6 +22,7 @@ export function createTransactionsTab() {
             <h2>거래 내역</h2>
 
             <div class="action-buttons">
+                <button class="btn btn-primary" id="importNavigatorBtn">📤 Navigator 수익 가져오기</button>
                 <button class="btn btn-secondary" id="exportCSVBtn">📥 CSV로 내보내기</button>
                 <button class="btn btn-secondary" id="clearAllDataBtn">🗑️ 전체 데이터 삭제</button>
             </div>
@@ -150,6 +151,9 @@ export async function initTransactionsTab(switchTabCallback, editTransactionCall
         currentPage = 1;
         filterTransactions();
     });
+
+    // Navigator 수익 가져오기
+    document.getElementById('importNavigatorBtn').addEventListener('click', importNavigatorData);
 
     // CSV 내보내기
     document.getElementById('exportCSVBtn').addEventListener('click', exportToCSV);
@@ -535,6 +539,92 @@ async function clearAllData() {
     } catch (error) {
         console.error('데이터 삭제 에러:', error);
         alert('데이터 삭제 중 오류가 발생했습니다.');
+    }
+}
+
+/**
+ * Navigator 수익 데이터 가져오기
+ * 클립보드에서 JSON 데이터를 읽어 거래로 추가
+ */
+async function importNavigatorData() {
+    try {
+        // 클립보드에서 읽기
+        const clipboardText = await navigator.clipboard.readText();
+
+        if (!clipboardText) {
+            showToast('클립보드가 비어있습니다.\nNavigator에서 "자산관리로 내보내기" 버튼을 먼저 클릭하세요.', 'warning');
+            return;
+        }
+
+        let importData;
+        try {
+            importData = JSON.parse(clipboardText);
+        } catch {
+            showToast('클립보드 데이터가 올바른 형식이 아닙니다.', 'error');
+            return;
+        }
+
+        // Navigator 데이터인지 확인
+        if (importData.source !== 'navigator' || !importData.transactions) {
+            showToast('Navigator 수익 데이터가 아닙니다.', 'error');
+            return;
+        }
+
+        const importTransactions = importData.transactions;
+
+        if (importTransactions.length === 0) {
+            showToast('가져올 수익 데이터가 없습니다.', 'warning');
+            return;
+        }
+
+        // 확인 대화상자
+        const confirmMsg = `Navigator에서 ${importTransactions.length}개의 수익 데이터를 가져옵니다.\n` +
+            `총 금액: ${importData.summary.totalRevenue.toLocaleString()}원\n\n` +
+            `계속하시겠습니까?`;
+
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        // 거래 추가
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const t of importTransactions) {
+            const transactionData = {
+                type: t.type || 'income',
+                category: t.category || '기타수입',
+                amount: t.amount,
+                title: t.title,
+                description: t.description || '',
+                date: t.date,
+                tags: t.tags || []
+            };
+
+            const result = await createTransaction(transactionData);
+            if (result.success) {
+                successCount++;
+            } else {
+                failCount++;
+            }
+        }
+
+        if (successCount > 0) {
+            showToast(`${successCount}개 수익이 추가되었습니다.` +
+                (failCount > 0 ? ` (${failCount}개 실패)` : ''), 'success');
+            await loadTransactionsData();
+        } else {
+            showToast('수익 추가에 실패했습니다.', 'error');
+        }
+
+    } catch (error) {
+        console.error('Navigator 데이터 가져오기 에러:', error);
+
+        if (error.name === 'NotAllowedError') {
+            showToast('클립보드 접근이 거부되었습니다.\n브라우저 설정에서 권한을 허용해주세요.', 'error');
+        } else {
+            showToast('데이터 가져오기 중 오류가 발생했습니다.', 'error');
+        }
     }
 }
 
