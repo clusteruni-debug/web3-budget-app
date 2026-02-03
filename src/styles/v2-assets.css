@@ -154,6 +154,26 @@
     transform: scale(1.1);
 }
 
+/* 입력 + 버튼 조합 */
+.input-with-button {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.input-with-button input {
+    flex: 1;
+}
+
+.input-with-button .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.btn-sm {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+}
+
 /* 필터 탭 */
 .filter-tabs {
     display: flex;
@@ -437,6 +457,20 @@
 .asset-actions {
     display: flex;
     gap: var(--space-2);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+}
+
+/* 리스트 컨테이너 */
+.staking-list-full,
+.airdrop-list-full,
+.debt-list-full,
+.asset-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    overflow: visible;
 }
 
 /* 스테이킹 전용 */
@@ -749,6 +783,22 @@
         margin-top: var(--space-2);
     }
 
+    /* 액션 버튼 모바일 위치 수정 */
+    .asset-actions {
+        position: absolute;
+        top: var(--space-3);
+        right: var(--space-3);
+        z-index: 10;
+    }
+
+    .asset-item,
+    .staking-item-full,
+    .airdrop-item-full,
+    .debt-item-full {
+        position: relative;
+        padding-right: 80px;
+    }
+
     .modal-content {
         max-width: 100%;
         margin: var(--space-2);
@@ -1030,6 +1080,29 @@
     color: var(--gray-400);
     font-size: var(--text-sm);
     transition: transform var(--transition-fast);
+}
+
+/* ICO 요약 섹션 */
+.ico-summary-section {
+    margin-top: var(--space-6);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--border-color);
+}
+
+.ico-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: var(--radius-lg);
+}
+
+@media (max-width: 768px) {
+    .ico-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* 정리 목록 */

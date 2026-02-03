@@ -76,21 +76,22 @@ CREATE TABLE recurring_items (
     amount BIGINT NOT NULL,
     title VARCHAR(200) NOT NULL,
     description TEXT,
-    
+
     -- 반복 설정
     frequency VARCHAR(20) NOT NULL CHECK (frequency IN ('daily', 'weekly', 'monthly')),
+    day_of_month INTEGER DEFAULT 1 CHECK (day_of_month >= 1 AND day_of_month <= 31),
     start_date DATE NOT NULL,
     next_date DATE NOT NULL,
     end_date DATE,
-    
+
     -- 계정
     account_from UUID REFERENCES accounts(id) ON DELETE SET NULL,
     account_to UUID REFERENCES accounts(id) ON DELETE SET NULL,
-    
+
     -- 상태
     is_active BOOLEAN DEFAULT true,
     auto_generate BOOLEAN DEFAULT false,
-    
+
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -99,6 +100,7 @@ CREATE TABLE recurring_items (
 CREATE INDEX idx_recurring_items_user_id ON recurring_items(user_id);
 CREATE INDEX idx_recurring_items_next_date ON recurring_items(next_date);
 CREATE INDEX idx_recurring_items_is_active ON recurring_items(is_active);
+CREATE INDEX idx_recurring_items_day_of_month ON recurring_items(day_of_month);
 
 -- ============================================
 -- 5. RPG Data (RPG 게임 데이터) 테이블

@@ -98,6 +98,96 @@ export function calculateChangeRate(current, previous) {
     return (((current - previous) / previous) * 100).toFixed(1);
 }
 
+// ============================================
+// 자동 계산 함수들
+// ============================================
+
+/**
+ * 대출 월상환액 계산 (원리금균등상환)
+ * @param {number} principal - 대출 원금
+ * @param {number} annualRate - 연이율 (예: 5.5 = 5.5%)
+ * @param {number} termMonths - 상환 기간 (개월)
+ * @returns {number} 월상환액
+ */
+export function calculateLoanMonthlyPayment(principal, annualRate, termMonths) {
+    if (!principal || !annualRate || !termMonths) return 0;
+    if (termMonths <= 0) return 0;
+
+    const monthlyRate = annualRate / 100 / 12;
+
+    if (monthlyRate === 0) {
+        // 무이자 대출
+        return Math.round(principal / termMonths);
+    }
+
+    // 원리금균등상환 공식: M = P * [r(1+r)^n] / [(1+r)^n - 1]
+    const factor = Math.pow(1 + monthlyRate, termMonths);
+    const payment = principal * (monthlyRate * factor) / (factor - 1);
+
+    return Math.round(payment);
+}
+
+/**
+ * 적금 만기액 계산 (정기적금, 월 복리)
+ * @param {number} monthlyDeposit - 월 납입액
+ * @param {number} annualRate - 연이율 (예: 4.0 = 4%)
+ * @param {number} termMonths - 적금 기간 (개월)
+ * @returns {{ maturityAmount: number, totalDeposit: number, interest: number }}
+ */
+export function calculateSavingsMaturity(monthlyDeposit, annualRate, termMonths) {
+    if (!monthlyDeposit || !termMonths) {
+        return { maturityAmount: 0, totalDeposit: 0, interest: 0 };
+    }
+
+    const totalDeposit = monthlyDeposit * termMonths;
+
+    if (!annualRate || annualRate === 0) {
+        return { maturityAmount: totalDeposit, totalDeposit, interest: 0 };
+    }
+
+    // 단리 계산 (일반 적금)
+    // 이자 = 월납입액 × (기간×(기간+1)/2) × (연이율/12/100)
+    const interest = monthlyDeposit * (termMonths * (termMonths + 1) / 2) * (annualRate / 12 / 100);
+    const maturityAmount = Math.round(totalDeposit + interest);
+
+    return {
+        maturityAmount,
+        totalDeposit,
+        interest: Math.round(interest)
+    };
+}
+
+/**
+ * 투자 수익률 계산
+ * @param {number} purchaseValue - 매입 금액
+ * @param {number} currentValue - 현재 평가금
+ * @returns {{ profit: number, profitRate: number }}
+ */
+export function calculateInvestmentReturn(purchaseValue, currentValue) {
+    if (!purchaseValue) {
+        return { profit: 0, profitRate: 0 };
+    }
+
+    const profit = currentValue - purchaseValue;
+    const profitRate = (profit / purchaseValue) * 100;
+
+    return {
+        profit,
+        profitRate: parseFloat(profitRate.toFixed(2))
+    };
+}
+
+/**
+ * 대출 잔여 상환 기간 계산
+ * @param {number} remainingAmount - 잔여 원금
+ * @param {number} monthlyPayment - 월상환액
+ * @returns {number} 남은 개월 수
+ */
+export function calculateRemainingTerm(remainingAmount, monthlyPayment) {
+    if (!monthlyPayment || monthlyPayment <= 0) return 0;
+    return Math.ceil(remainingAmount / monthlyPayment);
+}
+
 // 다음 날짜 계산 (반복 항목용)
 export function calculateNextDate(currentDate, frequency) {
     const date = new Date(currentDate);

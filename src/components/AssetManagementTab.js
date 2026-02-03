@@ -1,6 +1,6 @@
 // V2: 통합 자산 관리 탭
-import { getAssets, createAsset, updateAsset, deleteAsset, getDebts, createDebt, updateDebt, deleteDebt, getAssetDisposals, disposeAsset, deleteAssetDisposal } from '../services/database.js';
-import { formatAmount, getToday, createEmptyState, EMPTY_STATES, showToast } from '../utils/helpers.js';
+import { getAssets, createAsset, updateAsset, deleteAsset, getDebts, createDebt, updateDebt, deleteDebt, getAssetDisposals, disposeAsset, deleteAssetDisposal, calculateIcoProfit } from '../services/database.js';
+import { formatAmount, getToday, createEmptyState, EMPTY_STATES, showToast, calculateLoanMonthlyPayment, calculateInvestmentReturn } from '../utils/helpers.js';
 import { ASSET_CATEGORY_INFO, CRYPTO_TYPE_INFO, CASH_TYPE_INFO, STAKING_STATUS_INFO, AIRDROP_STATUS_INFO, DEBT_TYPE_INFO } from '../utils/constants.js';
 
 // 상수 별칭
@@ -59,6 +59,34 @@ export function createAssetManagementTab() {
                 <!-- 자산 목록 -->
                 <div class="asset-list" id="assetList">
                     <div class="loading">로딩 중...</div>
+                </div>
+
+                <!-- ICO/런치패드 투자 요약 -->
+                <div class="ico-summary-section" id="icoSummarySection" style="display: none;">
+                    <div class="section-header-collapsible" data-toggle="icoSummary">
+                        <h3>💎 ICO/런치패드 투자</h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="ico-summary-content" id="icoSummaryContent">
+                        <div class="ico-summary-grid">
+                            <div class="summary-card">
+                                <div class="summary-label">총 투자금</div>
+                                <div class="summary-value" id="icoTotalInvested">0원</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">현재 평가액</div>
+                                <div class="summary-value" id="icoCurrentValue">0원</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">손익</div>
+                                <div class="summary-value" id="icoTotalProfit">0원</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">수익률</div>
+                                <div class="summary-value" id="icoProfitRate">0%</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 정리 이력 섹션 -->
@@ -408,8 +436,17 @@ export function createAssetManagementTab() {
                             <input type="number" id="debtInterestRate" step="0.01" placeholder="0">
                         </div>
                         <div class="form-group">
+                            <label>상환 기간 (개월)</label>
+                            <input type="number" id="debtTermMonths" placeholder="예: 360">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
                             <label>월 상환액 (원)</label>
-                            <input type="number" id="debtMonthlyPayment" placeholder="0">
+                            <div class="input-with-button">
+                                <input type="number" id="debtMonthlyPayment" placeholder="0">
+                                <button type="button" class="btn btn-sm btn-secondary" id="calcMonthlyPaymentBtn" title="자동 계산">🔢 계산</button>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
@@ -420,6 +457,48 @@ export function createAssetManagementTab() {
                 <div class="modal-footer">
                     <button class="btn btn-secondary" id="cancelDebtBtn">취소</button>
                     <button class="btn btn-primary" id="saveDebtBtn">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 에어드랍 빠른 추가 모달 -->
+        <div id="quickAirdropModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="quickAirdropModalTitle">🎯 에어드랍 빠른 추가</h3>
+                    <button class="close-btn" id="closeQuickAirdropBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>프로젝트명 *</label>
+                        <input type="text" id="quickAirdropName" placeholder="예: Arbitrum, Starknet" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>상태</label>
+                            <select id="quickAirdropStatus">
+                                ${AIRDROP_STATUS.map(s =>
+                                    `<option value="${s.id}">${s.icon} ${s.name}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>예상 가치 (원)</label>
+                            <input type="number" id="quickAirdropValue" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>예상 에어드랍 날짜</label>
+                        <input type="date" id="quickAirdropDate">
+                    </div>
+                    <div class="form-group">
+                        <label>메모 (선택)</label>
+                        <input type="text" id="quickAirdropNotes" placeholder="참여 조건, 작업 내용 등">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelQuickAirdropBtn">취소</button>
+                    <button class="btn btn-primary" id="saveQuickAirdropBtn">저장</button>
                 </div>
             </div>
         </div>
@@ -497,16 +576,41 @@ function initEventListeners() {
     // 자산 모달
     document.getElementById('addAssetBtn').addEventListener('click', () => openAssetModal());
     document.getElementById('addStakingBtn').addEventListener('click', () => openAssetModal('staking'));
-    document.getElementById('addAirdropBtn').addEventListener('click', () => openAssetModal('airdrop'));
+    document.getElementById('addAirdropBtn').addEventListener('click', () => openQuickAirdropModal());
     document.getElementById('closeAssetModalBtn').addEventListener('click', closeAssetModal);
     document.getElementById('cancelAssetBtn').addEventListener('click', closeAssetModal);
     document.getElementById('saveAssetBtn').addEventListener('click', saveAsset);
+
+    // 에어드랍 빠른 추가 모달
+    document.getElementById('closeQuickAirdropBtn').addEventListener('click', closeQuickAirdropModal);
+    document.getElementById('cancelQuickAirdropBtn').addEventListener('click', closeQuickAirdropModal);
+    document.getElementById('saveQuickAirdropBtn').addEventListener('click', saveQuickAirdrop);
 
     // 부채 모달
     document.getElementById('addDebtBtn').addEventListener('click', () => openDebtModal());
     document.getElementById('closeDebtModalBtn').addEventListener('click', closeDebtModal);
     document.getElementById('cancelDebtBtn').addEventListener('click', closeDebtModal);
     document.getElementById('saveDebtBtn').addEventListener('click', saveDebt);
+
+    // 월상환액 자동 계산 버튼
+    document.getElementById('calcMonthlyPaymentBtn').addEventListener('click', () => {
+        const principal = parseInt(document.getElementById('debtTotalAmount').value) || 0;
+        const rate = parseFloat(document.getElementById('debtInterestRate').value) || 0;
+        const termMonths = parseInt(document.getElementById('debtTermMonths').value) || 0;
+
+        if (!principal) {
+            showToast('총 부채액을 입력해주세요.', 'warning');
+            return;
+        }
+        if (!termMonths) {
+            showToast('상환 기간(개월)을 입력해주세요.', 'warning');
+            return;
+        }
+
+        const monthlyPayment = calculateLoanMonthlyPayment(principal, rate, termMonths);
+        document.getElementById('debtMonthlyPayment').value = monthlyPayment;
+        showToast(`월상환액: ${formatAmount(monthlyPayment)}`, 'success');
+    });
 
     // 정리 모달
     document.getElementById('closeDisposeModalBtn').addEventListener('click', closeDisposeModal);
@@ -547,6 +651,7 @@ function updateCurrentView() {
             document.getElementById('assetsView').style.display = '';
             renderAssetList('all');
             renderDisposalList();
+            updateIcoSummary();
             break;
         case 'staking':
             document.getElementById('stakingView').style.display = '';
@@ -624,6 +729,31 @@ function renderAssetList(filter = 'all') {
     list.innerHTML = html;
     attachAssetItemEvents();
     attachCategoryToggleEvents();
+}
+
+async function updateIcoSummary() {
+    const section = document.getElementById('icoSummarySection');
+    if (!section) return;
+
+    const result = await calculateIcoProfit();
+    if (!result.success || result.data.projectCount === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = '';
+    const data = result.data;
+
+    document.getElementById('icoTotalInvested').textContent = formatAmount(data.totalInvested);
+    document.getElementById('icoCurrentValue').textContent = formatAmount(data.currentValue);
+
+    const profitEl = document.getElementById('icoTotalProfit');
+    profitEl.textContent = `${data.totalProfit >= 0 ? '+' : ''}${formatAmount(data.totalProfit)}`;
+    profitEl.className = `summary-value ${data.totalProfit >= 0 ? 'positive' : 'negative'}`;
+
+    const rateEl = document.getElementById('icoProfitRate');
+    rateEl.textContent = `${data.profitPercent >= 0 ? '+' : ''}${data.profitPercent}%`;
+    rateEl.className = `summary-value ${data.profitPercent >= 0 ? 'positive' : 'negative'}`;
 }
 
 function createAssetItem(asset) {
@@ -1216,6 +1346,60 @@ async function saveDebt() {
         await loadData();
     } else {
         alert('저장 실패: ' + result.error);
+    }
+}
+
+// ============================================
+// 에어드랍 빠른 추가
+// ============================================
+
+function openQuickAirdropModal() {
+    document.getElementById('quickAirdropModal').style.display = 'flex';
+    document.getElementById('quickAirdropName').value = '';
+    document.getElementById('quickAirdropStatus').value = 'pending';
+    document.getElementById('quickAirdropValue').value = '';
+    document.getElementById('quickAirdropDate').value = '';
+    document.getElementById('quickAirdropNotes').value = '';
+    document.getElementById('quickAirdropName').focus();
+}
+
+function closeQuickAirdropModal() {
+    document.getElementById('quickAirdropModal').style.display = 'none';
+}
+
+async function saveQuickAirdrop() {
+    const name = document.getElementById('quickAirdropName').value.trim();
+    const status = document.getElementById('quickAirdropStatus').value;
+    const expectedValue = parseInt(document.getElementById('quickAirdropValue').value) || 0;
+    const expectedDate = document.getElementById('quickAirdropDate').value || null;
+    const notes = document.getElementById('quickAirdropNotes').value.trim();
+
+    if (!name) {
+        showToast('프로젝트명을 입력해주세요.', 'warning');
+        return;
+    }
+
+    const assetData = {
+        category: 'crypto',
+        sub_type: 'airdrop',
+        name,
+        current_value: status === 'claimed' ? expectedValue : 0,
+        purchase_value: status === 'claimed' ? expectedValue : 0,
+        airdrop_status: status,
+        airdrop_expected_value: expectedValue,
+        airdrop_expected_date: expectedDate,
+        notes: notes || null
+    };
+
+    const result = await createAsset(assetData);
+
+    if (result.success) {
+        closeQuickAirdropModal();
+        await loadData();
+        updateCurrentView();
+        showToast('에어드랍이 추가되었습니다.', 'success');
+    } else {
+        showToast('저장 실패: ' + result.error, 'error');
     }
 }
 

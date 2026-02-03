@@ -2561,6 +2561,20 @@ input:checked + .toggle-slider::before {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.owner-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(251, 146, 60, 0.2);
+    color: #fb923c;
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    flex-shrink: 0;
 }
 
 .recurring-item-detail {

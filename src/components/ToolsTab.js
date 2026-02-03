@@ -1687,11 +1687,22 @@ function renderRecurringExpenses() {
                             </select>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="recurringActive" checked>
-                            활성화
-                        </label>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>소유자</label>
+                            <select id="recurringOwner">
+                                <option value="본인">본인</option>
+                                <option value="어머니">어머니</option>
+                                <option value="공동">공동</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="recurringActive" checked>
+                                활성화
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1708,24 +1719,29 @@ function renderRecurringList(items, type) {
         return `<div class="empty-state">등록된 ${type === 'expense' ? '고정 지출' : '고정 수입'}이 없습니다</div>`;
     }
 
-    return items.map(item => `
-        <div class="recurring-item ${type}" data-id="${item.id}">
-            <div class="recurring-item-info">
-                <div class="recurring-item-name">${item.description || item.category}</div>
-                <div class="recurring-item-detail">${item.category} · 매월 ${item.day_of_month || '-'}일</div>
+    return items.map(item => {
+        const ownerBadge = item.owner && item.owner !== '본인'
+            ? `<span class="owner-badge">${item.owner}</span>`
+            : '';
+        return `
+            <div class="recurring-item ${type}" data-id="${item.id}">
+                <div class="recurring-item-info">
+                    <div class="recurring-item-name">${item.description || item.category} ${ownerBadge}</div>
+                    <div class="recurring-item-detail">${item.category} · 매월 ${item.day_of_month || '-'}일</div>
+                </div>
+                <div class="recurring-item-amount ${type === 'expense' ? 'negative' : 'positive'}">
+                    ${formatAmount(item.amount)}
+                </div>
+                <div class="recurring-item-status">
+                    ${item.is_active ? '<span class="status-active">활성</span>' : '<span class="status-inactive">비활성</span>'}
+                </div>
+                <div class="recurring-item-actions">
+                    <button class="btn-icon edit-recurring-btn" data-id="${item.id}" title="수정">✏️</button>
+                    <button class="btn-icon delete-recurring-btn" data-id="${item.id}" title="삭제">🗑️</button>
+                </div>
             </div>
-            <div class="recurring-item-amount ${type === 'expense' ? 'negative' : 'positive'}">
-                ${formatAmount(item.amount)}
-            </div>
-            <div class="recurring-item-status">
-                ${item.is_active ? '<span class="status-active">활성</span>' : '<span class="status-inactive">비활성</span>'}
-            </div>
-            <div class="recurring-item-actions">
-                <button class="btn-icon edit-recurring-btn" data-id="${item.id}" title="수정">✏️</button>
-                <button class="btn-icon delete-recurring-btn" data-id="${item.id}" title="삭제">🗑️</button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function initRecurringExpenses() {
@@ -1801,6 +1817,7 @@ function openRecurringModal(item = null) {
         document.getElementById('recurringDescription').value = item.description || '';
         document.getElementById('recurringAmount').value = item.amount || '';
         document.getElementById('recurringDay').value = item.day_of_month || 1;
+        document.getElementById('recurringOwner').value = item.owner || '본인';
         document.getElementById('recurringActive').checked = item.is_active !== false;
     } else {
         document.getElementById('recurringType').value = 'expense';
@@ -1808,6 +1825,7 @@ function openRecurringModal(item = null) {
         document.getElementById('recurringDescription').value = '';
         document.getElementById('recurringAmount').value = '';
         document.getElementById('recurringDay').value = 1;
+        document.getElementById('recurringOwner').value = '본인';
         document.getElementById('recurringActive').checked = true;
     }
 }
@@ -1823,6 +1841,7 @@ async function saveRecurringItem() {
     const description = document.getElementById('recurringDescription').value.trim();
     const amount = parseInt(document.getElementById('recurringAmount').value) || 0;
     const dayOfMonth = parseInt(document.getElementById('recurringDay').value) || 1;
+    const owner = document.getElementById('recurringOwner').value;
     const isActive = document.getElementById('recurringActive').checked;
 
     if (amount <= 0) {
@@ -1836,6 +1855,7 @@ async function saveRecurringItem() {
         description: description || null,
         amount,
         day_of_month: dayOfMonth,
+        owner: owner || '본인',
         is_active: isActive,
         frequency: 'monthly'
     };

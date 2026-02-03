@@ -1384,3 +1384,76 @@ export async function calculateFiatProfit() {
         return { success: false, error: error.message };
     }
 }
+
+// ICO/런치패드 투자 손익 계산
+export async function calculateIcoProfit() {
+    try {
+        const assetsResult = await getAssets();
+        if (!assetsResult.success) throw new Error('Failed to fetch assets');
+
+        const assets = assetsResult.data || [];
+
+        // ICO 타입 자산만 필터
+        const icoAssets = assets.filter(a => a.sub_type === 'ico');
+
+        if (icoAssets.length === 0) {
+            return {
+                success: true,
+                data: {
+                    totalInvested: 0,
+                    currentValue: 0,
+                    totalProfit: 0,
+                    profitPercent: 0,
+                    projects: []
+                }
+            };
+        }
+
+        // 총 투자금 (매입가)
+        const totalInvested = icoAssets.reduce((sum, a) => sum + (a.purchase_value || 0), 0);
+
+        // 현재 평가액
+        const currentValue = icoAssets.reduce((sum, a) => sum + (a.current_value || 0), 0);
+
+        // 손익
+        const totalProfit = currentValue - totalInvested;
+
+        // 수익률
+        const profitPercent = totalInvested > 0
+            ? ((totalProfit / totalInvested) * 100).toFixed(2)
+            : 0;
+
+        // 개별 프로젝트 손익
+        const projects = icoAssets.map(a => {
+            const invested = a.purchase_value || 0;
+            const current = a.current_value || 0;
+            const profit = current - invested;
+            const rate = invested > 0 ? ((profit / invested) * 100).toFixed(2) : 0;
+
+            return {
+                id: a.id,
+                name: a.name,
+                platform: a.platform,
+                invested,
+                current,
+                profit,
+                profitRate: parseFloat(rate)
+            };
+        }).sort((a, b) => b.profit - a.profit);
+
+        return {
+            success: true,
+            data: {
+                totalInvested,
+                currentValue,
+                totalProfit,
+                profitPercent: parseFloat(profitPercent),
+                projectCount: icoAssets.length,
+                projects
+            }
+        };
+    } catch (error) {
+        console.error('Calculate ICO profit error:', error);
+        return { success: false, error: error.message };
+    }
+}

@@ -706,8 +706,23 @@ function updateMonthlySummary(transactionList) {
         return txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
     });
 
-    const income = thisMonthTx.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0);
-    const expense = thisMonthTx.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
+    // 거래 기반 수입/지출
+    let income = thisMonthTx.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0);
+    let expense = thisMonthTx.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
+
+    // 고정 수입/지출 추가 (활성화된 월간 항목만)
+    const activeRecurring = recurringItems.filter(item => item.is_active && item.frequency === 'monthly');
+    const recurringIncome = activeRecurring
+        .filter(item => item.type === 'income')
+        .reduce((sum, item) => sum + (item.amount || 0), 0);
+    const recurringExpense = activeRecurring
+        .filter(item => item.type === 'expense')
+        .reduce((sum, item) => sum + (item.amount || 0), 0);
+
+    // 고정 항목 합산
+    income += recurringIncome;
+    expense += recurringExpense;
+
     const savings = income - expense;
 
     document.getElementById('monthlyIncome').textContent = formatAmountShort(income);
