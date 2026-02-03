@@ -11,13 +11,11 @@
 | **마지막 작업** | 7가지 버그 수정 완료 (2026-02-04) |
 | **마지막 커밋** | `fc49ea2` - fix: 7가지 버그 수정 및 기능 개선 |
 | **배포 상태** | ✅ Vercel 자동 배포 완료 |
-| **다음 작업** | Supabase 마이그레이션 실행 필요 |
+| **다음 작업** | 없음 (모든 작업 완료) |
 
-### ⚠️ Supabase에서 실행 필요
-```
-supabase/migration_add_day_of_month.sql
-supabase/migration_add_owner_to_recurring.sql
-```
+### ✅ Supabase 마이그레이션 완료
+- `migration_add_day_of_month.sql` ✅
+- `migration_add_owner_to_recurring.sql` ✅
 
 ### 2026-02-04 완료된 버그 수정
 
