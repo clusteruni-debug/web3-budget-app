@@ -585,10 +585,63 @@ export async function updateAsset(id, updates) {
             .single();
 
         if (error) throw error;
+
+        // 자산 가치 변경 시 히스토리 자동 저장
+        if (data && data.current_value) {
+            saveAssetHistory(id, data.current_value).catch(err =>
+                console.warn('히스토리 저장 실패 (무시):', err)
+            );
+        }
+
         return { success: true, data };
     } catch (error) {
         console.error('Update asset error:', error);
         return { success: false, error: error.message };
+    }
+}
+
+// 자산 히스토리 저장 (오늘 날짜 기준, 중복 시 업데이트)
+export async function saveAssetHistory(assetId, value) {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const { data, error } = await supabase
+            .from('asset_history')
+            .upsert({
+                asset_id: assetId,
+                recorded_date: today,
+                value: value
+            }, {
+                onConflict: 'asset_id,recorded_date'
+            });
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        // 테이블이 없을 수도 있으므로 경고만
+        console.warn('Asset history save error:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+// 자산 히스토리 조회 (최근 N일)
+export async function getAssetHistory(assetId, days = 30) {
+    try {
+        const sinceDate = new Date();
+        sinceDate.setDate(sinceDate.getDate() - days);
+        const sinceDateStr = sinceDate.toISOString().split('T')[0];
+
+        const { data, error } = await supabase
+            .from('asset_history')
+            .select('*')
+            .eq('asset_id', assetId)
+            .gte('recorded_date', sinceDateStr)
+            .order('recorded_date', { ascending: true });
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
+    } catch (error) {
+        console.warn('Asset history fetch error:', error.message);
+        return { success: false, data: [], error: error.message };
     }
 }
 

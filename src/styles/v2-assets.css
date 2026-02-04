@@ -348,6 +348,55 @@
     color: var(--gray-200);
 }
 
+/* 카테고리 헤더 오른쪽 (수익률 + 총액) */
+.category-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.category-change {
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+}
+
+.category-change.up {
+    color: var(--positive);
+}
+
+.category-change.down {
+    color: var(--negative);
+}
+
+.cat-update-icon {
+    font-size: 0.9em;
+    margin-left: var(--space-1);
+}
+
+/* 업데이트 상태 배지 */
+.update-status {
+    font-size: 0.75em;
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+}
+
+.update-status.fresh {
+    color: var(--positive);
+}
+
+.update-status.recent {
+    color: var(--positive);
+}
+
+.update-status.stale {
+    color: var(--warning);
+}
+
+.update-status.very-stale {
+    color: var(--negative);
+}
+
 /* 자산 아이템 */
 .asset-items {
     display: flex;

@@ -336,7 +336,7 @@
 
         .subtitle-old {
             text-align: center;
-            color: #666;
+            color: var(--gray-300);
             margin-bottom: 30px;
         }
 
@@ -635,7 +635,7 @@
         }
 
         .date-filter {
-            background: white;
+            background: var(--bg-card);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
@@ -643,7 +643,7 @@
             gap: 10px;
             flex-wrap: wrap;
             align-items: center;
-            border: 2px solid #f0f0f0;
+            border: 2px solid var(--border-color);
         }
 
         .date-filter label {
@@ -653,8 +653,8 @@
 
         .date-filter-btn {
             padding: 8px 16px;
-            background: white;
-            border: 2px solid #ddd;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
             border-radius: 8px;
             cursor: pointer;
             font-size: 0.9em;
@@ -680,14 +680,14 @@
         }
 
         .stat-card {
-            background: white;
+            background: var(--bg-card);
             padding: 15px;
             border-radius: 10px;
             border-left: 4px solid #667eea;
         }
 
         .stat-card h4 {
-            color: #666;
+            color: var(--gray-300);
             font-size: 0.9em;
             margin-bottom: 8px;
         }
@@ -695,7 +695,7 @@
         .stat-card .stat-value {
             font-size: 1.5em;
             font-weight: bold;
-            color: #333;
+            color: var(--gray-50);
         }
 
         .stat-card .stat-change {
@@ -719,7 +719,7 @@
         }
 
         .btn-secondary {
-            background: white;
+            background: var(--bg-card);
             color: #667eea;
             border: 2px solid #667eea;
         }
@@ -730,7 +730,7 @@
         }
 
         .dynamic-fields {
-            background: #f0f4ff;
+            background: var(--bg-elevated);
             padding: 20px;
             border-radius: 10px;
             margin-top: 15px;
@@ -748,12 +748,12 @@
 
         .field-hint {
             font-size: 0.85em;
-            color: #666;
+            color: var(--gray-300);
             margin-top: 3px;
         }
 
         .calculated-value {
-            background: white;
+            background: var(--bg-card);
             padding: 15px;
             border-radius: 8px;
             margin-top: 10px;
@@ -763,7 +763,7 @@
 
         .calculated-value label {
             display: block;
-            color: #666;
+            color: var(--gray-300);
             font-size: 0.9em;
             margin-bottom: 5px;
         }
@@ -792,7 +792,7 @@
         }
 
         .edit-mode {
-            background: #fff3cd !important;
+            background: rgba(245, 158, 11, 0.1) !important;
             border: 2px solid #ffc107 !important;
         }
 
@@ -811,6 +811,132 @@
             display: block;
         }
 
+        /* 기간별 지출 요약 */
+        .period-summary {
+            margin-bottom: 20px;
+        }
+
+        .period-summary-title {
+            color: var(--gray-50);
+            font-size: 1.1em;
+            margin-bottom: 12px;
+        }
+
+        .period-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .period-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            text-align: center;
+        }
+
+        .period-label {
+            color: var(--gray-300);
+            font-size: 0.85em;
+            margin-bottom: 6px;
+        }
+
+        .period-amount {
+            color: var(--negative);
+            font-size: 1.2em;
+            font-weight: 700;
+        }
+
+        .period-count {
+            color: var(--gray-400);
+            font-size: 0.8em;
+            margin-top: 4px;
+        }
+
+        /* 최근 거래 위젯 */
+        .recent-transactions-widget {
+            margin-bottom: 20px;
+        }
+
+        .recent-transactions-widget h3 {
+            color: var(--gray-50);
+            font-size: 1.1em;
+            margin-bottom: 12px;
+        }
+
+        .recent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .recent-tx-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+        }
+
+        .recent-tx-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .recent-tx-category {
+            color: var(--gray-300);
+            font-size: 0.8em;
+        }
+
+        .recent-tx-title {
+            color: var(--gray-50);
+            font-size: 0.95em;
+        }
+
+        .recent-tx-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .recent-tx-amount {
+            font-weight: 700;
+            font-size: 0.95em;
+        }
+
+        .recent-tx-amount.positive {
+            color: var(--positive);
+        }
+
+        .recent-tx-amount.negative {
+            color: var(--negative);
+        }
+
+        .recent-tx-date {
+            color: var(--gray-400);
+            font-size: 0.8em;
+        }
+
+        @media (max-width: 480px) {
+            .period-cards {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            .period-card {
+                padding: 10px 6px;
+            }
+
+            .period-amount {
+                font-size: 1em;
+            }
+        }
+
         /* RPG 스타일 */
         .rpg-container {
             max-width: 900px;
@@ -818,7 +944,7 @@
         }
 
         .boss-card {
-            background: white;
+            background: var(--bg-card);
             border-radius: 15px;
             padding: 30px;
             margin-bottom: 25px;
@@ -847,7 +973,7 @@
 
         .boss-card.debt {
             border: 3px solid #ff9800;
-            background: linear-gradient(135deg, #fff8f0 0%, #ffffff 100%);
+            background: var(--bg-card);
         }
 
         .boss-header {
@@ -856,13 +982,13 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid var(--border-color);
         }
 
         .boss-title {
             font-size: 1.8em;
             font-weight: bold;
-            color: #333;
+            color: var(--gray-50);
         }
 
         .boss-title.danger {
@@ -938,13 +1064,13 @@
             justify-content: space-between;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #333;
+            color: var(--gray-50);
         }
 
         .hp-bar {
             width: 100%;
             height: 30px;
-            background: #f0f0f0;
+            background: var(--bg-elevated);
             border-radius: 15px;
             overflow: hidden;
             position: relative;
@@ -985,18 +1111,18 @@
 
         .debt-stat-label {
             font-size: 0.9em;
-            color: #666;
+            color: var(--gray-300);
             margin-bottom: 5px;
         }
 
         .debt-stat-value {
             font-size: 1.5em;
             font-weight: bold;
-            color: #333;
+            color: var(--gray-50);
         }
 
         .daily-quests {
-            background: white;
+            background: var(--bg-card);
             border-radius: 15px;
             padding: 25px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
@@ -1063,7 +1189,7 @@
             flex: 1;
             font-size: 1.1em;
             font-weight: 500;
-            color: #333;
+            color: var(--gray-50);
         }
 
         .main-quest {
@@ -1170,7 +1296,7 @@
         }
 
         .metric-card {
-            background: white;
+            background: var(--bg-card);
             border-radius: var(--radius-xl);
             padding: var(--space-6);
             box-shadow: var(--shadow-md);
@@ -1288,7 +1414,7 @@
 
         /* 자산 분포 카드 */
         .asset-distribution-card {
-            background: white;
+            background: var(--bg-card);
             border-radius: var(--radius-xl);
             padding: var(--space-6);
             box-shadow: var(--shadow-md);
@@ -1389,7 +1515,7 @@
 
         /* 빠른 액션 */
         .quick-actions-card {
-            background: white;
+            background: var(--bg-card);
             border-radius: var(--radius-xl);
             padding: var(--space-6);
             box-shadow: var(--shadow-md);
@@ -1435,7 +1561,7 @@
 
         /* 자금 흐름 카드 */
         .cashflow-card {
-            background: white;
+            background: var(--bg-card);
             border-radius: var(--radius-xl);
             padding: var(--space-6);
             box-shadow: var(--shadow-md);
@@ -1498,7 +1624,7 @@
 
         .cashflow-rank.top2 {
             background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
-            color: #666;
+            color: var(--gray-300);
         }
 
         .cashflow-rank.top3 {
@@ -1571,7 +1697,7 @@
             gap: var(--space-3);
             margin-bottom: var(--space-3);
             padding: var(--space-3);
-            background: white;
+            background: var(--bg-card);
             border-radius: var(--radius-md);
         }
 
@@ -1634,7 +1760,7 @@
 
         /* 차트 컨테이너 */
         .chart-card {
-            background: white;
+            background: var(--bg-card);
             border-radius: var(--radius-xl);
             padding: var(--space-6);
             box-shadow: var(--shadow-md);
@@ -1664,7 +1790,7 @@
             border-radius: var(--radius-md);
             font-size: var(--text-sm);
             font-weight: var(--font-medium);
-            background: white;
+            background: var(--bg-card);
             cursor: pointer;
             transition: all var(--transition-fast);
         }
@@ -1837,7 +1963,7 @@
         }
 
         .recurring-section {
-            background: white;
+            background: var(--bg-card);
             border-radius: var(--radius-xl);
             padding: var(--space-6);
             margin-bottom: var(--space-6);
@@ -1961,7 +2087,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: white;
+            background: var(--bg-card);
             color: var(--gray-600);
         }
 
@@ -2035,7 +2161,7 @@
         }
 
         .modal-content {
-            background: white;
+            background: var(--bg-card);
             border-radius: var(--radius-xl);
             padding: var(--space-6);
             max-width: 500px;
@@ -2198,7 +2324,7 @@
         }
 
         .category-item {
-            background: white;
+            background: var(--bg-card);
             padding: 15px;
             border-radius: 10px;
             border-left: 4px solid #667eea;
@@ -2222,12 +2348,12 @@
         .category-preview {
             margin-top: 12px;
             padding-top: 12px;
-            border-top: 1px solid #f0f0f0;
+            border-top: 1px solid var(--border-color);
         }
 
         .preview-item {
             font-size: 0.85em;
-            color: #666;
+            color: var(--gray-300);
             padding: 4px 0;
             display: flex;
             justify-content: space-between;
@@ -2273,7 +2399,7 @@
 
         .category-name {
             font-weight: 600;
-            color: #333;
+            color: var(--gray-50);
             font-size: 0.95em;
         }
 
@@ -2308,7 +2434,7 @@
         }
 
         .modal-content {
-            background: white;
+            background: var(--bg-card);
             border-radius: 15px;
             padding: 30px;
             max-width: 800px;
@@ -2324,7 +2450,7 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid var(--border-color);
         }
 
         .modal-header h2 {
@@ -2358,13 +2484,13 @@
 
         .modal-transaction-title {
             font-weight: 600;
-            color: #333;
+            color: var(--gray-50);
             margin-bottom: 5px;
             font-size: 1.1em;
         }
 
         .modal-transaction-desc {
-            color: #666;
+            color: var(--gray-300);
             font-size: 0.9em;
             margin-bottom: 8px;
         }
@@ -2558,7 +2684,7 @@
     align-items: center;
     gap: 15px;
     padding: 15px;
-    background: white;
+    background: var(--bg-card);
     border-radius: 10px;
     margin-bottom: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -2664,7 +2790,7 @@
     align-items: center;
     gap: 15px;
     padding: 15px 20px;
-    background: white;
+    background: var(--bg-card);
     border-radius: 10px;
     margin-bottom: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -2765,7 +2891,7 @@
 
 /* 날짜 범위 필터 */
 .date-range-filter {
-    background: white;
+    background: var(--bg-card);
     border-radius: 12px;
     padding: 15px 20px;
     margin-bottom: 15px;
@@ -2783,7 +2909,7 @@
     padding: 8px 16px;
     border: 2px solid var(--gray-200);
     border-radius: 8px;
-    background: white;
+    background: var(--bg-card);
     color: var(--gray-600);
     font-size: 0.9rem;
     font-weight: 500;
@@ -2866,7 +2992,7 @@
     padding: 8px 14px;
     border: 2px solid var(--gray-200);
     border-radius: 8px;
-    background: white;
+    background: var(--bg-card);
     color: var(--gray-700);
     font-size: 0.95rem;
     font-weight: 500;
@@ -3536,7 +3662,7 @@
     border-radius: 12px;
     margin-top: 15px;
     font-weight: 500;
-    color: #333;
+    color: var(--gray-50);
 }
 
 .streak-icon {
@@ -3551,7 +3677,7 @@
 
 /* 업적 섹션 */
 .achievements-section {
-    background: white;
+    background: var(--bg-card);
     border-radius: 15px;
     padding: 25px;
     margin-top: 25px;
@@ -3564,7 +3690,7 @@
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    border-bottom: 2px solid #f0f0f0;
+    border-bottom: 2px solid var(--border-color);
 }
 
 .achievements-header h2 {
@@ -3618,7 +3744,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: white;
+    background: var(--bg-card);
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -3629,13 +3755,13 @@
 
 .achievement-name {
     font-weight: 600;
-    color: #333;
+    color: var(--gray-50);
     margin-bottom: 4px;
 }
 
 .achievement-desc {
     font-size: 0.85rem;
-    color: #666;
+    color: var(--gray-300);
 }
 
 .achievement-badge {
@@ -3720,7 +3846,7 @@
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: white;
+    background: var(--bg-card);
     padding: 20px 25px;
     border-radius: 15px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -3750,7 +3876,7 @@
 .achievement-unlock-name {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #333;
+    color: var(--gray-50);
 }
 
 @keyframes slideIn {

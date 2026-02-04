@@ -30,6 +30,32 @@ let editingAsset = null;
 let editingDebt = null;
 let disposingAsset = null;
 
+// 업데이트 상태 계산 함수
+function getUpdateStatus(updatedAt) {
+    if (!updatedAt) {
+        return { text: '업데이트 필요', icon: '⚠️', class: 'stale', isStale: true, fullDate: '업데이트 기록 없음' };
+    }
+    const now = new Date();
+    const updated = new Date(updatedAt);
+    const diffMs = now - updated;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const fullDate = updated.toLocaleDateString('ko-KR', {
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    if (diffDays >= 30) {
+        return { text: `${diffDays}일 전`, icon: '🔴', class: 'very-stale', isStale: true, fullDate };
+    } else if (diffDays >= 7) {
+        return { text: `${diffDays}일 전`, icon: '🟡', class: 'stale', isStale: true, fullDate };
+    } else if (diffDays >= 1) {
+        return { text: `${diffDays}일 전`, icon: '🟢', class: 'recent', isStale: false, fullDate };
+    } else if (diffHours >= 1) {
+        return { text: `${diffHours}시간 전`, icon: '🟢', class: 'recent', isStale: false, fullDate };
+    } else {
+        return { text: '방금 전', icon: '✅', class: 'fresh', isStale: false, fullDate };
+    }
+}
+
 export function createAssetManagementTab() {
     return `
         <div class="asset-management-container v2">
@@ -707,19 +733,37 @@ function renderAssetList(filter = 'all') {
     for (const [category, categoryAssets] of Object.entries(grouped)) {
         const catInfo = ASSET_CATEGORY_INFO.find(c => c.id === category) || { icon: '📦', name: category, color: '#888' };
         const totalValue = categoryAssets.reduce((sum, a) => sum + (a.current_value || 0), 0);
+        const totalPurchase = categoryAssets.reduce((sum, a) => sum + (a.purchase_value || 0), 0);
         const assetCount = categoryAssets.length;
+
+        // 카테고리 전체 수익률
+        const catProfit = totalValue - totalPurchase;
+        const catProfitPercent = totalPurchase > 0 ? ((catProfit / totalPurchase) * 100).toFixed(1) : 0;
+        const catIsPositive = catProfit >= 0;
+
+        // 카테고리에서 가장 오래된 업데이트 상태
+        const oldestAsset = categoryAssets.reduce((oldest, a) => {
+            if (!a.updated_at) return oldest || a;
+            if (!oldest || !oldest.updated_at) return oldest;
+            return new Date(a.updated_at) < new Date(oldest.updated_at) ? a : oldest;
+        }, null);
+        const catUpdateStatus = oldestAsset ? getUpdateStatus(oldestAsset.updated_at) : null;
 
         html += `
             <div class="asset-category-section" data-category="${category}">
                 <div class="category-header-bar collapsible" style="border-left-color: ${catInfo.color}" data-toggle-category="${category}">
                     <div class="category-header-left">
-                        <span class="toggle-icon">▼</span>
+                        <span class="toggle-icon">▶</span>
                         <span>${catInfo.icon} ${catInfo.name}</span>
                         <span class="category-count">(${assetCount})</span>
+                        ${catUpdateStatus && catUpdateStatus.isStale ? `<span class="cat-update-icon" title="업데이트 필요한 자산 있음">${catUpdateStatus.icon}</span>` : ''}
                     </div>
-                    <span class="category-total">${formatAmount(totalValue)}</span>
+                    <div class="category-header-right">
+                        <span class="category-change ${catIsPositive ? 'up' : 'down'}">${catIsPositive ? '▲' : '▼'} ${Math.abs(catProfitPercent)}%</span>
+                        <span class="category-total">${formatAmount(totalValue)}</span>
+                    </div>
                 </div>
-                <div class="asset-items" id="assetItems-${category}">
+                <div class="asset-items collapsed" id="assetItems-${category}">
                     ${categoryAssets.map(asset => createAssetItem(asset)).join('')}
                 </div>
             </div>
@@ -778,12 +822,20 @@ function createAssetItem(asset) {
     const isRealEstate = asset.category === 'real_estate';
     const realEstateNote = isRealEstate && asset.notes ? `<div class="asset-note">${asset.notes}</div>` : '';
 
+    // 업데이트 상태
+    const updateInfo = getUpdateStatus(asset.updated_at);
+
     return `
         <div class="asset-item enhanced" data-id="${asset.id}" style="--accent-color: ${accentColor}">
             <div class="asset-card-header">
                 <div class="asset-main-info">
                     <div class="asset-name">${asset.name}</div>
-                    <div class="asset-platform">${asset.platform || ''} ${asset.token_name || ''}</div>
+                    <div class="asset-platform">
+                        ${asset.platform || ''} ${asset.token_name || ''}
+                        <span class="update-status ${updateInfo.class}" title="${updateInfo.fullDate}">
+                            ${updateInfo.icon} ${updateInfo.text}
+                        </span>
+                    </div>
                 </div>
                 <div class="profit-badge ${profitClass}">
                     <span class="profit-icon">${isPositive ? '▲' : '▼'}</span>

@@ -85,6 +85,34 @@ function createInputTab() {
             </div>
         </div>
 
+        <!-- 기간별 지출 요약 -->
+        <div class="period-summary">
+            <h3 class="period-summary-title">📊 기간별 지출</h3>
+            <div class="period-cards">
+                <div class="period-card">
+                    <div class="period-label">오늘</div>
+                    <div class="period-amount" id="periodToday">0원</div>
+                    <div class="period-count" id="periodTodayCount">0건</div>
+                </div>
+                <div class="period-card">
+                    <div class="period-label">이번 주</div>
+                    <div class="period-amount" id="periodWeek">0원</div>
+                    <div class="period-count" id="periodWeekCount">0건</div>
+                </div>
+                <div class="period-card">
+                    <div class="period-label">이번 달</div>
+                    <div class="period-amount" id="periodMonth">0원</div>
+                    <div class="period-count" id="periodMonthCount">0건</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 최근 거래 5건 -->
+        <div class="recent-transactions-widget">
+            <h3>🕐 최근 거래</h3>
+            <div id="recentTransactionsList" class="recent-list"></div>
+        </div>
+
         <div class="input-section">
             <div class="edit-mode-banner" id="editModeBanner" style="display: none;">
                 ✏️ 수정 모드 - 거래를 수정하고 있습니다
@@ -274,11 +302,77 @@ function updateDashboardDisplay() {
     document.getElementById('lastTransactionDate').textContent = lastDate ? formatDate(lastDate) : '-';
     document.getElementById('topCategory').textContent = topCategories.length > 0 ? topCategories[0].category : '-';
 
+    // 기간별 지출 요약
+    updatePeriodSummary();
+
+    // 최근 거래 5건
+    updateRecentTransactions();
+
     // 카테고리 분석
     updateCategoryBreakdown();
 
     // 차트 업데이트
     updatePieCharts();
+}
+
+function updatePeriodSummary() {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    const weekStr = startOfWeek.toISOString().split('T')[0];
+    const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // 지출만 필터링
+    const expenses = transactions.filter(t => t.type === 'expense');
+
+    const todayExpenses = expenses.filter(t => t.date === todayStr);
+    const weekExpenses = expenses.filter(t => t.date >= weekStr);
+    const monthExpenses = expenses.filter(t => t.date && t.date.startsWith(monthStr));
+
+    const todaySum = todayExpenses.reduce((s, t) => s + (t.amount || 0), 0);
+    const weekSum = weekExpenses.reduce((s, t) => s + (t.amount || 0), 0);
+    const monthSum = monthExpenses.reduce((s, t) => s + (t.amount || 0), 0);
+
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('periodToday', formatAmount(todaySum));
+    setEl('periodTodayCount', `${todayExpenses.length}건`);
+    setEl('periodWeek', formatAmount(weekSum));
+    setEl('periodWeekCount', `${weekExpenses.length}건`);
+    setEl('periodMonth', formatAmount(monthSum));
+    setEl('periodMonthCount', `${monthExpenses.length}건`);
+}
+
+function updateRecentTransactions() {
+    const list = document.getElementById('recentTransactionsList');
+    if (!list) return;
+
+    // 최근 5건 (날짜 내림차순)
+    const sorted = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const recent = sorted.slice(0, 5);
+
+    if (recent.length === 0) {
+        list.innerHTML = '<div class="empty-state">거래 내역이 없습니다</div>';
+        return;
+    }
+
+    list.innerHTML = recent.map(t => {
+        const isIncome = t.type === 'income';
+        const sign = isIncome ? '+' : '-';
+        const cls = isIncome ? 'positive' : 'negative';
+        return `
+            <div class="recent-tx-item">
+                <div class="recent-tx-left">
+                    <span class="recent-tx-category">${t.category || ''}</span>
+                    <span class="recent-tx-title">${t.title || ''}</span>
+                </div>
+                <div class="recent-tx-right">
+                    <span class="recent-tx-amount ${cls}">${sign}${formatAmount(t.amount)}</span>
+                    <span class="recent-tx-date">${t.date || ''}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function updateCategoryBreakdown() {
@@ -330,7 +424,10 @@ function updatePieCharts() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: 'rgba(255, 255, 255, 0.8)' }
+                    }
                 }
             }
         });
@@ -357,7 +454,10 @@ function updatePieCharts() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: 'rgba(255, 255, 255, 0.8)' }
+                    }
                 }
             }
         });
@@ -400,15 +500,22 @@ async function handleSubmit() {
         return;
     }
 
+    // 보관처 라벨 매핑 (UUID 오류 방지 - description에 추가)
+    const accountLabels = {
+        'web3': 'Web3 지갑', 'investment': '투자',
+        'bank': '은행', 'family': '가족 대출'
+    };
+    const accountLabel = accountLabels[account] || account;
+
     const transactionData = {
         type,
         category,
         date,
         amount,
         title,
-        description,
-        account_from: type === 'expense' ? account : null,
-        account_to: type === 'income' ? account : null
+        description: description
+            ? `${description} [${accountLabel}]`
+            : `[${accountLabel}]`
     };
 
     try {
