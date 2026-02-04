@@ -2,16 +2,71 @@
 // V2: 통합 자산 관리 상수
 // ============================================
 
-// 카테고리 정의
-export const INCOME_CATEGORIES = [
+import { getCustomCategories, saveCustomCategories, resetCustomCategories } from '../services/database.js';
+
+// 기본 카테고리 (변경 불가, 초기화 시 복원용)
+const DEFAULT_INCOME_CATEGORIES = [
     '에어드랍', 'Kaito Yapping', '텔레그램 야핑', '포인트 판매',
     '프로젝트', 'X 스폰서', 'X 게임', '알바', '급여', '투자수익', '기타 수입'
 ];
 
-export const EXPENSE_CATEGORIES = [
+const DEFAULT_EXPENSE_CATEGORIES = [
     '생활비', '식비', '교통비', '통신비', '쇼핑',
     '선물거래', '학습/도서', '건강', '여가', '투자', '기타 지출'
 ];
+
+// 기존 export 배열 (참조 유지, 값은 뮤테이션 가능)
+export const INCOME_CATEGORIES = [...DEFAULT_INCOME_CATEGORIES];
+export const EXPENSE_CATEGORIES = [...DEFAULT_EXPENSE_CATEGORIES];
+
+// DB에서 커스텀 카테고리 로드 → 배열 in-place 뮤테이션
+export async function loadCustomCategories() {
+    try {
+        const { success, data } = await getCustomCategories();
+        if (!success || !data || data.length === 0) return; // 커스텀 없으면 기본값 유지
+
+        const income = data
+            .filter(c => c.type === 'income')
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map(c => c.name);
+
+        const expense = data
+            .filter(c => c.type === 'expense')
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map(c => c.name);
+
+        if (income.length > 0) {
+            INCOME_CATEGORIES.length = 0;
+            INCOME_CATEGORIES.push(...income);
+        }
+        if (expense.length > 0) {
+            EXPENSE_CATEGORIES.length = 0;
+            EXPENSE_CATEGORIES.push(...expense);
+        }
+    } catch (error) {
+        console.warn('커스텀 카테고리 로드 실패 (기본값 유지):', error);
+    }
+}
+
+// 현재 배열 → DB 저장
+export async function saveCategories(type) {
+    const names = type === 'income' ? [...INCOME_CATEGORIES] : [...EXPENSE_CATEGORIES];
+    return await saveCustomCategories(type, names);
+}
+
+// 기본값 복원 (배열 뮤테이션 + DB에서 삭제)
+export async function resetCategories(type) {
+    const defaults = type === 'income' ? DEFAULT_INCOME_CATEGORIES : DEFAULT_EXPENSE_CATEGORIES;
+    const arr = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    arr.length = 0;
+    arr.push(...defaults);
+    return await resetCustomCategories(type);
+}
+
+// 기본값 getter (UI에서 비교용)
+export function getDefaultCategories(type) {
+    return type === 'income' ? [...DEFAULT_INCOME_CATEGORIES] : [...DEFAULT_EXPENSE_CATEGORIES];
+}
 
 // ============================================
 // 자산 대분류 (Asset Categories)

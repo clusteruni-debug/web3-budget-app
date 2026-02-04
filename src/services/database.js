@@ -1442,6 +1442,103 @@ export async function calculateFiatProfit() {
     }
 }
 
+// ============================================
+// CUSTOM CATEGORIES (커스텀 카테고리)
+// ============================================
+
+// 커스텀 카테고리 전체 조회
+export async function getCustomCategories() {
+    try {
+        const { data, error } = await supabase
+            .from('custom_categories')
+            .select('*')
+            .order('sort_order', { ascending: true });
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
+    } catch (error) {
+        console.error('Get custom categories error:', error);
+        return { success: false, error: error.message, data: [] };
+    }
+}
+
+// 커스텀 카테고리 일괄 저장 (type별 전체 교체: 삭제 후 insert)
+export async function saveCustomCategories(type, names) {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        // 1. 해당 type의 기존 카테고리 전부 삭제
+        const { error: deleteError } = await supabase
+            .from('custom_categories')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('type', type);
+
+        if (deleteError) throw deleteError;
+
+        // 2. 새 목록 insert (sort_order 자동 부여)
+        if (names.length > 0) {
+            const rows = names.map((name, index) => ({
+                user_id: user.id,
+                type,
+                name,
+                sort_order: index
+            }));
+
+            const { error: insertError } = await supabase
+                .from('custom_categories')
+                .insert(rows);
+
+            if (insertError) throw insertError;
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error('Save custom categories error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 커스텀 카테고리 초기화 (type별 삭제 → 기본값으로 돌아감)
+export async function resetCustomCategories(type) {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        const { error } = await supabase
+            .from('custom_categories')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('type', type);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Reset custom categories error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// 커스텀 카테고리 전부 삭제 (전체 초기화)
+export async function resetAllCustomCategories() {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        const { error } = await supabase
+            .from('custom_categories')
+            .delete()
+            .eq('user_id', user.id);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Reset all custom categories error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // ICO/런치패드 투자 손익 계산
 export async function calculateIcoProfit() {
     try {

@@ -1,9 +1,9 @@
 // 도구 탭: 예산, 캘린더, 고정지출, 소비분석, 대출계산기, 투자손익, 설정
 import { getDebts, getRecurringItems, createRecurringItem, updateRecurringItem, deleteRecurringItem, getStakingOverview, getAirdropOverview, getTransactions, getBudgets, createBudget, updateBudget, deleteBudget, getBudgetVsActual, getSubscriptions, createSubscription, updateSubscription, deleteSubscription, getGoals, createGoal, updateGoal, deleteGoal, getFiatFlows, createFiatFlow, deleteFiatFlow, calculateFiatProfit } from '../services/database.js';
-import { formatAmount, formatAmountShort, createEmptyState, EMPTY_STATES, loadNotificationSettings, saveNotificationSettings, requestNotificationPermission, getNotificationPermission } from '../utils/helpers.js';
+import { formatAmount, formatAmountShort, createEmptyState, EMPTY_STATES, loadNotificationSettings, saveNotificationSettings, requestNotificationPermission, getNotificationPermission, showToast } from '../utils/helpers.js';
 import { updatePassword } from '../services/auth.js';
 import { getCurrentUser } from '../services/supabase.js';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants.js';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, saveCategories, resetCategories, getDefaultCategories, loadCustomCategories } from '../utils/constants.js';
 
 let currentTool = 'budget';
 let debts = [];
@@ -2742,6 +2742,14 @@ function renderAccountSettings() {
                     <div class="notification-status" id="notificationStatus"></div>
                 </div>
             </div>
+
+            <div class="category-management-section">
+                <h4>📂 분류 관리</h4>
+                <p class="setting-description" style="margin-bottom: var(--space-4);">수입/지출 거래의 분류를 커스터마이즈합니다</p>
+                <div id="categoryManagerContent">
+                    ${renderCategoryManager()}
+                </div>
+            </div>
         </div>
     `;
 }
@@ -2765,6 +2773,277 @@ async function initAccountSettings() {
 
     // 알림 설정 초기화
     initNotificationSettings();
+
+    // 분류 관리 초기화 (DB에서 최신 데이터 로드 후 UI 갱신)
+    await loadCustomCategories();
+    refreshCategoryManager();
+    initCategoryManager();
+}
+
+// ============================================
+// 분류 관리 (카테고리 커스터마이즈)
+// ============================================
+
+// 분류 관리 전체 HTML 생성
+function renderCategoryManager() {
+    return `
+        ${renderCategoryGroup('income', '수입 분류', '💰', INCOME_CATEGORIES)}
+        ${renderCategoryGroup('expense', '지출 분류', '💸', EXPENSE_CATEGORIES)}
+    `;
+}
+
+// 개별 그룹 HTML 생성
+function renderCategoryGroup(type, title, icon, categories) {
+    const maxCategories = 20;
+    const canAdd = categories.length < maxCategories;
+
+    return `
+        <div class="category-group" data-type="${type}">
+            <div class="category-group-header">
+                <span class="category-group-title">${icon} ${title}</span>
+                <div class="category-group-actions">
+                    <button class="btn-category-reset" data-type="${type}" title="기본값 복원">초기화</button>
+                    <button class="btn-category-add" data-type="${type}" ${!canAdd ? 'disabled' : ''} title="${canAdd ? '새 분류 추가' : '최대 ' + maxCategories + '개'}">+ 추가</button>
+                </div>
+            </div>
+            <div class="category-list" id="categoryList-${type}">
+                ${categories.map((name, index) => renderCategoryItem(type, index, name)).join('')}
+            </div>
+            <div class="category-count">${categories.length} / ${maxCategories}</div>
+        </div>
+    `;
+}
+
+// 개별 카테고리 아이템 HTML
+function renderCategoryItem(type, index, name) {
+    return `
+        <div class="category-item" data-type="${type}" data-index="${index}">
+            <span class="category-item-name">${name}</span>
+            <div class="category-item-actions">
+                <button class="btn-category-edit" data-type="${type}" data-index="${index}" title="수정">✏️</button>
+                <button class="btn-category-delete" data-type="${type}" data-index="${index}" title="삭제">🗑️</button>
+            </div>
+        </div>
+    `;
+}
+
+// 이벤트 바인딩
+function initCategoryManager() {
+    const container = document.getElementById('categoryManagerContent');
+    if (!container) return;
+
+    // 이벤트 위임 (추가/수정/삭제/초기화 모두 처리)
+    container.addEventListener('click', async (e) => {
+        const target = e.target;
+
+        // 추가 버튼
+        if (target.classList.contains('btn-category-add') && !target.disabled) {
+            await handleAddCategory(target.dataset.type);
+            return;
+        }
+
+        // 수정 버튼
+        if (target.classList.contains('btn-category-edit')) {
+            handleEditCategory(target.dataset.type, parseInt(target.dataset.index));
+            return;
+        }
+
+        // 삭제 버튼
+        if (target.classList.contains('btn-category-delete')) {
+            await handleDeleteCategory(target.dataset.type, parseInt(target.dataset.index));
+            return;
+        }
+
+        // 초기화 버튼
+        if (target.classList.contains('btn-category-reset')) {
+            await handleResetCategories(target.dataset.type);
+            return;
+        }
+
+        // 인라인 편집 저장 버튼
+        if (target.classList.contains('btn-category-save')) {
+            const input = target.parentElement.querySelector('.category-edit-input');
+            if (input) {
+                await handleSaveEdit(target.dataset.type, parseInt(target.dataset.index), input.value);
+            }
+            return;
+        }
+
+        // 인라인 편집 취소 버튼
+        if (target.classList.contains('btn-category-cancel')) {
+            refreshCategoryManager();
+            return;
+        }
+    });
+
+    // Enter/Escape 키 이벤트 위임
+    container.addEventListener('keydown', async (e) => {
+        if (e.target.classList.contains('category-edit-input')) {
+            if (e.key === 'Enter') {
+                const type = e.target.dataset.type;
+                const index = parseInt(e.target.dataset.index);
+                await handleSaveEdit(type, index, e.target.value);
+            } else if (e.key === 'Escape') {
+                refreshCategoryManager();
+            }
+        }
+    });
+}
+
+// 새 분류 추가
+async function handleAddCategory(type) {
+    const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+
+    if (categories.length >= 20) {
+        showToast('최대 20개까지 추가할 수 있습니다', 'error');
+        return;
+    }
+
+    // "새 분류" 추가 후 즉시 편집 모드
+    const newName = '새 분류';
+    categories.push(newName);
+    refreshCategoryManager();
+
+    // 방금 추가된 아이템을 편집 모드로 전환
+    const newIndex = categories.length - 1;
+    handleEditCategory(type, newIndex);
+}
+
+// 인라인 편집 모드로 전환
+function handleEditCategory(type, index) {
+    const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    const currentName = categories[index];
+    const list = document.getElementById(`categoryList-${type}`);
+    if (!list) return;
+
+    const items = list.querySelectorAll('.category-item');
+    const item = items[index];
+    if (!item) return;
+
+    // 이미 편집 중이면 무시
+    if (item.querySelector('.category-edit-input')) return;
+
+    item.innerHTML = `
+        <input type="text" class="category-edit-input" data-type="${type}" data-index="${index}"
+               value="${currentName}" maxlength="50" placeholder="분류명 입력">
+        <div class="category-item-actions">
+            <button class="btn-category-save" data-type="${type}" data-index="${index}" title="저장">✅</button>
+            <button class="btn-category-cancel" title="취소">❌</button>
+        </div>
+    `;
+
+    // input에 포커스 + 전체 선택
+    const input = item.querySelector('.category-edit-input');
+    if (input) {
+        input.focus();
+        input.select();
+    }
+}
+
+// 편집 내용 저장 (검증 + 배열 수정 + DB 저장)
+async function handleSaveEdit(type, index, newName) {
+    const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    const trimmedName = newName.trim();
+
+    // 검증: 빈 이름
+    if (!trimmedName) {
+        showToast('분류명을 입력해주세요', 'error');
+        return;
+    }
+
+    // 검증: 중복 (자기 자신 제외)
+    const isDuplicate = categories.some((name, i) => i !== index && name === trimmedName);
+    if (isDuplicate) {
+        showToast('이미 존재하는 분류명입니다', 'error');
+        return;
+    }
+
+    // 배열 수정
+    const oldName = categories[index];
+    categories[index] = trimmedName;
+
+    // DB 저장
+    const result = await saveCategories(type);
+    if (!result.success) {
+        // 실패 시 원복
+        categories[index] = oldName;
+        showToast('저장 실패: ' + (result.error || '알 수 없는 오류'), 'error');
+    } else {
+        showToast('분류가 저장되었습니다', 'success');
+    }
+
+    refreshCategoryManager();
+}
+
+// 카테고리 삭제
+async function handleDeleteCategory(type, index) {
+    const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+
+    // 최소 1개 유지
+    if (categories.length <= 1) {
+        showToast('최소 1개의 분류는 유지해야 합니다', 'error');
+        return;
+    }
+
+    const name = categories[index];
+    if (!confirm(`"${name}" 분류를 삭제하시겠습니까?\n\n기존 거래에는 영향이 없습니다.`)) {
+        return;
+    }
+
+    // 배열에서 삭제
+    const backup = [...categories];
+    categories.splice(index, 1);
+
+    // DB 저장
+    const result = await saveCategories(type);
+    if (!result.success) {
+        // 실패 시 원복
+        categories.length = 0;
+        categories.push(...backup);
+        showToast('삭제 실패: ' + (result.error || '알 수 없는 오류'), 'error');
+    } else {
+        showToast(`"${name}" 분류가 삭제되었습니다`, 'success');
+    }
+
+    refreshCategoryManager();
+}
+
+// 기본값 복원
+async function handleResetCategories(type) {
+    const typeName = type === 'income' ? '수입' : '지출';
+    const defaults = getDefaultCategories(type);
+    const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+
+    // 이미 기본값이면 스킵
+    if (JSON.stringify([...categories]) === JSON.stringify(defaults)) {
+        showToast('이미 기본값입니다', 'info');
+        return;
+    }
+
+    if (!confirm(`${typeName} 분류를 기본값으로 초기화하시겠습니까?\n\n현재 커스텀 분류가 모두 삭제됩니다.\n기존 거래에는 영향이 없습니다.`)) {
+        return;
+    }
+
+    const backup = [...categories];
+    const result = await resetCategories(type);
+
+    if (!result.success) {
+        // 실패 시 원복
+        categories.length = 0;
+        categories.push(...backup);
+        showToast('초기화 실패: ' + (result.error || '알 수 없는 오류'), 'error');
+    } else {
+        showToast(`${typeName} 분류가 기본값으로 복원되었습니다`, 'success');
+    }
+
+    refreshCategoryManager();
+}
+
+// DOM 업데이트 (전체 리렌더)
+function refreshCategoryManager() {
+    const container = document.getElementById('categoryManagerContent');
+    if (!container) return;
+    container.innerHTML = renderCategoryManager();
 }
 
 /**

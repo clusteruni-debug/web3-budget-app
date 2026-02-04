@@ -7,6 +7,7 @@ import { createAssetManagementTab, initAssetManagementTab } from './components/A
 import { createDashboardTab, initDashboardTab, editTransaction } from './components/DashboardTab.js';
 import { createTransactionsTab, initTransactionsTab, refreshTransactions } from './components/TransactionsTab.js';
 import { createToolsTab, initToolsTab } from './components/ToolsTab.js';
+import { loadCustomCategories } from './utils/constants.js';
 
 class App {
     constructor() {
@@ -99,7 +100,7 @@ class App {
         initAuthComponent();
     }
 
-    renderApp() {
+    async renderApp() {
         const container = document.querySelector('.container');
 
         // 헤더와 탭 네비게이션 표시
@@ -112,6 +113,9 @@ class App {
 
         // 탭 네비게이션 이벤트
         this.initTabNavigation();
+
+        // DB에서 커스텀 카테고리 로드 (탭 렌더링 전)
+        await loadCustomCategories();
 
         // 기본 탭 렌더링
         this.switchTab('home');
