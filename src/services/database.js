@@ -107,9 +107,13 @@ export async function getTransaction(id) {
 
 export async function createTransaction(transaction) {
     try {
+        // RLS 정책 충족을 위해 인증된 user_id 필수 포함
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
         const { data, error } = await supabase
             .from('transactions')
-            .insert(transaction)
+            .insert({ ...transaction, user_id: user.id })
             .select()
             .single();
 

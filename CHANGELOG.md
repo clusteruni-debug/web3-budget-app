@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **거래 추가 RLS 오류 수정** - createTransaction()에 user_id 누락으로 "violates row-level security policy" 발생하던 문제 해결
+
 ### 예정
 - 선물 중독 보스 기능 개선 (시작 날짜, 마일스톤)
 - 홈 탭 가족 대출 계정 표시
