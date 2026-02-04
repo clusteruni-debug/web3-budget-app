@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Improved
+- **도구 탭 메뉴 5×2 그리드** - 10개 버튼이 가로 스크롤 → 5×2 아이콘 그리드로 변경 (토스 스타일), 라벨 축약, 320px 이하 아이콘만 표시
+- **분류 저장 인라인 피드백** - 카테고리 수정 저장 시 항목 옆에 "저장됨 ✓" 배지 2초 표시 (fade-in/out 애니메이션)
+
 ### Fixed
 - **거래 추가 RLS 오류 수정** - createTransaction()에 user_id 누락으로 "violates row-level security policy" 발생하던 문제 해결
 

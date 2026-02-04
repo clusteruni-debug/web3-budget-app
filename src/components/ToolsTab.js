@@ -21,18 +21,48 @@ let fiatProfitData = null;
 export function createToolsTab() {
     return `
         <div class="tools-container">
-            <!-- 도구 선택 탭 -->
+            <!-- 도구 선택 탭: 5×2 그리드 -->
             <div class="tool-tabs">
-                <button class="tool-tab-btn active" data-tool="budget">💰 월 예산</button>
-                <button class="tool-tab-btn" data-tool="goals">🎯 저축 목표</button>
-                <button class="tool-tab-btn" data-tool="subscriptions">📺 구독 서비스</button>
-                <button class="tool-tab-btn" data-tool="calendar">📅 결제 일정</button>
-                <button class="tool-tab-btn" data-tool="recurring">💳 고정 지출</button>
-                <button class="tool-tab-btn" data-tool="spending">📊 소비 분석</button>
-                <button class="tool-tab-btn" data-tool="report">📋 월간 리포트</button>
-                <button class="tool-tab-btn" data-tool="fiat-profit">💹 투자 손익</button>
-                <button class="tool-tab-btn" data-tool="debt-calc">🧮 대출 계산</button>
-                <button class="tool-tab-btn" data-tool="account">⚙️ 설정</button>
+                <button class="tool-tab-btn active" data-tool="budget">
+                    <span class="tool-icon">💰</span>
+                    <span class="tool-label">예산</span>
+                </button>
+                <button class="tool-tab-btn" data-tool="goals">
+                    <span class="tool-icon">🎯</span>
+                    <span class="tool-label">목표</span>
+                </button>
+                <button class="tool-tab-btn" data-tool="subscriptions">
+                    <span class="tool-icon">📺</span>
+                    <span class="tool-label">구독</span>
+                </button>
+                <button class="tool-tab-btn" data-tool="calendar">
+                    <span class="tool-icon">📅</span>
+                    <span class="tool-label">일정</span>
+                </button>
+                <button class="tool-tab-btn" data-tool="recurring">
+                    <span class="tool-icon">💳</span>
+                    <span class="tool-label">고정비</span>
+                </button>
+                <button class="tool-tab-btn" data-tool="spending">
+                    <span class="tool-icon">📊</span>
+                    <span class="tool-label">분석</span>
+                </button>
+                <button class="tool-tab-btn" data-tool="report">
+                    <span class="tool-icon">📋</span>
+                    <span class="tool-label">리포트</span>
+                </button>
+                <button class="tool-tab-btn" data-tool="fiat-profit">
+                    <span class="tool-icon">💹</span>
+                    <span class="tool-label">투자</span>
+                </button>
+                <button class="tool-tab-btn" data-tool="debt-calc">
+                    <span class="tool-icon">🧮</span>
+                    <span class="tool-label">대출</span>
+                </button>
+                <button class="tool-tab-btn" data-tool="account">
+                    <span class="tool-icon">⚙️</span>
+                    <span class="tool-label">설정</span>
+                </button>
             </div>
 
             <!-- 도구 컨텐츠 영역 -->
@@ -2973,6 +3003,11 @@ async function handleSaveEdit(type, index, newName) {
     }
 
     refreshCategoryManager();
+
+    // 저장 성공 시 해당 항목 옆에 "저장됨 ✓" 배지 표시
+    if (result.success) {
+        showSaveBadge(type, index);
+    }
 }
 
 // 카테고리 삭제
@@ -3044,6 +3079,34 @@ function refreshCategoryManager() {
     const container = document.getElementById('categoryManagerContent');
     if (!container) return;
     container.innerHTML = renderCategoryManager();
+}
+
+// 저장/삭제/초기화 성공 시 인라인 배지 표시 (2초 후 자동 제거)
+function showSaveBadge(type, index, text = '저장됨 ✓') {
+    const list = document.getElementById(`categoryList-${type}`);
+    if (!list) return;
+
+    const items = list.querySelectorAll('.category-item');
+    const item = items[index];
+    if (!item) return;
+
+    const nameEl = item.querySelector('.category-item-name');
+    if (!nameEl) return;
+
+    // 이미 배지가 있으면 제거
+    const existing = nameEl.parentElement.querySelector('.save-badge');
+    if (existing) existing.remove();
+
+    const badge = document.createElement('span');
+    badge.className = 'save-badge';
+    badge.textContent = text;
+    nameEl.after(badge);
+
+    // 2초 후 fade-out 후 제거
+    setTimeout(() => {
+        badge.classList.add('fade-out');
+        setTimeout(() => badge.remove(), 300);
+    }, 2000);
 }
 
 /**
