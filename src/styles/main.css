@@ -922,6 +922,37 @@
             font-size: 0.8em;
         }
 
+        /* 최근 거래 수정/삭제 버튼 */
+        .recent-tx-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+
+        .recent-tx-edit-btn,
+        .recent-tx-delete-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-card, rgba(255, 255, 255, 0.05));
+            transition: background 0.2s;
+        }
+
+        .recent-tx-edit-btn:hover {
+            background: var(--primary, #667eea);
+        }
+
+        .recent-tx-delete-btn:hover {
+            background: var(--negative, #F56565);
+        }
+
         @media (max-width: 480px) {
             .period-cards {
                 grid-template-columns: repeat(3, 1fr);

@@ -11,13 +11,14 @@ import {
 import { formatAmount, formatDate, getToday } from '../utils/helpers.js';
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../utils/constants.js';
 import { createCashflowTab, initCashflowTab } from './CashflowTab.js';
+import { createTransactionsTab, initTransactionsTab } from './TransactionsTab.js';
 
 let transactions = [];
 let currentDateFilter = 'all';
 let editingTransactionId = null;
 let incomePieChart = null;
 let expensePieChart = null;
-let currentSubTab = 'input'; // 'input' | 'cashflow'
+let currentSubTab = 'input'; // 'input' | 'list' | 'cashflow'
 
 export function createDashboardTab(subtab = 'input') {
     currentSubTab = subtab;
@@ -28,6 +29,9 @@ export function createDashboardTab(subtab = 'input') {
                 <button class="subtab-btn ${subtab === 'input' ? 'active' : ''}" data-subtab="input">
                     📝 거래 입력
                 </button>
+                <button class="subtab-btn ${subtab === 'list' ? 'active' : ''}" data-subtab="list">
+                    📋 거래 내역
+                </button>
                 <button class="subtab-btn ${subtab === 'cashflow' ? 'active' : ''}" data-subtab="cashflow">
                     💹 현금흐름
                 </button>
@@ -35,7 +39,7 @@ export function createDashboardTab(subtab = 'input') {
 
             <!-- 서브탭 컨텐츠 -->
             <div class="subtab-content" id="transactionsSubtabContent">
-                ${subtab === 'cashflow' ? createCashflowTab() : createInputTab()}
+                ${subtab === 'cashflow' ? createCashflowTab() : subtab === 'list' ? createTransactionsTab() : createInputTab()}
             </div>
         </div>
     `;
@@ -218,6 +222,12 @@ export async function initDashboardTab(refreshCallback, subtab = 'input') {
                 if (newSubtab === 'cashflow') {
                     contentContainer.innerHTML = createCashflowTab();
                     await initCashflowTab();
+                } else if (newSubtab === 'list') {
+                    contentContainer.innerHTML = createTransactionsTab();
+                    await initTransactionsTab(null, (transaction) => {
+                        // 수정 클릭 → 입력 서브탭으로 전환 후 폼 채우기
+                        switchToInputSubtab(transaction);
+                    });
                 } else {
                     contentContainer.innerHTML = createInputTab();
                     await initInputTab(refreshCallback);
@@ -229,6 +239,10 @@ export async function initDashboardTab(refreshCallback, subtab = 'input') {
     // 현재 서브탭 초기화
     if (subtab === 'cashflow' || currentSubTab === 'cashflow') {
         await initCashflowTab();
+    } else if (subtab === 'list' || currentSubTab === 'list') {
+        await initTransactionsTab(null, (transaction) => {
+            switchToInputSubtab(transaction);
+        });
     } else {
         await initInputTab(refreshCallback);
     }
@@ -370,9 +384,51 @@ function updateRecentTransactions() {
                     <span class="recent-tx-amount ${cls}">${sign}${formatAmount(t.amount)}</span>
                     <span class="recent-tx-date">${t.date || ''}</span>
                 </div>
+                <div class="recent-tx-actions">
+                    <button class="recent-tx-edit-btn" data-id="${t.id}" title="수정">✏️</button>
+                    <button class="recent-tx-delete-btn" data-id="${t.id}" title="삭제">🗑️</button>
+                </div>
             </div>
         `;
     }).join('');
+
+    // 최근 거래 수정/삭제 이벤트
+    addRecentTxEventListeners();
+}
+
+// 최근 거래 위젯의 수정/삭제 이벤트 리스너
+function addRecentTxEventListeners() {
+    // 수정 버튼
+    document.querySelectorAll('.recent-tx-edit-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const tx = transactions.find(t => t.id === id);
+            if (tx) {
+                editTransaction(tx);
+            }
+        });
+    });
+
+    // 삭제 버튼
+    document.querySelectorAll('.recent-tx-delete-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            if (confirm('정말 삭제하시겠습니까?')) {
+                const result = await deleteTransaction(id);
+                if (result.success) {
+                    alert('거래가 삭제되었습니다.');
+                    await loadDashboardData();
+                    if (window._dashboardRefreshCallback) {
+                        window._dashboardRefreshCallback();
+                    }
+                } else {
+                    alert(`삭제 실패: ${result.error}`);
+                }
+            }
+        });
+    });
 }
 
 function updateCategoryBreakdown() {
@@ -565,6 +621,23 @@ function cancelEdit() {
     document.getElementById('formTitle').textContent = '거래 추가';
     document.getElementById('submitBtn').textContent = '거래 추가';
     clearForm();
+}
+
+// 거래 내역 서브탭에서 수정 클릭 → 입력 서브탭으로 전환
+async function switchToInputSubtab(transactionToEdit) {
+    const contentContainer = document.getElementById('transactionsSubtabContent');
+    if (!contentContainer) return;
+
+    // 서브탭 버튼 상태 변경
+    currentSubTab = 'input';
+    document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+    const inputBtn = document.querySelector('[data-subtab="input"]');
+    if (inputBtn) inputBtn.classList.add('active');
+
+    // 입력 탭 렌더링 후 수정 모드 활성화
+    contentContainer.innerHTML = createInputTab();
+    await initInputTab(window._dashboardRefreshCallback);
+    editTransaction(transactionToEdit);
 }
 
 // 외부에서 수정 모드로 진입할 때 사용
