@@ -1,5 +1,8 @@
 -- 자산 히스토리 테이블 (자산 가치 변동 추적)
-CREATE TABLE IF NOT EXISTS asset_history (
+-- 기존 테이블이 불완전하게 생성된 경우를 위해 DROP 후 재생성
+DROP TABLE IF EXISTS asset_history CASCADE;
+
+CREATE TABLE asset_history (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
     recorded_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -11,7 +14,7 @@ CREATE TABLE IF NOT EXISTS asset_history (
 );
 
 -- 인덱스: 자산별 날짜 조회 최적화
-CREATE INDEX IF NOT EXISTS idx_asset_history_asset_date
+CREATE INDEX idx_asset_history_asset_date
 ON asset_history(asset_id, recorded_date DESC);
 
 -- RLS 정책
