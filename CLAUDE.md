@@ -1,9 +1,9 @@
-# Web3 자산관리 앱 - 프로젝트 컨텍스트
+# Web3 수익 가계부 (v1) - 프로젝트 컨텍스트
 
 ## 📋 프로젝트
-- **이름**: Web3 자산관리 앱
+- **이름**: Web3 수익 가계부 v1
 - **스택**: Vite + Vanilla JS + Supabase + Chart.js
-- **한 줄 설명**: 개인 자산/부채 추적, 현금 흐름 시각화, 크립토 포트폴리오 관리
+- **한 줄 설명**: Web3 수익 추적 + RPG 게이미피케이션 가계부
 
 ---
 
@@ -112,97 +112,22 @@ CHANGELOG.md에 기록:
 
 ---
 
-## 🔥 현재 세션 상태 (매 작업 후 업데이트)
-
-> **Claude에게**: 이 섹션을 먼저 읽고, 작업 완료 후 업데이트해줘
-
-| 항목 | 값 |
-|------|-----|
-| **마지막 작업** | 도구 탭 UX 개선 (2026-02-04) |
-| **마지막 커밋** | `3cda3de` feat: 도구 탭 5×2 그리드 메뉴 + 분류 저장 인라인 피드백 |
-| **배포 상태** | ✅ Vercel 자동 배포 (push 완료) |
-| **다음 작업** | 없음 |
-
-### ✅ Supabase 마이그레이션
-- `migration_add_day_of_month.sql` ✅
-- `migration_add_owner_to_recurring.sql` ✅
-- `migration_asset_history.sql` ✅
-
-### 2026-02-04 완료된 작업
-
-| # | 작업 | 상세 |
-|---|------|------|
-| 1 | 다크테마 수정 | 28개 white→var(--bg-card), 19개 텍스트색→CSS변수, 보더/차트 색상 |
-| 2 | UUID 오류 수정 | 보관처를 account_from/to 대신 description에 추가 |
-| 3 | 기간별 지출 요약 | 오늘/이번주/이번달 지출 + 최근 5건 거래 위젯 |
-| 4 | 업데이트 상태 표시 | 자산 카드에 🔴🟡🟢✅ 상태 배지 + 카테고리 수익률 |
-| 5 | 자산 접힘 + 히스토리 | 기본 접힘, 카테고리 수익률, asset_history 추적 시작 |
-| 6 | 도구 탭 그리드 메뉴 | 10개 버튼 가로스크롤 → 5×2 아이콘 그리드 (토스 스타일) |
-| 7 | 분류 저장 피드백 | 카테고리 수정 시 "저장됨 ✓" 인라인 배지 2초 표시 |
-
-### 스킵할 것
-- ❌ 로컬 빌드 테스트 (Windows 환경 문제 → Vercel에서 확인)
-- ❌ 거래소 API 연동 (보류)
-
----
-
-## ⚡ 효율적인 요청 방법
-
-### 원샷 요청 템플릿
-```
-"[파일명]에서 [작업내용] 하고, 커밋 메시지 '[타입]: [내용]'으로 푸시까지"
-
-예시:
-"HomeTab.js에서 로딩 스피너 추가하고, 커밋 메시지 'feat: 홈 로딩 추가'로 푸시까지"
-```
-
-### 다중 작업 요청
-```
-"다음 작업들 순서대로 진행해줘:
-1. [작업1]
-2. [작업2]
-3. 완료 후 커밋, 푸시"
-```
-
-### 상태 확인 (토큰 절약)
-```
-❌ "어디까지 됐어?" (파일 다시 읽어야 함)
-✅ "CLAUDE.md의 현재 세션 상태 기준으로 다음 작업 진행해줘"
-```
-
-### 에러 해결
-```
-"[에러메시지 전체 복사]
-파일: [파일경로]
-이 에러 해결하고 푸시까지"
-```
-
----
-
-## 🚫 환경 제약 조건
-
-| 제약 | 대응 |
-|------|------|
-| Windows 로컬 빌드 불안정 | `npm run build` 스킵, Vercel에서 확인 |
-| Vite 타임아웃 | 빌드 에러는 push 후 Vercel 로그 확인 |
-
----
-
 ## 🔐 보안 규칙
 
 1. API 키 → `.env` 사용 (하드코딩 금지)
 2. 에러 로깅 → 상세 정보 숨기기
 3. 사용자 입력 → 항상 검증
 4. `innerHTML` → `textContent` 사용 (XSS 방지)
+5. Supabase RLS 정책 활성화 필수
 
 ---
 
 ## ⚙️ 프로젝트 특이사항
 
-- **GitHub**: https://github.com/clusteruni-debug/web3-budget-app.git
-- **배포**: Vercel (`v2-unified-portfolio` 브랜치) → `git push` = 자동 배포
 - Supabase: 모든 쿼리에 user_id 필터 필수
-- 금액: `formatAmountShort()` → 억/만원 축약
+- 자동 로그인 에러 주의 (FIX_AUTO_LOGIN_ERROR.md 참고)
+- 금액: 정수(원 단위)로 저장
+- web3-budget-app (v2)과 별도 프로젝트
 
 ---
 
@@ -210,41 +135,46 @@ CHANGELOG.md에 기록:
 
 ```
 src/
+├── App.js                    # 메인 앱 클래스, 탭 라우팅
+├── main.js                   # 엔트리 포인트
 ├── components/
-│   ├── HomeTab.js         # 대시보드 + 스마트 입력
-│   ├── DashboardTab.js    # 거래 탭 (서브탭: 입력 | 현금흐름)
-│   ├── CashflowTab.js     # 현금흐름 (Sankey)
-│   ├── ToolsTab.js        # 도구 (예산, 설정, 알림)
-│   └── AssetManagementTab.js
+│   ├── AuthComponent.js      # 인증
+│   ├── HomeTab.js            # 대시보드
+│   ├── DashboardTab.js       # 거래 + 통계
+│   ├── RecurringTab.js       # 고정 수입/지출
+│   ├── RPGTab.js             # RPG 게이미피케이션
+│   ├── TransactionsTab.js    # 거래 관리
+│   └── AccountsTab.js        # 계좌 관리
+├── services/
+│   ├── supabase.js           # Supabase 클라이언트
+│   ├── auth.js               # 인증 서비스
+│   ├── database.js           # CRUD 작업
+│   ├── analytics.js          # 통계 계산
+│   └── storage.js            # LocalStorage 래퍼
 ├── utils/
-│   ├── helpers.js         # formatAmountShort, parseTransactionText, showToast, Push알림
-│   └── constants.js       # 카테고리
+│   ├── helpers.js            # 유틸리티 함수
+│   └── constants.js          # 카테고리, 상수
 └── styles/
-    ├── main.css           # 공통 + 서브탭
-    ├── v2-home.css        # 홈 + 스마트입력
-    └── v2-tools.css       # 도구 + 알림설정
+    ├── main.css              # 공통 스타일
+    └── auth.css              # 인증 스타일
+```
+
+## 실행 방법
+```bash
+npm install
+npx vite --port 5173     # http://localhost:5173
 ```
 
 ---
 
-## ✅ UX 로드맵 완료 현황
+## 📊 개발 진행 상태
 
 | Phase | 상태 | 주요 내용 |
 |-------|------|----------|
-| Phase 1 | ✅ 100% | 홈 간소화, FAB 거래입력, 빈상태 CTA |
-| Phase 2 | ✅ 100% | 모바일 탭바, 탭 통합, 스마트 입력 |
-| Phase 3 | ✅ 100% | CSS 변수, 스켈레톤, 애니메이션 |
-| Phase 4 | ✅ 100% | 월간 리포트, Push 알림 |
-
-> 상세: `docs/CHECKLIST.md`
-
----
-
-## 📝 데이터 규칙
-
-- **어머니 대출**: `description`에 `[어머니]` → 참고용만
-- **본인 대출**: `description`에 `[본인]` → 실제 지출
-- **금액 표시**: `formatAmountShort()` → 억/만원 축약
+| Phase 1 | ✅ 완료 | HTML 프로토타입 (web3-budget.html) |
+| Phase 2 | ✅ 완료 | 모듈화 + Supabase 연동 |
+| Phase 3 | 🔄 90% | 레벨/업적/차트 고급 기능 |
+| Phase 4 | ⏳ 대기 | 배포 (Vercel), PWA |
 
 ---
 
@@ -262,6 +192,9 @@ src/
 
 ## 🔗 관련 문서
 
-- `docs/CHECKLIST.md` - UX 체크리스트 (100% 완료)
-- `docs/UX_IMPROVEMENT_ROADMAP.md` - 상세 로드맵
+- `CHANGELOG.md` - 버전 히스토리
+- `PROGRESS.md` - 개발 진행 상태
+- `ROADMAP.md` - 향후 개발 계획
+- `CLAUDE_CODE_GUIDE.md` - Claude Code 활용 가이드
+- `FIX_AUTO_LOGIN_ERROR.md` - 자동 로그인 에러 해결
 - `supabase/SETUP.md` - DB 설정 가이드
