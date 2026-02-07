@@ -52,7 +52,7 @@
   ```
 
 ### 3. 난이도 판단 → Ralph Loop 제안
-아래 조건에 해당하면 `/ralph-loop` 사용을 **먼저 제안**:
+아래 조건에 해당하면 반복 루프 패턴(Ralph Loop)을 **먼저 제안**:
 - 수정 대상이 **10곳 이상** 흩어져 있는 배치 작업
 - **반복적 패턴 수정** (전수 치환, 일괄 리팩토링)
 - 한 번에 끝내기 어려운 **다단계 구현**
@@ -60,10 +60,10 @@
   ```
   🔄 난이도 높은 작업 감지
   - 예상 수정: [N]곳 / [N]단계
-  - 추천: `/ralph-loop "[작업 설명]" --max 10`
+  - 추천: "이거 반복 작업으로 돌려줘 — [작업 설명], 최대 10회"
   - 이유: [왜 반복 루프가 적합한지]
 
-  Ralph로 진행할까요, 수동으로 할까요?
+  반복 루프로 진행할까요, 수동으로 할까요?
   ```
 
 ### 4. 선제적 품질 개선
@@ -259,8 +259,12 @@ npx vite --port 5173     # http://localhost:5173
 ```
 
 ### 반복 작업 자동화
-- 자주 반복되는 워크플로우는 Custom Skill 사용
-- 예: `/security-scan`, `/clean-history`, `/full-deploy`, `/ralph-loop`
+- 반복 워크플로우는 자연어 명령으로 요청:
+  - "보안 전수 스캔해줘" → 보안 취약점 전수 검색
+  - "히스토리 정리해줘" → git 히스토리 정리
+  - "배포해줘" → 빌드 확인 + git push
+  - "이거 반복 작업으로 돌려줘" → 대규모 배치 수정 (Ralph Loop 패턴)
+- 활용 가능한 skill: `/git-commit`, `/webapp-testing`, `/frontend-design`
 
 ---
 
@@ -284,6 +288,7 @@ npx vite --port 5173     # http://localhost:5173
 - `CHANGELOG.md` - 버전 히스토리
 - `PROGRESS.md` - 개발 진행 상태
 - `ROADMAP.md` - 향후 개발 계획
-- `CLAUDE_CODE_GUIDE.md` - Claude Code 활용 가이드
+- `CONTINUE_GUIDE.md` - PC에서 이어서 작업 가이드
 - `FIX_AUTO_LOGIN_ERROR.md` - 자동 로그인 에러 해결
 - `supabase/SETUP.md` - DB 설정 가이드
+- `~/.claude/CLAUDE.md` - Claude Code 전역 활용 가이드
