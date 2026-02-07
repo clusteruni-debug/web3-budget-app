@@ -211,7 +211,10 @@ src/
 │   ├── RecurringTab.js       # 고정 수입/지출
 │   ├── RPGTab.js             # RPG 게이미피케이션
 │   ├── TransactionsTab.js    # 거래 관리
-│   └── AccountsTab.js        # 계좌 관리
+│   ├── AccountsTab.js        # 계좌 관리
+│   ├── CashflowTab.js        # 캐시플로우
+│   ├── AssetManagementTab.js # 자산 관리
+│   └── ToolsTab.js           # 도구 모음
 ├── services/
 │   ├── supabase.js           # Supabase 클라이언트
 │   ├── auth.js               # 인증 서비스
