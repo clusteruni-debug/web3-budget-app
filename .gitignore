@@ -25,3 +25,6 @@ npm-debug.log*
 # Backup/Old files
 구버전/
 .claude/
+
+# 세션 잠금
+.claude-lock

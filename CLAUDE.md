@@ -291,3 +291,12 @@ npx vite --port 5173     # http://localhost:5173
 - `FIX_AUTO_LOGIN_ERROR.md` - 자동 로그인 에러 해결
 - `supabase/SETUP.md` - DB 설정 가이드
 - `~/.claude/CLAUDE.md` - Claude Code 전역 활용 가이드
+
+---
+
+## 🔒 세션 잠금
+
+이 프로젝트는 세션 잠금 시스템 적용 대상입니다.
+- 작업 시작: `/session-start` → `.claude-lock` 생성 → 다른 세션 수정 차단
+- 작업 종료: `/session-end` → `.claude-lock` 삭제
+- **다른 세션에서 이 프로젝트를 수정하려 하면 PreToolUse hook이 자동 차단합니다**
