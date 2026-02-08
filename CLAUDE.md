@@ -300,6 +300,8 @@ npx vite --port 5173     # http://localhost:5173
 - **supabase MCP**: Supabase 스키마/쿼리 관리 (첫 사용 시 인증 프롬프트)
 - **claude-mem**: 세션 히스토리 압축 + 컨텍스트 유실 방지
 - **ccusage**: `npx ccusage@latest daily` — 토큰 비용 확인
+- **vercel MCP**: 배포 상태/로그 확인 (읽기 전용)
+- **github MCP**: GitHub 이슈/PR/Actions 관리
 
 ---
 
